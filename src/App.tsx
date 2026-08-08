@@ -1,0 +1,361 @@
+import React, { useState, useEffect } from 'react';
+import { UserRole, Warga, Keluarga, SuratPengantar, TransaksiKeuangan, TagihanIuran, Pengaduan, Pengumuman, AgendaKegiatan, AuditLog, DigitalDocument } from './types/rt';
+import { INITIAL_WARGA, INITIAL_KELUARGA, INITIAL_SURAT, INITIAL_TRANSAKSI, INITIAL_IURAN, INITIAL_PENGADUAN, INITIAL_PENGUMUMAN, INITIAL_AGENDA, INITIAL_PENGURUS, INITIAL_AUDIT_LOG } from './data/mockData';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
+import { LandingPage } from './components/LandingPage';
+import { Dashboard } from './components/Dashboard';
+import { DocumentVerificationView } from './components/DocumentVerificationView';
+import { LetterGeneratorModal } from './components/LetterGeneratorModal';
+import { ComplaintModal } from './components/ComplaintModal';
+import { ArchitectureModal } from './components/ArchitectureModal';
+import { WhatsAppAutomationModal } from './components/WhatsAppAutomationModal';
+import { PdfDocumentViewer } from './components/PdfDocumentViewer';
+import { DocumentArchiveModal } from './components/DocumentArchiveModal';
+import { RevokeDocumentModal } from './components/RevokeDocumentModal';
+import { BottomNav } from './components/BottomNav';
+import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
+import { waServiceInstance } from './services/whatsappService';
+import { getStoredDigitalDocuments, revokeDigitalDocument } from './services/documentService';
+import { SecurityHealthDashboard } from './components/SecurityHealthDashboard';
+import { RitaAssistantWidget } from './components/RitaAssistantWidget';
+
+export default function App() {
+  const [currentRole, setRole] = useState<UserRole>('PUBLIC');
+  const [currentTab, setTab] = useState<string>('landing');
+  const [activeSubTab, setActiveSubTab] = useState<string>('overview');
+
+  // Master States
+  const [wargaList, setWargaList] = useState<Warga[]>(INITIAL_WARGA);
+  const [keluargaList, setKeluargaList] = useState<Keluarga[]>(INITIAL_KELUARGA);
+  const [suratList, setSuratList] = useState<SuratPengantar[]>(INITIAL_SURAT);
+  const [transaksiList, setTransaksiList] = useState<TransaksiKeuangan[]>(INITIAL_TRANSAKSI);
+  const [iuranList, setIuranList] = useState<TagihanIuran[]>(INITIAL_IURAN);
+  const [pengaduanList, setPengaduanList] = useState<Pengaduan[]>(INITIAL_PENGADUAN);
+  const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>(INITIAL_PENGUMUMAN);
+  const [agendaList, setAgendaList] = useState<AgendaKegiatan[]>(INITIAL_AGENDA);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOG);
+
+  // Tahap 5 Digital Documents State
+  const [digitalDocs, setDigitalDocs] = useState<DigitalDocument[]>(getStoredDigitalDocuments());
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [selectedPdfDoc, setSelectedPdfDoc] = useState<DigitalDocument | null>(null);
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [revokeModalOpen, setRevokeModalOpen] = useState(false);
+  const [revokeTargetDoc, setRevokeTargetDoc] = useState<DigitalDocument | null>(null);
+
+  // Sync Digital Documents store
+  const refreshDigitalDocs = () => {
+    setDigitalDocs(getStoredDigitalDocuments());
+  };
+
+  // Toast System State
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const addToast = (type: ToastType, title: string, message?: string) => {
+    const id = Date.now().toString();
+    const newToast: ToastMessage = { id, type, title, message };
+    setToasts((prev) => [...prev, newToast]);
+
+    if (type !== 'loading') {
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 4000);
+    }
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Modals
+  const [letterModalOpen, setLetterModalOpen] = useState(false);
+  const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  const [archModalOpen, setArchModalOpen] = useState(false);
+  const [waModalOpen, setWaModalOpen] = useState(false);
+  const [securityModalOpen, setSecurityModalOpen] = useState(false);
+
+  const handleRestoreState = (restoredData: any) => {
+    if (restoredData.wargaList) setWargaList(restoredData.wargaList);
+    if (restoredData.keluargaList) setKeluargaList(restoredData.keluargaList);
+    if (restoredData.suratList) setSuratList(restoredData.suratList);
+    if (restoredData.transaksiList) setTransaksiList(restoredData.transaksiList);
+    if (restoredData.iuranList) setIuranList(restoredData.iuranList);
+    if (restoredData.pengaduanList) setPengaduanList(restoredData.pengaduanList);
+    if (restoredData.pengumumanList) setPengumumanList(restoredData.pengumumanList);
+    if (restoredData.agendaList) setAgendaList(restoredData.agendaList);
+    if (restoredData.auditLogs) setAuditLogs(restoredData.auditLogs);
+    refreshDigitalDocs();
+  };
+
+  const handleOpenPdfDoc = (doc: DigitalDocument) => {
+    setSelectedPdfDoc(doc);
+    setPdfViewerOpen(true);
+  };
+
+  const handleOpenRevokeModal = (doc: DigitalDocument) => {
+    setRevokeTargetDoc(doc);
+    setRevokeModalOpen(true);
+  };
+
+  const handleConfirmRevoke = (docId: string, reason: string) => {
+    const result = revokeDigitalDocument(docId, `Pengurus RT (${currentRole})`, reason);
+    if (result.success) {
+      refreshDigitalDocs();
+      addToast('error', 'Dokumen Dicabut!', `Document ${docId} berhasil dicabut.`);
+      
+      const newLog: AuditLog = {
+        id_log: `LOG-${Date.now()}`,
+        timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+        user: `Pengurus RT (${currentRole})`,
+        action: 'DOCUMENT_REVOKED',
+        module: 'Arsip Dokumen Digital',
+        record_id: docId,
+        status: 'WARNING',
+        description: `Mencabut dokumen ${docId} dengan alasan: ${reason}`
+      };
+      setAuditLogs((prev) => [newLog, ...prev]);
+    } else {
+      addToast('error', 'Gagal Mencabut Dokumen', result.message);
+    }
+  };
+
+  const handleAddSurat = (newSurat: SuratPengantar) => {
+    setSuratList((prev) => [newSurat, ...prev]);
+    const newLog: AuditLog = {
+      id_log: `LOG-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      user: `Warga (${newSurat.nama_pemohon})`,
+      action: 'SUBMIT_SURAT',
+      module: 'Administrasi Surat',
+      record_id: newSurat.id_surat,
+      status: 'SUCCESS',
+      description: `Mengajukan permohonan ${newSurat.jenis_surat}.`
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    addToast('success', 'Permohonan Surat Terkirim!', `Nomor Registrasi: ${newSurat.nomor_surat}`);
+
+    // Trigger WhatsApp Event 1: SURAT_RECEIVED
+    const pemohonWarga = wargaList.find((w) => w.id_warga === newSurat.id_warga);
+    const targetPhone = pemohonWarga?.no_hp || '081234567890';
+    waServiceInstance.sendNotification('SURAT_RECEIVED', targetPhone, {
+      recipientPhone: targetPhone,
+      recipientName: newSurat.nama_pemohon,
+      idRecord: newSurat.nomor_surat,
+      jenisLayanan: newSurat.jenis_surat
+    });
+  };
+
+  const handleAddPengaduan = (newPengaduan: Pengaduan) => {
+    setPengaduanList((prev) => [newPengaduan, ...prev]);
+    const newLog: AuditLog = {
+      id_log: `LOG-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      user: `Warga (${newPengaduan.nama_pelapor})`,
+      action: 'SUBMIT_PENGADUAN',
+      module: 'Pengaduan Warga',
+      record_id: newPengaduan.id_pengaduan,
+      status: 'SUCCESS',
+      description: `Mengirim pengaduan ${newPengaduan.kategori}.`
+    };
+    setAuditLogs((prev) => [newLog, ...prev]);
+    addToast('success', 'Pengaduan Terdaftar!', `Nomor Tiket: ${newPengaduan.nomor_tiket}`);
+
+    // Trigger WhatsApp Event 5: PENGADUAN_RECEIVED
+    waServiceInstance.sendNotification('PENGADUAN_RECEIVED', newPengaduan.no_hp || '081234567890', {
+      recipientPhone: newPengaduan.no_hp || '081234567890',
+      recipientName: newPengaduan.nama_pelapor,
+      idRecord: newPengaduan.nomor_tiket,
+      jenisLayanan: newPengaduan.kategori,
+      details: newPengaduan.deskripsi
+    });
+  };
+
+  const pendingSuratCount = suratList.filter((s) => s.status !== 'SELESAI' && s.status !== 'DITOLAK').length;
+  const activeAduanCount = pengaduanList.filter((p) => p.status !== 'SELESAI').length;
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans selection:bg-[#2E7D52] selection:text-white pb-16 lg:pb-0">
+      
+      {/* Header Bar */}
+      <Header
+        currentRole={currentRole}
+        setRole={setRole}
+        currentTab={currentTab}
+        setTab={setTab}
+        openLetterModal={() => setLetterModalOpen(true)}
+        openComplaintModal={() => setComplaintModalOpen(true)}
+        openArchModal={() => setArchModalOpen(true)}
+        openWaModal={() => setWaModalOpen(true)}
+        openArchiveModal={() => {
+          refreshDigitalDocs();
+          setArchiveModalOpen(true);
+        }}
+        openSecurityModal={() => setSecurityModalOpen(true)}
+      />
+
+      {/* Main App Body */}
+      <main className="flex-1">
+        {currentTab === 'landing' && (
+          <LandingPage
+            setTab={setTab}
+            openLetterModal={() => setLetterModalOpen(true)}
+            openComplaintModal={() => setComplaintModalOpen(true)}
+            announcements={pengumumanList}
+            agendas={agendaList}
+            transactions={transaksiList}
+          />
+        )}
+
+        {currentTab === 'dashboard' && (
+          <Dashboard
+            currentRole={currentRole}
+            wargaList={wargaList}
+            setWargaList={setWargaList}
+            keluargaList={keluargaList}
+            setKeluargaList={setKeluargaList}
+            suratList={suratList}
+            setSuratList={setSuratList}
+            transaksiList={transaksiList}
+            setTransaksiList={setTransaksiList}
+            iuranList={iuranList}
+            setIuranList={setIuranList}
+            pengaduanList={pengaduanList}
+            setPengaduanList={setPengaduanList}
+            pengumumanList={pengumumanList}
+            setPengumumanList={setPengumumanList}
+            agendaList={agendaList}
+            setAgendaList={setAgendaList}
+            pengurusList={INITIAL_PENGURUS}
+            auditLogs={auditLogs}
+            openLetterModal={() => setLetterModalOpen(true)}
+            openComplaintModal={() => setComplaintModalOpen(true)}
+            openArchModal={() => setArchModalOpen(true)}
+            openArchiveModal={() => {
+              refreshDigitalDocs();
+              setArchiveModalOpen(true);
+            }}
+            activeSubTab={activeSubTab}
+            setActiveSubTab={setActiveSubTab}
+            addToast={addToast}
+          />
+        )}
+
+        {currentTab === 'verify' && (
+          <DocumentVerificationView suratList={suratList} digitalDocs={digitalDocs} />
+        )}
+      </main>
+
+      {/* Footer */}
+      <Footer setTab={setTab} openArchModal={() => setArchModalOpen(true)} />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <BottomNav
+        currentTab={currentTab}
+        setTab={setTab}
+        activeSubTab={activeSubTab}
+        setActiveSubTab={setActiveSubTab}
+        openLetterModal={() => setLetterModalOpen(true)}
+        pendingSuratCount={pendingSuratCount}
+        activeAduanCount={activeAduanCount}
+      />
+
+      {/* Toast Notifications Container */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+
+      {/* Modals */}
+      <LetterGeneratorModal
+        isOpen={letterModalOpen}
+        onClose={() => setLetterModalOpen(false)}
+        suratList={suratList}
+        onAddSurat={handleAddSurat}
+        currentRole={currentRole}
+      />
+
+      <ComplaintModal
+        isOpen={complaintModalOpen}
+        onClose={() => setComplaintModalOpen(false)}
+        onAddPengaduan={handleAddPengaduan}
+      />
+
+      <ArchitectureModal
+        isOpen={archModalOpen}
+        onClose={() => setArchModalOpen(false)}
+      />
+
+      <WhatsAppAutomationModal
+        isOpen={waModalOpen}
+        onClose={() => setWaModalOpen(false)}
+        addToast={addToast}
+      />
+
+      {/* Tahap 5 PDF & QR Verification Modals */}
+      <DocumentArchiveModal
+        isOpen={archiveModalOpen}
+        onClose={() => setArchiveModalOpen(false)}
+        digitalDocs={digitalDocs}
+        onSelectDoc={handleOpenPdfDoc}
+        onRevokeClick={handleOpenRevokeModal}
+        currentRole={currentRole}
+      />
+
+      <PdfDocumentViewer
+        isOpen={pdfViewerOpen}
+        onClose={() => setPdfViewerOpen(false)}
+        document={selectedPdfDoc}
+        onRevokeClick={handleOpenRevokeModal}
+        canRevoke={currentRole === 'ADMIN' || currentRole === 'KETUA_RT' || currentRole === 'PENGURUS'}
+      />
+
+      <RevokeDocumentModal
+        isOpen={revokeModalOpen}
+        onClose={() => setRevokeModalOpen(false)}
+        document={revokeTargetDoc}
+        onConfirmRevoke={handleConfirmRevoke}
+      />
+
+      {/* Tahap 6 & 7 Security, Health & Backup Dashboard */}
+      <SecurityHealthDashboard
+        isOpen={securityModalOpen}
+        onClose={() => setSecurityModalOpen(false)}
+        currentRole={currentRole}
+        auditLogs={auditLogs}
+        dataState={{
+          wargaList,
+          keluargaList,
+          suratList,
+          transaksiList,
+          iuranList,
+          pengaduanList,
+          pengumumanList,
+          agendaList,
+          auditLogs
+        }}
+        onRestoreState={handleRestoreState}
+        addToast={addToast}
+      />
+
+      {/* Tahap 8 AI Assistant RITA Floating Widget */}
+      <RitaAssistantWidget
+        currentRole={currentRole}
+        userName={currentRole === 'PUBLIC' ? 'Tamu RT 07' : `Warga (${currentRole})`}
+        suratList={suratList}
+        iuranList={iuranList}
+        pengaduanList={pengaduanList}
+        pengumumanList={pengumumanList}
+        agendaList={agendaList}
+        openLetterModal={() => setLetterModalOpen(true)}
+        openComplaintModal={() => setComplaintModalOpen(true)}
+        openArchiveModal={() => {
+          refreshDigitalDocs();
+          setArchiveModalOpen(true);
+        }}
+        onPublishAnnouncement={(newAnn) => {
+          setPengumumanList((prev) => [newAnn, ...prev]);
+        }}
+        addToast={addToast}
+      />
+
+    </div>
+  );
+}

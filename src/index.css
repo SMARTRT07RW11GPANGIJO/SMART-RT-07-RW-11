@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --rt-navy: #123B5D;
+    --rt-navy-dark: #0A2338;
+    --rt-green: #2E7D52;
+    --rt-green-light: #EBF6F0;
+    --rt-red: #C62828;
+    --rt-gold: #D4A72C;
+    --rt-gold-light: #FFF9E6;
+    --rt-bg: #F8FAFC;
+  }
+}
+
+body {
+  background-color: var(--rt-bg);
+  color: #1E293B;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
