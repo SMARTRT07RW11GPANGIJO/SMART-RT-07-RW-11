@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, MessageSquare, Send, CheckCircle2, AlertTriangle, RefreshCw, Copy, Check, ShieldCheck, PhoneCall, Code, FileText, Bell } from 'lucide-react';
+import { X, MessageSquare, Send, CheckCircle2, AlertTriangle, RefreshCw, Copy, Check, ShieldCheck, Code, FileText, Bot, UserCheck, Lock, Sparkles, Terminal } from 'lucide-react';
 import { WAEvent, WAPayload, WhatsAppService, getWALogs, isValidPhoneNumber, formatPhoneInternational, WALogEntry } from '../services/whatsappService';
 
 interface WhatsAppAutomationModalProps {
@@ -8,14 +8,35 @@ interface WhatsAppAutomationModalProps {
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
 }
 
+interface WAChatMsg {
+  id: string;
+  sender: 'USER' | 'BOT';
+  text: string;
+  timestamp: string;
+}
+
 export const WhatsAppAutomationModal: React.FC<WhatsAppAutomationModalProps> = ({
   isOpen,
   onClose,
   addToast
 }) => {
-  const [activeTab, setActiveTab] = useState<'TESTER' | 'LOGS' | 'GAS_CODE' | 'SETUP'>('TESTER');
-  
-  // Tester State
+  const [activeTab, setActiveTab] = useState<'AI_SIMULATOR' | 'NOTIF_TESTER' | 'LOGS' | 'GAS_8H_CODE' | 'SETUP'>('AI_SIMULATOR');
+
+  // AI Simulator State
+  const [simPhone, setSimPhone] = useState('6281234567890');
+  const [simInput, setSimInput] = useState('');
+  const [simMessages, setSimMessages] = useState<WAChatMsg[]>([
+    {
+      id: 'msg-1',
+      sender: 'BOT',
+      text: '🤖 *SMART RT 07 WA AI ASSISTANT*\n\nAssalamu\'alaikum! Selamat datang di layanan WhatsApp AI Assistant RT 07 RW 11 Perum GPA Ngijo.\n\nKetik *MENU* untuk daftar perintah atau tanyakan apapun mengenai administrasi RT.',
+      timestamp: new Date().toLocaleTimeString().slice(0, 5)
+    }
+  ]);
+  const [isSimLoading, setIsSimLoading] = useState(false);
+  const [simProvider, setSimProvider] = useState('Fonnte (Active)');
+
+  // Tester State (Transactional)
   const [testEvent, setTestEvent] = useState<WAEvent>('SURAT_RECEIVED');
   const [testPhone, setTestPhone] = useState('081234567890');
   const [testName, setTestName] = useState('Ir. Budi Santoso');
@@ -29,6 +50,61 @@ export const WhatsAppAutomationModal: React.FC<WhatsAppAutomationModalProps> = (
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleSendSimMessage = async (overrideText?: string) => {
+    const messageToSend = overrideText || simInput;
+    if (!messageToSend.trim()) return;
+
+    const userMsg: WAChatMsg = {
+      id: `usr-${Date.now()}`,
+      sender: 'USER',
+      text: messageToSend,
+      timestamp: new Date().toLocaleTimeString().slice(0, 5)
+    };
+
+    setSimMessages((prev) => [...prev, userMsg]);
+    if (!overrideText) setSimInput('');
+    setIsSimLoading(true);
+
+    try {
+      const response = await fetch('/api/whatsapp/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-webhook-secret': 'SMART_RT07_SECRET_2026'
+        },
+        body: JSON.stringify({
+          phone: simPhone,
+          message: messageToSend,
+          messageId: `MSG-SIM-${Date.now()}`
+        })
+      });
+
+      const data = await response.json();
+      setIsSimLoading(false);
+
+      if (data.success && data.reply) {
+        const botMsg: WAChatMsg = {
+          id: `bot-${Date.now()}`,
+          sender: 'BOT',
+          text: data.reply,
+          timestamp: new Date().toLocaleTimeString().slice(0, 5)
+        };
+        setSimMessages((prev) => [...prev, botMsg]);
+      } else {
+        const botErrMsg: WAChatMsg = {
+          id: `bot-err-${Date.now()}`,
+          sender: 'BOT',
+          text: `⚠️ *WHATSAPP GATEWAY RESPONSE*\n\n${data.error || 'Gagal memproses pesan via Webhook Gateway.'}`,
+          timestamp: new Date().toLocaleTimeString().slice(0, 5)
+        };
+        setSimMessages((prev) => [...prev, botErrMsg]);
+      }
+    } catch (e: any) {
+      setIsSimLoading(false);
+      addToast('error', 'Simulator Error', e.message || 'Gagal terhubung ke WhatsApp Express Webhook');
+    }
+  };
 
   const handleRefreshLogs = () => {
     setLogs(getWALogs());
@@ -73,237 +149,269 @@ export const WhatsAppAutomationModal: React.FC<WhatsAppAutomationModalProps> = (
     setTimeout(() => setCopiedFile(null), 2000);
   };
 
-  const gasWaCode = `/**
- * WhatsAppService.gs
- * SMART RT 07 RW 11 GPA NGIJO
- * Multi-Provider WhatsApp Gateway Abstraction Layer
- * Configuration loaded from PropertiesService (No Hardcoded Credentials)
- */
-
-function getWAConfig() {
-  var props = PropertiesService.getScriptProperties();
-  return {
-    API_TOKEN: props.getProperty("WA_API_TOKEN") || "FONNTE_TOKEN_PLACEHOLDER",
-    ENDPOINT: props.getProperty("WA_ENDPOINT") || "https://api.fonnte.com/send",
-    PROVIDER_NAME: props.getProperty("WA_PROVIDER_NAME") || "Fonnte Gateway",
-    MAX_RETRIES: parseInt(props.getProperty("WA_MAX_RETRIES") || "3", 10)
-  };
-}
-
-// 1. Phone Number Validator
-function isValidIndonesianPhone(phone) {
-  if (!phone) return false;
-  var cleaned = String(phone).replace(/[^0-9]/g, "");
-  return /^(08|628)\\d{8,12}$/.test(cleaned);
-}
-
-function formatPhoneInternational(phone) {
-  var cleaned = String(phone).replace(/[^0-9]/g, "");
-  if (cleaned.indexOf("0") === 0) {
-    cleaned = "62" + cleaned.substring(1);
-  }
-  return cleaned;
-}
-
-// 2. Message Template Builder
-function buildMessage(event, data) {
-  var header = "Assalamu'alaikum warahmatullahi wabarakatuh.\\n\\n*RT 07 RW 11 Perum GPA Ngijo*\\nKarangploso, Kabupaten Malang\\n-----------------------------------------";
-  var footer = "-----------------------------------------\\nSilakan cek melalui *Portal Warga SMART RT*:\\nhttps://smart-rt07-gpa-ngijo.app\\n\\n_Terima kasih._\\n*Bersama Melayani, Bersama Membangun.*";
-
-  switch (event) {
-    case "SURAT_RECEIVED":
-      return header + "\\n\\n📨 *Pengajuan Surat Diterima*\\n\\nYth. Bpk/Ibu *" + (data.nama || "Warga") + "*,\\nPengajuan surat Anda telah diterima di sistem.\\n\\n📌 *Nomor Pengajuan:* " + (data.id || "-") + "\\n📄 *Jenis Surat:* " + (data.jenis || "-") + "\\n⏳ *Status:* DIAJUKAN (Menunggu Verifikasi Sekretaris)\\n\\n" + footer;
-
-    case "SURAT_VERIFIED":
-      return header + "\\n\\n🔍 *Surat Berhasil Diverifikasi*\\n\\nYth. Bpk/Ibu *" + (data.nama || "Warga") + "*,\\nBerkas permohonan surat Anda telah diverifikasi oleh Sekretaris RT.\\n\\n📌 *Nomor Surat:* " + (data.id || "-") + "\\n📄 *Jenis Surat:* " + (data.jenis || "-") + "\\n status: DIVERIFIKASI (Menunggu Tanda Tangan Ketua RT)\\n\\n" + footer;
-
-    case "SURAT_APPROVED":
-      return header + "\\n\\n✍️ *Surat Disetujui Ketua RT*\\n\\nYth. Bpk/Ibu *" + (data.nama || "Warga") + "*,\\nPermohonan surat Anda telah disetujui dan ditandatangani secara digital.\\n\\n📌 *Nomor Surat:* " + (data.id || "-") + "\\n📄 *Jenis Surat:* " + (data.jenis || "-") + "\\n✅ *Status:* DISETUJUI / SELESAI\\n\\n" + footer;
-
-    case "SURAT_COMPLETED":
-      return header + "\\n\\n✅ *Surat Pengantar Ready / Selesai*\\n\\nYth. Bpk/Ibu *" + (data.nama || "Warga") + "*,\\nDokumen Surat Pengantar Resmi Anda telah terbit dan siap diunduh (PDF + QR Code Hash).\\n\\n📌 *Nomor Surat:* " + (data.id || "-") + "\\n📄 *Jenis Surat:* " + (data.jenis || "-") + "\\n\\n" + footer;
-
-    case "PENGADUAN_RECEIVED":
-      return header + "\\n\\n🚨 *Laporan Pengaduan Diterima*\\n\\nYth. Bpk/Ibu *" + (data.nama || "Pelapor") + "*,\\nLaporan pengaduan lingkungan Anda telah terdaftar.\\n\\n🎫 *Nomor Tiket:* " + (data.id || "-") + "\\n🏷️ *Kategori:* " + (data.jenis || "-") + "\\n📝 *Deskripsi:* " + (data.details || "-") + "\\n\\n" + footer;
-
-    case "PENGADUAN_COMPLETED":
-      return header + "\\n\\n🎉 *Laporan Pengaduan Selesai Ditangani*\\n\\nYth. Bpk/Ibu *" + (data.nama || "Pelapor") + "*,\\nLaporan pengaduan tiket *" + (data.id || "-") + "* telah SELESAI ditindaklanjuti Pengurus RT.\\n\\n💬 *Catatan:* " + (data.details || "Sudah diselesaikan") + "\\n\\n" + footer;
-
-    case "PENGUMUMAN_IMPORTANT":
-      return header + "\\n\\n📢 *PENGUMUMAN PENTING RT 07*\\n\\nYth. Seluruh Warga RT 07 RW 11 GPA Ngijo,\\n\\n📌 *Judul:* " + (data.jenis || "Informasi") + "\\n\\n" + (data.details || "-") + "\\n\\n" + footer;
-
-    case "IURAN_REMINDER":
-      return header + "\\n\\n💳 *Pengingat Iuran Bulanan RT 07*\\n\\nYth. Bpk/Ibu *" + (data.nama || "Kepala Keluarga") + "*,\\nMengingatkan iuran bulanan kebersihan & keamanan RT 07.\\n\\n📅 *Periode:* " + (data.bulanTahun || "Bulan Ini") + "\\n💵 *Nominal:* Rp " + (data.nominal || "50.000") + "\\n\\n" + footer;
-
-    default:
-      return header + "\\n\\nNotifikasi SMART RT 07.\\n\\n" + footer;
-  }
-}
-
-// 3. Core Send Function with Retry Mechanism
-function sendWhatsApp(recipientPhone, message) {
-  var config = getWAConfig();
-  
-  if (!isValidIndonesianPhone(recipientPhone)) {
-    logMessage(recipientPhone, "INVALID_PHONE", message, "FAILED", 0, "Nomor HP tidak valid");
-    return { success: false, error: "Nomor HP tidak valid" };
-  }
-
-  var formattedTarget = formatPhoneInternational(recipientPhone);
-  var attempts = 0;
-  var success = false;
-  var lastError = "";
-
-  var payload = {
-    target: formattedTarget,
-    message: message,
-    countryCode: "62"
-  };
-
-  var options = {
-    method: "post",
-    headers: {
-      "Authorization": config.API_TOKEN
-    },
-    payload: payload,
-    muteHttpExceptions: true
-  };
-
-  while (attempts < config.MAX_RETRIES && !success) {
-    attempts++;
-    try {
-      var response = UrlFetchApp.fetch(config.ENDPOINT, options);
-      var code = response.getResponseCode();
-      var responseText = response.getContentText();
-
-      if (code === 200) {
-        success = true;
-        logMessage(formattedTarget, "WA_DISPATCH", message, "SUCCESS", attempts, "Response: " + responseText);
-      } else {
-        lastError = "HTTP " + code + ": " + responseText;
-        logMessage(formattedTarget, "WA_DISPATCH", message, "RETRY", attempts, lastError);
-        Utilities.sleep(1000 * attempts); // Retry backoff
-      }
-    } catch (e) {
-      lastError = e.message;
-      logMessage(formattedTarget, "WA_DISPATCH", message, "RETRY", attempts, lastError);
-      Utilities.sleep(1000 * attempts);
-    }
-  }
-
-  if (!success) {
-    logMessage(formattedTarget, "WA_DISPATCH", message, "FAILED", attempts, lastError);
-  }
-
-  return { success: success, attempts: attempts, error: lastError };
-}
-
-// 4. Notification Abstraction Handler
-function sendNotification(event, recipientPhone, data) {
-  var message = buildMessage(event, data);
-  return sendWhatsApp(recipientPhone, message);
-}
-
-// 5. Audit Logging for WA Messages
-function logMessage(recipient, action, message, status, attempts, errorMsg) {
-  try {
-    var ss = SpreadsheetApp.openById(getConfig().SPREADSHEET_ID);
-    var sheet = ss.getSheetByName("WA_LOGS") || ss.insertSheet("WA_LOGS");
-    
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["TIMESTAMP", "RECIPIENT", "ACTION", "STATUS", "ATTEMPTS", "ERROR_MSG", "MESSAGE_PREVIEW"]);
-    }
-    
-    sheet.appendRow([
-      Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss"),
-      recipient,
-      action,
-      status,
-      attempts,
-      errorMsg || "-",
-      message.substring(0, 100) + "..."
-    ]);
-  } catch(e) {
-    Logger.log("WA Logging failed: " + e.message);
-  }
-}`;
+  const gas8HOverviewCode = `// TAHAP 8H — WHATSAPP AI BACKEND SUITE (Google Apps Script)
+// Files in gas-backend/:
+// 1. WhatsAppProvider.gs  - Multi-provider Gateway Interface (Fonnte/Wablas/Whacenter/Custom)
+// 2. WhatsAppWebhook.gs   - Signature & Secret Auth, Idempotency, Rate Limit, Webhook Router
+// 3. WhatsAppIdentity.gs  - Pairing Code Engine (DAFTAR RT07-XXXXXX) & Phone Auth
+// 4. WhatsAppSession.gs   - State Machine (START, CONFIRM, COLLECT_DATA, SUBMIT, COMPLETED)
+// 5. WhatsAppRouter.gs    - Command Parser (MENU, SURAT, IURAN, PENGADUAN, PROFIL) & AI Delegate
+// 6. WhatsAppAI.gs        - Gemini 2.5 Flash, RAG, DAL, Prompt Injection Guard, Audit Logging
+// 7. WhatsAppSender.gs    - Formatted Response Builder with WhatsApp Markdown
+// 8. WhatsAppRateLimit.gs - Rate Limit Guard (10 msg/min, 100 msg/hour, duplicate filter)`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-[#0A2338] text-white w-full max-w-4xl rounded-3xl shadow-2xl border-2 border-emerald-500 overflow-hidden my-6">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+      <div className="bg-[#0A2338] text-white w-full max-w-5xl rounded-3xl shadow-2xl border-2 border-emerald-500 overflow-hidden my-4 flex flex-col max-h-[92vh]">
         
         {/* Header */}
-        <div className="p-5 bg-[#123B5D] border-b border-[#2E7D52] flex items-center justify-between">
+        <div className="p-4 bg-[#123B5D] border-b border-[#2E7D52] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#2E7D52] flex items-center justify-center border border-[#D4A72C] shadow">
-              <MessageSquare className="w-5 h-5 text-emerald-300" />
+            <div className="w-10 h-10 rounded-2xl bg-[#2E7D52] flex items-center justify-center border border-[#D4A72C] shadow-lg">
+              <Bot className="w-6 h-6 text-emerald-300 animate-pulse" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
-                WHATSAPP AUTOMATION SERVICE (TAHAP 4)
-                <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-400">
-                  MULTI-PROVIDER
+              <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                TAHAP 8H — AI WHATSAPP BOT & GATEWAY
+                <span className="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-400">
+                  RAG + DAL + SECURITY
                 </span>
               </h3>
-              <p className="text-xs text-slate-300">Notifikasi Otomatis 8 Event Warga • Abstraction Layer & Retry Logic</p>
+              <p className="text-xs text-slate-300">RITA AI Assistant • Webhook Security • Multi-Provider Adapter • Confirmation Flow</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white">
+          <button onClick={onClose} className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-800 bg-[#051320] text-xs">
+        <div className="flex border-b border-slate-800 bg-[#051320] text-xs shrink-0 overflow-x-auto">
           <button
-            onClick={() => setActiveTab('TESTER')}
-            className={`flex-1 py-3 font-bold flex items-center justify-center gap-2 border-b-2 transition-all ${
-              activeTab === 'TESTER' ? 'border-[#D4A72C] text-[#D4A72C] bg-[#123B5D]' : 'border-transparent text-slate-400 hover:text-white'
+            onClick={() => setActiveTab('AI_SIMULATOR')}
+            className={`py-3 px-4 font-bold flex items-center justify-center gap-2 border-b-2 transition-all shrink-0 ${
+              activeTab === 'AI_SIMULATOR' ? 'border-[#D4A72C] text-[#D4A72C] bg-[#123B5D]' : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <Send className="w-4 h-4" /> Live Tester Notifikasi
+            <Bot className="w-4 h-4 text-emerald-400" /> WhatsApp AI Bot Simulator
+          </button>
+
+          <button
+            onClick={() => setActiveTab('NOTIF_TESTER')}
+            className={`py-3 px-4 font-bold flex items-center justify-center gap-2 border-b-2 transition-all shrink-0 ${
+              activeTab === 'NOTIF_TESTER' ? 'border-[#D4A72C] text-[#D4A72C] bg-[#123B5D]' : 'border-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            <Send className="w-4 h-4" /> Live Notifikasi Event (8 Event)
           </button>
 
           <button
             onClick={() => setActiveTab('LOGS')}
-            className={`flex-1 py-3 font-bold flex items-center justify-center gap-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-bold flex items-center justify-center gap-2 border-b-2 transition-all shrink-0 ${
               activeTab === 'LOGS' ? 'border-[#D4A72C] text-[#D4A72C] bg-[#123B5D]' : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <FileText className="w-4 h-4" /> Log Kirim WA ({logs.length})
+            <FileText className="w-4 h-4" /> Audit Log WhatsApp ({logs.length})
           </button>
 
           <button
-            onClick={() => setActiveTab('GAS_CODE')}
-            className={`flex-1 py-3 font-bold flex items-center justify-center gap-2 border-b-2 transition-all ${
-              activeTab === 'GAS_CODE' ? 'border-[#D4A72C] text-[#D4A72C] bg-[#123B5D]' : 'border-transparent text-slate-400 hover:text-white'
+            onClick={() => setActiveTab('GAS_8H_CODE')}
+            className={`py-3 px-4 font-bold flex items-center justify-center gap-2 border-b-2 transition-all shrink-0 ${
+              activeTab === 'GAS_8H_CODE' ? 'border-[#D4A72C] text-[#D4A72C] bg-[#123B5D]' : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <Code className="w-4 h-4" /> Kode Apps Script (WhatsAppService.gs)
+            <Code className="w-4 h-4" /> Kode GAS Backend (8 Files)
           </button>
 
           <button
             onClick={() => setActiveTab('SETUP')}
-            className={`flex-1 py-3 font-bold flex items-center justify-center gap-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-bold flex items-center justify-center gap-2 border-b-2 transition-all shrink-0 ${
               activeTab === 'SETUP' ? 'border-[#D4A72C] text-[#D4A72C] bg-[#123B5D]' : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <ShieldCheck className="w-4 h-4" /> Panduan & Config
+            <ShieldCheck className="w-4 h-4" /> Webhook Security & Config
           </button>
         </div>
 
         {/* Body Content */}
-        <div className="p-6">
+        <div className="p-5 flex-1 overflow-y-auto">
           
-          {/* TAB 1: LIVE TESTER */}
-          {activeTab === 'TESTER' && (
+          {/* TAB 1: WHATSAPP AI BOT SIMULATOR */}
+          {activeTab === 'AI_SIMULATOR' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              
+              {/* Left Column: Test Controls & Pairing Code Helper */}
+              <div className="space-y-4 text-xs">
+                <div className="bg-[#123B5D]/80 p-4 rounded-2xl border border-emerald-500/40 space-y-3">
+                  <h4 className="font-bold text-emerald-400 text-sm flex items-center gap-2">
+                    <UserCheck className="w-4 h-4" /> Simulator Identitas WhatsApp
+                  </h4>
+
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Nomor Pengirim (Phone):</label>
+                    <select
+                      value={simPhone}
+                      onChange={(e) => setSimPhone(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-[#051320] border border-slate-700 text-white font-mono text-xs font-bold focus:outline-none focus:border-[#D4A72C]"
+                    >
+                      <option value="6281234567890">6281234567890 - Bambang Susilo (WARGA)</option>
+                      <option value="6281298765432">6281298765432 - Ahmad Subagyo (PENGURUS)</option>
+                      <option value="6281333444555">6281333444555 - Sutrisno, M.P. (KETUA_RT)</option>
+                      <option value="6289998887770">6289998887770 - Nomor Belum Terhubung (PUBLIC)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-300 mb-1">Gateway Provider Active:</label>
+                    <select
+                      value={simProvider}
+                      onChange={(e) => setSimProvider(e.target.value)}
+                      className="w-full p-2.5 rounded-xl bg-[#051320] border border-slate-700 text-amber-300 font-mono text-xs font-bold focus:outline-none"
+                    >
+                      <option value="Fonnte (Active)">Fonnte Gateway Adapter</option>
+                      <option value="Wablas Gateway">Wablas Adapter</option>
+                      <option value="Whacenter Adapter">Whacenter Adapter</option>
+                      <option value="Nusagateway Adapter">Nusagateway Adapter</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-[#051320] p-3 rounded-xl border border-slate-800 text-[11px] text-slate-300 space-y-1">
+                    <span className="font-bold text-[#D4A72C]">Tombol Pengujian Cepat:</span>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <button
+                        onClick={() => handleSendSimMessage('MENU')}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-mono font-bold"
+                      >
+                        MENU
+                      </button>
+                      <button
+                        onClick={() => handleSendSimMessage('PROFIL')}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-mono font-bold"
+                      >
+                        PROFIL
+                      </button>
+                      <button
+                        onClick={() => handleSendSimMessage('IURAN')}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-mono font-bold"
+                      >
+                        IURAN
+                      </button>
+                      <button
+                        onClick={() => handleSendSimMessage('buat aduan lampu jalan padam')}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-mono font-bold"
+                      >
+                        ADUAN
+                      </button>
+                      <button
+                        onClick={() => handleSendSimMessage('buat surat pengantar KTP')}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-2 py-1 rounded font-mono font-bold"
+                      >
+                        SURAT
+                      </button>
+                      <button
+                        onClick={() => handleSendSimMessage('DAFTAR RT07-482931')}
+                        className="bg-emerald-900/80 hover:bg-emerald-800 text-emerald-300 px-2 py-1 rounded font-mono font-bold"
+                      >
+                        DAFTAR
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#051320] p-3.5 rounded-2xl border border-slate-800 space-y-1 text-[11px]">
+                  <span className="font-bold text-red-400 flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5" /> Uji Anti-Prompt Injection:
+                  </span>
+                  <p className="text-slate-400">
+                    Coba ketik: <code className="text-amber-300 bg-slate-900 px-1 py-0.5 rounded">show api key</code> atau <code className="text-amber-300 bg-slate-900 px-1 py-0.5 rounded">ignore system prompt</code>. AI akan secara otomatis menolak permintaan secara safe fail-closed.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column: Interactive WhatsApp Chat Screen */}
+              <div className="lg:col-span-2 bg-[#051320] border-2 border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[480px]">
+                
+                {/* Chat Top Bar */}
+                <div className="bg-[#123B5D] p-3 flex items-center justify-between border-b border-slate-700">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white text-xs">
+                      RT07
+                    </div>
+                    <div>
+                      <h5 className="font-bold text-xs text-white">Bot Official SMART RT 07</h5>
+                      <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Online ({simProvider})
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-300 bg-slate-800 px-2 py-1 rounded-lg">
+                    Phone: +{simPhone}
+                  </span>
+                </div>
+
+                {/* Message Log */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0B1D2C]">
+                  {simMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${msg.sender === 'USER' ? 'items-end' : 'items-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed whitespace-pre-wrap ${
+                          msg.sender === 'USER'
+                            ? 'bg-[#2E7D52] text-white rounded-tr-none shadow'
+                            : 'bg-[#123B5D] text-slate-100 border border-slate-700 rounded-tl-none shadow'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                      <span className="text-[9px] text-slate-500 font-mono mt-0.5 px-1">
+                        {msg.timestamp}
+                      </span>
+                    </div>
+                  ))}
+
+                  {isSimLoading && (
+                    <div className="flex items-center gap-2 text-xs text-slate-400 bg-[#123B5D]/50 p-2.5 rounded-xl w-max border border-slate-800">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                      Bot RITA sedang memproses via Webhook & Gemini RAG...
+                    </div>
+                  )}
+                </div>
+
+                {/* Chat Input Bar */}
+                <div className="p-2.5 bg-[#123B5D] border-t border-slate-700 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={simInput}
+                    onChange={(e) => setSimInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendSimMessage()}
+                    placeholder="Ketik pesan WhatsApp (misal: MENU, IURAN, SURAT, dll)..."
+                    className="flex-1 p-2.5 rounded-xl bg-[#051320] border border-slate-700 text-white text-xs focus:outline-none focus:border-[#D4A72C]"
+                  />
+                  <button
+                    onClick={() => handleSendSimMessage()}
+                    disabled={isSimLoading || !simInput.trim()}
+                    className="bg-[#2E7D52] hover:bg-[#236340] text-white p-2.5 rounded-xl font-bold transition-all disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2: LIVE NOTIF TESTER */}
+          {activeTab === 'NOTIF_TESTER' && (
             <div className="space-y-5">
               <div className="bg-[#123B5D]/60 p-4 rounded-2xl border border-emerald-500/40 text-xs text-slate-200 space-y-1">
                 <span className="font-bold text-emerald-400 flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" /> Pengujian Live Notifikasi WhatsApp RT 07
                 </span>
                 <p className="text-[11px] text-slate-300">
-                  Uji coba pengiriman 8 jenis event notifikasi secara real-time. Sistem menggunakan nomor validator, format template resmi, dan mekanisme retry otomatis.
+                  Uji coba pengiriman 8 jenis event notifikasi transaksi secara real-time.
                 </p>
               </div>
 
@@ -335,7 +443,6 @@ function logMessage(recipient, action, message, status, attempts, errorMsg) {
                     placeholder="081234567890"
                     className="w-full p-2.5 rounded-xl bg-[#051320] border border-slate-700 font-mono text-emerald-400 font-bold focus:outline-none focus:border-[#D4A72C]"
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5 block">Format: 08xx / 628xx</span>
                 </div>
 
                 <div>
@@ -357,26 +464,6 @@ function logMessage(recipient, action, message, status, attempts, errorMsg) {
                     className="w-full p-2.5 rounded-xl bg-[#051320] border border-slate-700 text-white font-mono focus:outline-none focus:border-[#D4A72C]"
                   />
                 </div>
-
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1">Jenis Surat / Kategori</label>
-                  <input
-                    type="text"
-                    value={testJenis}
-                    onChange={(e) => setTestJenis(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#051320] border border-slate-700 text-white focus:outline-none focus:border-[#D4A72C]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1">Rincian / Catatan Tambahan</label>
-                  <input
-                    type="text"
-                    value={testDetails}
-                    onChange={(e) => setTestDetails(e.target.value)}
-                    className="w-full p-2.5 rounded-xl bg-[#051320] border border-slate-700 text-white focus:outline-none focus:border-[#D4A72C]"
-                  />
-                </div>
               </div>
 
               <div className="pt-3 flex justify-end">
@@ -392,11 +479,11 @@ function logMessage(recipient, action, message, status, attempts, errorMsg) {
             </div>
           )}
 
-          {/* TAB 2: LOGS VIEW */}
+          {/* TAB 3: LOGS VIEW */}
           {activeTab === 'LOGS' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-bold text-sm text-white">Riwayat Audit Kirim WA (Log Dispatch)</h4>
+                <h4 className="font-bold text-sm text-white">Riwayat Audit Kirim WA (Log Dispatch & Webhook Events)</h4>
                 <button
                   onClick={handleRefreshLogs}
                   className="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold"
@@ -410,9 +497,9 @@ function logMessage(recipient, action, message, status, attempts, errorMsg) {
                   Belum ada catatan pengiriman WhatsApp. Coba kirim pesan melalui tab Live Tester.
                 </div>
               ) : (
-                <div className="overflow-x-auto border border-slate-800 rounded-2xl">
+                <div className="overflow-x-auto border border-slate-800 rounded-2xl max-h-[380px]">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#123B5D] text-white font-bold uppercase text-[10px]">
+                    <thead className="bg-[#123B5D] text-white font-bold uppercase text-[10px] sticky top-0">
                       <tr>
                         <th className="p-3">Waktu</th>
                         <th className="p-3">Penerima</th>
@@ -446,49 +533,38 @@ function logMessage(recipient, action, message, status, attempts, errorMsg) {
             </div>
           )}
 
-          {/* TAB 3: GAS CODE */}
-          {activeTab === 'GAS_CODE' && (
+          {/* TAB 4: GAS 8H CODE OVERVIEW */}
+          {activeTab === 'GAS_8H_CODE' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs text-slate-300">
-                <span className="font-mono text-[#D4A72C] font-bold">File: WhatsAppService.gs</span>
+                <span className="font-mono text-[#D4A72C] font-bold">Files in /gas-backend/ (8 Suite Modules)</span>
                 <button
-                  onClick={() => handleCopyCode('WhatsAppService.gs', gasWaCode)}
+                  onClick={() => handleCopyCode('gas-backend-suite', gas8HOverviewCode)}
                   className="bg-[#2E7D52] hover:bg-[#236340] text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow"
                 >
-                  {copiedFile === 'WhatsAppService.gs' ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-                  {copiedFile === 'WhatsAppService.gs' ? 'Berhasil Disalin!' : 'Salin Kode WhatsAppService.gs'}
+                  {copiedFile === 'gas-backend-suite' ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                  {copiedFile === 'gas-backend-suite' ? 'Berhasil Disalin!' : 'Salin Ringkasan Suite GAS'}
                 </button>
               </div>
 
               <pre className="bg-[#051320] p-4 rounded-2xl border border-slate-700 text-slate-200 font-mono text-[11px] leading-relaxed overflow-x-auto max-h-[380px]">
-                {gasWaCode}
+                {gas8HOverviewCode}
               </pre>
             </div>
           )}
 
-          {/* TAB 4: SETUP & CONFIG */}
+          {/* TAB 5: SETUP & SECURITY CONFIG */}
           {activeTab === 'SETUP' && (
             <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
               <div className="bg-[#123B5D]/60 p-4 rounded-2xl border border-slate-700 space-y-2">
                 <h4 className="font-bold text-white text-sm flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-[#D4A72C]" />
-                  Petunjuk Konfigurasi Provider WA (Script Properties)
+                  Petunjuk Konfigurasi Webhook & Webhook Secret
                 </h4>
                 <p>
-                  1. Buka Google Apps Script Editor pada Google Sheets database RT 07.<br />
-                  2. Buat file baru bernama <b>WhatsAppService.gs</b> dan tempelkan kode dari tab "Kode Apps Script".<br />
-                  3. Buka <b>Project Settings</b> (ikon roda gigi di menu kiri) → Scroll ke <b>Script Properties</b>.<br />
-                  4. Tambahkan properti rahasia tanpa hardcode:<br />
-                  &nbsp;&nbsp;• <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded">WA_API_TOKEN</code> = Token API dari Fonnte / Wablas / Nusagateway Anda.<br />
-                  &nbsp;&nbsp;• <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded">WA_ENDPOINT</code> = <code className="text-emerald-400">https://api.fonnte.com/send</code><br />
-                  &nbsp;&nbsp;• <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded">WA_MAX_RETRIES</code> = 3
-                </p>
-              </div>
-
-              <div className="bg-[#051320] p-4 rounded-2xl border border-slate-800 space-y-1">
-                <h5 className="font-bold text-emerald-400">Keunggulan Abstraction Layer:</h5>
-                <p className="text-slate-400">
-                  Provider WhatsApp gateway dapat diganti kapan saja (misal dari Fonnte ke Wablas atau Twilio) hanya dengan mengubah endpoint dan payload adapter di <code className="text-amber-300">WhatsAppService.gs</code> tanpa menyentuh logika utama aplikasi SMART RT.
+                  1. Set environment variable <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded">WEBHOOK_SECRET</code> di server / ScriptProperties.<br />
+                  2. Gateway mengirim pesan masuk ke endpoint <code className="text-emerald-400">/api/whatsapp/webhook</code> dengan header <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded">x-webhook-secret</code>.<br />
+                  3. Sistem melakukan verifikasi signature, penanganan idempotency via <code className="text-amber-300">messageId</code>, serta pembatasan rate limit 10 pesan/menit.
                 </p>
               </div>
             </div>
@@ -497,12 +573,12 @@ function logMessage(recipient, action, message, status, attempts, errorMsg) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-[#123B5D] border-t border-slate-800 flex items-center justify-between text-xs text-slate-300">
+        <div className="p-4 bg-[#123B5D] border-t border-slate-800 flex items-center justify-between text-xs text-slate-300 shrink-0">
           <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-            <CheckCircle2 className="w-4 h-4" /> TAHAP 4 SELESAI — WHATSAPP AUTOMATION SIAP.
+            <CheckCircle2 className="w-4 h-4" /> TAHAP 8H SELESAI — WHATSAPP AI BOT GATEWAY READY.
           </span>
           <button onClick={onClose} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold">
-            Tutup Pratinjau
+            Tutup Dashboard
           </button>
         </div>
 
@@ -510,3 +586,4 @@ function logMessage(recipient, action, message, status, attempts, errorMsg) {
     </div>
   );
 };
+

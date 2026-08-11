@@ -10,7 +10,14 @@ import {
   Menu, 
   X,
   BookOpen,
-  MessageSquare
+  MessageSquare,
+  Server,
+  Activity,
+  Bot,
+  Award,
+  Bell,
+  Flame,
+  Lock
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,6 +31,19 @@ interface HeaderProps {
   openWaModal: () => void;
   openArchiveModal: () => void;
   openSecurityModal?: () => void;
+  openSystemModal?: () => void;
+  openMonitorModal?: () => void;
+  openAiPermissionsModal?: () => void;
+  openAiToolsModal?: () => void;
+  openAiAuditModal?: () => void;
+  openAiEvalModal?: () => void;
+  openAiProductionModal?: () => void;
+  openProductionMonitoringModal?: () => void;
+  openProductionAlertsModal?: () => void;
+  openBackupVerificationModal?: () => void;
+  openDisasterRecoveryModal?: () => void;
+  openSecurityOpsModal?: () => void;
+  openContinuousEvalModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -36,7 +56,20 @@ export const Header: React.FC<HeaderProps> = ({
   openArchModal,
   openWaModal,
   openArchiveModal,
-  openSecurityModal
+  openSecurityModal,
+  openSystemModal,
+  openMonitorModal,
+  openAiPermissionsModal,
+  openAiToolsModal,
+  openAiAuditModal,
+  openAiEvalModal,
+  openAiProductionModal,
+  openProductionMonitoringModal,
+  openProductionAlertsModal,
+  openBackupVerificationModal,
+  openDisasterRecoveryModal,
+  openSecurityOpsModal,
+  openContinuousEvalModal
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -81,6 +114,18 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               HOME
+            </button>
+
+            <button
+              onClick={() => handleNavClick('ai-chat')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
+                currentTab === 'ai-chat' 
+                  ? 'bg-[#2E7D52] text-white shadow-sm border border-[#D4A72C]' 
+                  : 'text-[#E9D8B4] bg-[#0A2338] hover:bg-[#2E7D52] hover:text-white border border-[#D4A72C]/40'
+              }`}
+            >
+              <Bot className="w-4 h-4 text-[#D4A72C]" />
+              AI CHAT (8G)
             </button>
 
             <button
@@ -139,6 +184,142 @@ export const Header: React.FC<HeaderProps> = ({
                 SECURITY & BACKUP
               </button>
             )}
+
+            {openSystemModal && (
+              <button
+                onClick={openSystemModal}
+                className="px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-400/50 shadow transition-all flex items-center gap-1.5"
+              >
+                <Server className="w-4 h-4 text-emerald-300" />
+                SYSTEM CONFIG (7B)
+              </button>
+            )}
+
+            {openMonitorModal && (
+              <button
+                onClick={openMonitorModal}
+                className="px-3 py-2 rounded-lg text-sm font-semibold bg-amber-900/80 hover:bg-amber-800 text-amber-200 border border-amber-400/50 shadow transition-all flex items-center gap-1.5 animate-pulse"
+              >
+                <Activity className="w-4 h-4 text-amber-300" />
+                24H MONITOR (7H)
+              </button>
+            )}
+
+            {openAiPermissionsModal && (
+              <button
+                onClick={openAiPermissionsModal}
+                className="px-3 py-2 rounded-lg text-sm font-semibold bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-400/50 shadow transition-all flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-4 h-4 text-purple-300" />
+                AI PERMISSIONS (8A)
+              </button>
+            )}
+
+            {openAiToolsModal && (
+              <button
+                onClick={openAiToolsModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-blue-700 hover:bg-blue-600 text-white border border-blue-400/50 shadow transition-all flex items-center gap-1.5"
+              >
+                <Bot className="w-4 h-4 text-blue-200" />
+                AI TOOLS & AUTOMATION (8I)
+              </button>
+            )}
+
+            {openAiAuditModal && (
+              <button
+                onClick={openAiAuditModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-400/50 shadow transition-all flex items-center gap-1.5"
+              >
+                <Activity className="w-4 h-4 text-indigo-200" />
+                AI AUDIT & ANALYTICS (8J)
+              </button>
+            )}
+
+            {openAiEvalModal && (
+              <button
+                onClick={openAiEvalModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-purple-700 hover:bg-purple-600 text-white border border-purple-400/50 shadow transition-all flex items-center gap-1.5"
+              >
+                <Award className="w-4 h-4 text-purple-200" />
+                AI EVALUATION (8L)
+              </button>
+            )}
+
+            {openAiProductionModal && (
+              <button
+                onClick={openAiProductionModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 shadow transition-all flex items-center gap-1.5"
+              >
+                <Server className="w-4 h-4 text-emerald-400" />
+                AI PRODUCTION (8M)
+              </button>
+            )}
+
+            {openProductionMonitoringModal && (
+              <button
+                onClick={openProductionMonitoringModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#0D2A4A]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
+              >
+                <Activity className="w-4 h-4 text-[#C89A2B] animate-pulse" />
+                PROD MONITORING (9A)
+              </button>
+            )}
+
+            {openProductionAlertsModal && (
+              <button
+                onClick={openProductionAlertsModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#5A1E1B] hover:bg-[#5A1E1B]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
+              >
+                <Bell className="w-4 h-4 text-[#C89A2B] animate-bounce" />
+                PROD ALERTS (9B)
+              </button>
+            )}
+
+            {openBackupVerificationModal && (
+              <button
+                onClick={openBackupVerificationModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#0D2A4A]/80 text-white border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                BACKUP VERIFY (9C)
+              </button>
+            )}
+
+            {openDisasterRecoveryModal && (
+              <button
+                onClick={openDisasterRecoveryModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#5A1E1B] hover:bg-[#5A1E1B]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
+              >
+                <Flame className="w-4 h-4 text-rose-400 animate-pulse" />
+                DR DRILL (9D)
+              </button>
+            )}
+
+            {openSecurityOpsModal && (
+              <button
+                onClick={openSecurityOpsModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#0D2A4A]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
+              >
+                <Lock className="w-4 h-4 text-indigo-400" />
+                SEC OPS (9E)
+              </button>
+            )}
+
+            <button
+              onClick={() => openContinuousEvalModal ? openContinuousEvalModal() : setTab('ai-continuous-eval')}
+              className="px-3 py-2 rounded-lg text-sm font-bold bg-indigo-950 hover:bg-indigo-900 text-indigo-200 border border-indigo-500/50 shadow-lg transition-all flex items-center gap-1.5"
+            >
+              <Activity className="w-4 h-4 text-indigo-400" />
+              AI EVAL 9F
+            </button>
+
+            <button
+              onClick={() => setTab('ai-knowledge-9g')}
+              className="px-3 py-2 rounded-lg text-sm font-bold bg-blue-950 hover:bg-blue-900 text-blue-200 border border-blue-500/50 shadow-lg transition-all flex items-center gap-1.5"
+            >
+              <BookOpen className="w-4 h-4 text-blue-400" />
+              KM 9G
+            </button>
           </nav>
 
           {/* Quick Actions & Role Switcher */}

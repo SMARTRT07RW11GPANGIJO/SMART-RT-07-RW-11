@@ -18,7 +18,22 @@ import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { waServiceInstance } from './services/whatsappService';
 import { getStoredDigitalDocuments, revokeDigitalDocument } from './services/documentService';
 import { SecurityHealthDashboard } from './components/SecurityHealthDashboard';
+import { AdminSystemDashboard } from './components/AdminSystemDashboard';
+import { SystemMonitoringDashboard } from './components/SystemMonitoringDashboard';
+import { AdminAIPermissionsDashboard } from './components/AdminAIPermissionsDashboard';
+import { AIToolsAutomationModal } from './components/AIToolsAutomationModal';
+import { AdminAIAuditDashboard } from './components/AdminAIAuditDashboard';
+import { AdminAIEvaluationDashboard } from './components/AdminAIEvaluationDashboard';
+import { AdminAIProductionDashboard } from './components/AdminAIProductionDashboard';
+import { AdminProductionMonitoringDashboard } from './components/AdminProductionMonitoringDashboard';
+import { AdminAlertsDashboard } from './components/AdminAlertsDashboard';
+import { AdminBackupVerificationDashboard } from './components/AdminBackupVerificationDashboard';
+import { AdminDisasterRecoveryDashboard } from './components/AdminDisasterRecoveryDashboard';
+import { AdminSecurityOperationsDashboard } from './components/AdminSecurityOperationsDashboard';
+import { AdminAIContinuousEvalDashboard } from './components/AdminAIContinuousEvalDashboard';
+import { AdminAIKnowledgeManagementDashboard } from './components/AdminAIKnowledgeManagementDashboard';
 import { RitaAssistantWidget } from './components/RitaAssistantWidget';
+import { AIAssistantPage } from './pages/AIAssistant';
 
 export default function App() {
   const [currentRole, setRole] = useState<UserRole>('PUBLIC');
@@ -74,6 +89,10 @@ export default function App() {
   const [archModalOpen, setArchModalOpen] = useState(false);
   const [waModalOpen, setWaModalOpen] = useState(false);
   const [securityModalOpen, setSecurityModalOpen] = useState(false);
+  const [systemModalOpen, setSystemModalOpen] = useState(false);
+  const [monitorModalOpen, setMonitorModalOpen] = useState(false);
+  const [aiPermissionsModalOpen, setAiPermissionsModalOpen] = useState(false);
+  const [aiToolsModalOpen, setAiToolsModalOpen] = useState(false);
 
   const handleRestoreState = (restoredData: any) => {
     if (restoredData.wargaList) setWargaList(restoredData.wargaList);
@@ -192,6 +211,18 @@ export default function App() {
           setArchiveModalOpen(true);
         }}
         openSecurityModal={() => setSecurityModalOpen(true)}
+        openSystemModal={() => setSystemModalOpen(true)}
+        openMonitorModal={() => setMonitorModalOpen(true)}
+        openAiPermissionsModal={() => setAiPermissionsModalOpen(true)}
+        openAiToolsModal={() => setAiToolsModalOpen(true)}
+        openAiAuditModal={() => setTab('ai-audit')}
+        openAiEvalModal={() => setTab('ai-eval')}
+        openAiProductionModal={() => setTab('ai-prod')}
+        openProductionMonitoringModal={() => setTab('prod-monitoring')}
+        openProductionAlertsModal={() => setTab('prod-alerts')}
+        openBackupVerificationModal={() => setTab('prod-backup')}
+        openDisasterRecoveryModal={() => setTab('prod-dr')}
+        openSecurityOpsModal={() => setTab('prod-sec-ops')}
       />
 
       {/* Main App Body */}
@@ -243,6 +274,50 @@ export default function App() {
 
         {currentTab === 'verify' && (
           <DocumentVerificationView suratList={suratList} digitalDocs={digitalDocs} />
+        )}
+
+        {currentTab === 'ai-chat' && (
+          <AIAssistantPage currentRole={currentRole} userName="Warga RT 07" addToast={addToast} />
+        )}
+
+        {currentTab === 'ai-audit' && (
+          <AdminAIAuditDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {currentTab === 'ai-eval' && (
+          <AdminAIEvaluationDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {currentTab === 'ai-prod' && (
+          <AdminAIProductionDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {(currentTab === 'prod-monitoring' || currentTab === 'admin-monitoring') && (
+          <AdminProductionMonitoringDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {(currentTab === 'prod-alerts' || currentTab === 'admin-alerts') && (
+          <AdminAlertsDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {(currentTab === 'prod-backup' || currentTab === 'admin-backup' || currentTab === 'backup-verification') && (
+          <AdminBackupVerificationDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {(currentTab === 'prod-dr' || currentTab === 'admin-dr' || currentTab === 'disaster-recovery') && (
+          <AdminDisasterRecoveryDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {(currentTab === 'prod-sec-ops' || currentTab === 'admin-sec-ops' || currentTab === 'security-operations') && (
+          <AdminSecurityOperationsDashboard currentRole={currentRole} currentUserId={`USR-${currentRole}`} />
+        )}
+
+        {(currentTab === 'ai-continuous-eval' || currentTab === 'ai-eval-9f' || currentTab === 'continuous-eval') && (
+          <AdminAIContinuousEvalDashboard currentUserRole={currentRole} />
+        )}
+
+        {(currentTab === 'ai-knowledge-9g' || currentTab === 'admin-knowledge' || currentTab === 'knowledge-management') && (
+          <AdminAIKnowledgeManagementDashboard currentUserRole={currentRole} />
         )}
       </main>
 
@@ -333,6 +408,36 @@ export default function App() {
         }}
         onRestoreState={handleRestoreState}
         addToast={addToast}
+      />
+
+      {/* Tahap 7B Admin System Dashboard (/admin/system) */}
+      <AdminSystemDashboard
+        isOpen={systemModalOpen}
+        onClose={() => setSystemModalOpen(false)}
+        addToast={addToast}
+      />
+
+      {/* Tahap 7H 24-Hour Production Monitoring Dashboard (/admin/system-monitor) */}
+      <SystemMonitoringDashboard
+        isOpen={monitorModalOpen}
+        onClose={() => setMonitorModalOpen(false)}
+        addToast={addToast}
+      />
+
+      {/* Tahap 8A AI Architecture & Permission Matrix Dashboard (/admin/ai-permissions) */}
+      <AdminAIPermissionsDashboard
+        isOpen={aiPermissionsModalOpen}
+        onClose={() => setAiPermissionsModalOpen(false)}
+        currentRole={currentRole}
+        addToast={addToast}
+      />
+
+      {/* Tahap 8I AI Tools & Automation Dashboard */}
+      <AIToolsAutomationModal
+        isOpen={aiToolsModalOpen}
+        onClose={() => setAiToolsModalOpen(false)}
+        currentRole={currentRole}
+        userName={currentRole === 'PUBLIC' ? 'Tamu RT 07' : `Warga (${currentRole})`}
       />
 
       {/* Tahap 8 AI Assistant RITA Floating Widget */}

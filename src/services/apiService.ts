@@ -1,10 +1,14 @@
 // Google Apps Script API Service for SMART RT 07 RW 11 GPA NGIJO
 // Interacts with deployed Apps Script Web App (doGet / doPost)
+// TAHAP 6D — SECRET & API SECURITY HARDENING:
+// - No secrets, tokens, or API keys stored in client-side localStorage or JS bundles
+// - All sensitive operations route through Google Apps Script ScriptProperties
 
 export interface GASApiResponse<T = any> {
   success: boolean;
   message?: string;
   data?: T;
+  errorCode?: string;
   error?: string;
 }
 
@@ -29,20 +33,20 @@ export const testGasConnection = async (url?: string): Promise<GASApiResponse> =
       }
     });
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      return {
+        success: false,
+        errorCode: 'HTTP_ERROR',
+        message: 'Terjadi kesalahan. Silakan hubungi administrator.'
+      };
     }
     const result = await response.json();
     return result;
   } catch (err: any) {
-    // Return simulated success response when Google Apps Script URL is placeholder
+    console.error('GAS Connection Test Technical Error:', err);
     return {
-      success: true,
-      message: 'Koneksi Simulasi Backend GAS Berhasil! Endpoint terkonfigurasi untuk RT 07 RW 11 GPA Ngijo.',
-      data: {
-        spreadsheetId: '1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_NGIJO',
-        environment: 'Google Apps Script Web App (Production Mode)',
-        timestamp: new Date().toISOString()
-      }
+      success: false,
+      errorCode: 'CONNECTION_FAILED',
+      message: 'Terjadi kesalahan. Silakan hubungi administrator.'
     };
   }
 };
@@ -60,14 +64,24 @@ export const syncDataWithGAS = async (action: string, payload?: any): Promise<GA
         payload
       })
     });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        errorCode: 'SYNC_ERROR',
+        message: 'Terjadi kesalahan. Silakan hubungi administrator.'
+      };
+    }
+
     const json = await response.json();
     return json;
   } catch (error: any) {
-    // Fallback gracefully to local response with clear message
+    console.error(`GAS Sync ${action} Technical Error:`, error);
     return {
-      success: true,
-      message: `Data ${action} tersimpan di memori lokal & disinkronkan.`,
-      data: payload
+      success: false,
+      errorCode: 'NETWORK_ERROR',
+      message: 'Terjadi kesalahan. Silakan hubungi administrator.'
     };
   }
 };
+

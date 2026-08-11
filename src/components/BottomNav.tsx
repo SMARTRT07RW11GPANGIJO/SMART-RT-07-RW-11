@@ -7,7 +7,8 @@ import {
   AlertTriangle,
   Settings,
   User,
-  Home
+  Home,
+  Bot
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -38,6 +39,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0A2338]/95 backdrop-blur-md border-t border-slate-700/80 z-40 px-2 py-1.5 shadow-2xl">
       <div className="flex items-center justify-around">
         
+        <button
+          onClick={() => setTab('ai-chat')}
+          className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
+            currentTab === 'ai-chat'
+              ? 'text-[#2E7D52] font-bold scale-105'
+              : 'text-[#E9D8B4] hover:text-white'
+          }`}
+        >
+          <Bot className="w-5 h-5 text-[#D4A72C]" />
+          <span className="text-[10px] mt-0.5">AI Chat</span>
+        </button>
+
         <button
           onClick={() => handleNav('overview')}
           className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${

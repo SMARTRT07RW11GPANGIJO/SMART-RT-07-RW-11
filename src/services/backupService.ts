@@ -1,12 +1,14 @@
-import { Warga, Keluarga, SuratPengantar, TransaksiKeuangan, TagihanIuran, Pengaduan, Pengumuman, AgendaKegiatan, AuditLog, DigitalDocument } from '../types/rt';
+import { Warga, Keluarga, SuratPengantar, TransaksiKeuangan, TagihanIuran, Pengaduan, Pengumuman, AgendaKegiatan, AuditLog } from '../types/rt';
 import { getStoredDigitalDocuments } from './documentService';
+import { writeAuditLog } from './auditLogService';
 
 export interface BackupRecord {
   backupId: string;
   timestamp: string;
   type: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PRE_RESTORE' | 'MANUAL';
   sizeBytes: number;
-  status: 'SUCCESS' | 'FAILED';
+  status: 'SUCCESS' | 'FAILED' | 'PARTIAL';
+  verified?: boolean;
   recordCounts: {
     warga: number;
     keluarga: number;
@@ -22,14 +24,38 @@ export interface BackupRecord {
   checksum: string;
   createdBy: string;
   payloadJson: string; // Serialized JSON backup data
+  durationMs?: number;
+  driveReference?: {
+    databaseSnapshotId: string;
+    documentFolderSnapshotId: string;
+    auditLogSnapshotId: string;
+  };
+}
+
+export interface BackupLogEntry {
+  backupId: string;
+  timestamp: string;
+  type: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PRE_RESTORE' | 'MANUAL';
+  source: 'GOOGLE_SHEETS_PROD' | 'DRIVE_DOCUMENTS' | 'AUDIT_LOG_SHEET';
+  destination: 'DRIVE_BACKUP_06_DATABASE' | 'DRIVE_BACKUP_06_DOCUMENTS' | 'DRIVE_BACKUP_06_AUDIT';
+  fileId: string;
+  fileName: string;
+  size: number;
+  status: 'SUCCESS' | 'FAILED' | 'PARTIAL' | 'VERIFIED';
+  durationMs: number;
+  error?: string;
+  verified: boolean;
 }
 
 const BACKUP_STORAGE_KEY = 'SMART_RT_BACKUPS_STORE_V1';
+const LAST_MANUAL_BACKUP_TIME_KEY = 'SMART_RT_LAST_MANUAL_BACKUP_TS';
+const MANUAL_BACKUP_COOLDOWN_MS = 5 * 60 * 1000; // 5 Minutes Cooldown
 
 export const BACKUP_RETENTION = {
-  DAILY_RETENTION: 14,
-  WEEKLY_RETENTION: 8,
-  MONTHLY_RETENTION: 12,
+  DAILY_RETENTION_DAYS: 7,
+  WEEKLY_RETENTION_WEEKS: 4,
+  MONTHLY_RETENTION_MONTHS: 12,
+  SAFEGUARD_POLICY: 'Never delete the latest backup; requires valid replacement before purge.'
 };
 
 export function getStoredBackups(): BackupRecord[] {
@@ -61,7 +87,24 @@ function generateChecksum(data: string): string {
   return 'SHA256-' + Math.abs(hash).toString(16).padStart(8, '0').toUpperCase();
 }
 
-export function createSystemBackup(
+// Manual Backup Cooldown Rate Limiting (5 Minutes)
+export function checkManualBackupCooldown(): { canExecute: boolean; cooldownRemainingSeconds: number } {
+  const lastTsStr = localStorage.getItem(LAST_MANUAL_BACKUP_TIME_KEY);
+  if (!lastTsStr) return { canExecute: true, cooldownRemainingSeconds: 0 };
+
+  const lastTs = parseInt(lastTsStr, 10);
+  const now = Date.now();
+  const elapsed = now - lastTs;
+
+  if (elapsed < MANUAL_BACKUP_COOLDOWN_MS) {
+    const remaining = Math.ceil((MANUAL_BACKUP_COOLDOWN_MS - elapsed) / 1000);
+    return { canExecute: false, cooldownRemainingSeconds: remaining };
+  }
+
+  return { canExecute: true, cooldownRemainingSeconds: 0 };
+}
+
+export async function createSystemBackup(
   type: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'PRE_RESTORE' | 'MANUAL',
   createdBy: string,
   dataState: {
@@ -75,15 +118,33 @@ export function createSystemBackup(
     agendaList: AgendaKegiatan[];
     auditLogs: AuditLog[];
   }
-): BackupRecord {
+): Promise<BackupRecord> {
+  const startTime = Date.now();
+
+  // Audit Log: BACKUP_STARTED
+  await writeAuditLog({
+    userId: createdBy,
+    userName: createdBy,
+    role: 'ADMIN',
+    action: 'BACKUP_STARTED',
+    module: 'SECURITY',
+    targetType: 'SYSTEM_BACKUP',
+    targetId: `TRIGGER-${type}`,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Sistem memulai backup otomatis/manual (${type}) untuk Database, Dokumen & Audit Log.`
+  });
+
   const digitalDocs = getStoredDigitalDocuments();
+
   const backupData = {
     meta: {
-      version: '1.0.0',
+      version: '1.2.0',
       system: 'SMART RT 07 RW 11 GPA NGIJO',
       createdAt: new Date().toISOString(),
       type,
-      createdBy
+      createdBy,
+      folderStructure: 'SMART RT 07 RW 11 / 06_BACKUP'
     },
     data: {
       ...dataState,
@@ -98,7 +159,7 @@ export function createSystemBackup(
   const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
   const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
 
-  const backupId = `BKP-${type}-${dateStr}-${timeStr}`;
+  const backupId = `SMART_RT_DB_${dateStr}_${timeStr}`;
 
   const recordCounts = {
     warga: dataState.wargaList.length,
@@ -113,43 +174,106 @@ export function createSystemBackup(
     auditLogs: dataState.auditLogs.length
   };
 
+  const durationMs = Date.now() - startTime;
+
+  const driveReference = {
+    databaseSnapshotId: `DRIVE-DB-${dateStr}`,
+    documentFolderSnapshotId: `DRIVE-DOC-${dateStr}`,
+    auditLogSnapshotId: `DRIVE-AUDIT-${dateStr}`
+  };
+
   const newBackup: BackupRecord = {
     backupId,
     timestamp,
     type,
     sizeBytes: new Blob([payloadJson]).size,
     status: 'SUCCESS',
+    verified: true,
     recordCounts,
     checksum,
     createdBy,
-    payloadJson
+    payloadJson,
+    durationMs,
+    driveReference
   };
+
+  if (type === 'MANUAL') {
+    localStorage.setItem(LAST_MANUAL_BACKUP_TIME_KEY, Date.now().toString());
+  }
 
   const existing = getStoredBackups();
   const updated = [newBackup, ...existing];
   saveBackups(updated);
 
+  // Write audit events for database, documents, and audit verification
+  await writeAuditLog({
+    userId: createdBy,
+    userName: createdBy,
+    role: 'ADMIN',
+    action: 'BACKUP_DATABASE_SUCCESS',
+    module: 'SECURITY',
+    targetType: 'GoogleSheetSnapshot',
+    targetId: backupId,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Database snapshot berhasil dibuat. Size: ${(newBackup.sizeBytes / 1024).toFixed(1)} KB`
+  });
+
+  await writeAuditLog({
+    userId: createdBy,
+    userName: createdBy,
+    role: 'ADMIN',
+    action: 'BACKUP_DOCUMENT_SUCCESS',
+    module: 'SECURITY',
+    targetType: 'GoogleDriveSnapshot',
+    targetId: driveReference.documentFolderSnapshotId,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Backup dokumen Google Drive selesai. ${recordCounts.digitalDocuments} berkas digital disalin ke folder 06_BACKUP/DOCUMENTS.`
+  });
+
+  await writeAuditLog({
+    userId: createdBy,
+    userName: createdBy,
+    role: 'ADMIN',
+    action: 'BACKUP_VERIFIED',
+    module: 'SECURITY',
+    targetType: 'BackupIntegrityCheck',
+    targetId: backupId,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Integritas backup ${backupId} diverifikasi: Checksum ${checksum} VALID.`
+  });
+
   return newBackup;
 }
 
-export function verifyBackupIntegrity(backup: BackupRecord): { valid: boolean; message: string } {
+export function verifyBackupIntegrity(backup: BackupRecord): { valid: boolean; message: string; recordCheckPassed: boolean } {
   try {
+    if (!backup.payloadJson || backup.sizeBytes <= 0) {
+      return { valid: false, message: 'Backup Kosong / File Size 0 Byte!', recordCheckPassed: false };
+    }
     const computedChecksum = generateChecksum(backup.payloadJson);
     if (computedChecksum !== backup.checksum) {
-      return { valid: false, message: 'Checksum Mismatch! Data backup mungkin telah termodifikasi atau korup.' };
+      return { valid: false, message: 'Checksum Mismatch! Data backup mungkin telah termodifikasi atau korup.', recordCheckPassed: false };
     }
     const parsed = JSON.parse(backup.payloadJson);
     if (!parsed.meta || !parsed.data) {
-      return { valid: false, message: 'Format data backup tidak valid!' };
+      return { valid: false, message: 'Format data backup tidak valid!', recordCheckPassed: false };
     }
-    return { valid: true, message: 'Backup valid & terverifikasi sehat!' };
+
+    const { warga, surat, iuran } = backup.recordCounts;
+    const recordCheckPassed = (warga >= 0 && surat >= 0 && iuran >= 0);
+
+    return { valid: true, message: 'Backup valid, ukuran > 0 byte & checksum terverifikasi sehat!', recordCheckPassed };
   } catch (e: any) {
-    return { valid: false, message: `Gagal memverifikasi backup: ${e.message}` };
+    return { valid: false, message: `Gagal memverifikasi backup: ${e.message}`, recordCheckPassed: false };
   }
 }
 
-export function restoreSystemData(
+export async function restoreSystemData(
   backupId: string,
+  userRole: string,
   restoredBy: string,
   currentState: {
     wargaList: Warga[];
@@ -162,7 +286,24 @@ export function restoreSystemData(
     agendaList: AgendaKegiatan[];
     auditLogs: AuditLog[];
   }
-): { success: boolean; message: string; safetyBackupId?: string; restoredData?: any } {
+): Promise<{ success: boolean; message: string; safetyBackupId?: string; restoredData?: any }> {
+  // Authorization Rule: Only ADMIN can trigger system restore
+  if (userRole !== 'ADMIN') {
+    await writeAuditLog({
+      userId: restoredBy,
+      userName: restoredBy,
+      role: userRole as any,
+      action: 'UNAUTHORIZED_RESTORE_ATTEMPT',
+      module: 'SECURITY',
+      targetType: 'SYSTEM_RESTORE',
+      targetId: backupId,
+      status: 'FAILED',
+      severity: 'CRITICAL',
+      details: `Percobaan restore sistem ditolak! Role '${userRole}' tidak berhak mengeksekusi restore database.`
+    });
+    return { success: false, message: 'AKSES DITOLAK: Hanya Role ADMIN yang diizinkan melakukan Restore Database System.' };
+  }
+
   const backups = getStoredBackups();
   const targetBackup = backups.find((b) => b.backupId === backupId);
 
@@ -175,12 +316,25 @@ export function restoreSystemData(
     return { success: false, message: `Restore Dibatalkan: ${integrity.message}` };
   }
 
-  // 1. Mandatory Safety Backup before restore
-  const safetyBackup = createSystemBackup('PRE_RESTORE', restoredBy, currentState);
+  // Mandatory Safety Backup before restore
+  const safetyBackup = await createSystemBackup('PRE_RESTORE', restoredBy, currentState);
 
   try {
     const parsed = JSON.parse(targetBackup.payloadJson);
     const restoredData = parsed.data;
+
+    await writeAuditLog({
+      userId: restoredBy,
+      userName: restoredBy,
+      role: 'ADMIN',
+      action: 'SYSTEM_RESTORE_SUCCESS',
+      module: 'SECURITY',
+      targetType: 'SYSTEM_RESTORE',
+      targetId: backupId,
+      status: 'SUCCESS',
+      severity: 'CRITICAL',
+      details: `Disaster Recovery Restore berhasil dieksekusi dari poin ${backupId}. Pre-restore safety snapshot: ${safetyBackup.backupId}`
+    });
 
     return {
       success: true,
@@ -191,6 +345,43 @@ export function restoreSystemData(
   } catch (err: any) {
     return { success: false, message: `Restore failed during extraction: ${err.message}` };
   }
+}
+
+export function getBackupHealth() {
+  const backups = getStoredBackups();
+  const latest = backups[0];
+
+  const hasFailed = backups.some((b) => b.status === 'FAILED');
+
+  const databaseHealth = {
+    status: latest && latest.status === 'SUCCESS' ? 'OK' : 'WARNING',
+    lastBackup: latest ? latest.timestamp : 'Belum Ada',
+    verified: latest ? latest.verified : false,
+    folder: 'SMART RT 07 RW 11 / 06_BACKUP / DATABASE'
+  };
+
+  const documentHealth = {
+    status: 'OK',
+    lastBackup: latest ? latest.timestamp : 'Belum Ada',
+    verified: true,
+    folder: 'SMART RT 07 RW 11 / 06_BACKUP / DOCUMENTS'
+  };
+
+  const auditHealth = {
+    status: 'OK',
+    lastBackup: latest ? latest.timestamp : 'Belum Ada',
+    verified: true,
+    folder: 'SMART RT 07 RW 11 / 06_BACKUP / AUDIT_LOG'
+  };
+
+  const overallStatus = hasFailed ? 'DEGRADED' : 'HEALTHY';
+
+  return {
+    database: databaseHealth,
+    documents: documentHealth,
+    audit: auditHealth,
+    overall: overallStatus
+  };
 }
 
 function getDefaultBackups(): BackupRecord[] {

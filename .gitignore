@@ -1,8 +1,22 @@
+# Dependencies & Build
 node_modules/
 build/
 dist/
 coverage/
 .DS_Store
 *.log
-.env*
+
+# Sensitive Credentials & Local Environments
+.env
+.env.local
+.env.production
+.env.development
+.env*.local
+credentials.json
+service-account.json
+*.pem
+*.key
+*.p12
+
+# Include template
 !.env.example

@@ -1,5 +1,8 @@
 // SMART RT 07 RW 11 GPA NGIJO - WhatsApp Automation Service
-// Abstraction layer for multi-provider WhatsApp Gateway (Fonnte, Wablas, Whacenter, Nusagateway, etc.)
+// Production Gateway Adapter via Google Apps Script Backend (TAHAP 6D Architecture)
+// Zero secrets, tokens, or direct gateway URLs in client code
+
+import { syncDataWithGAS } from './apiService';
 
 export type WAEvent =
   | 'SURAT_RECEIVED'
@@ -104,11 +107,11 @@ export const saveWALog = (log: WALogEntry): void => {
   localStorage.setItem(STORAGE_KEY_WA_LOGS, JSON.stringify(updated));
 };
 
-// WhatsApp Service Abstraction Class
+// WhatsApp Service Abstraction Class (Server-Routed, Fail-Closed, Zero Client Secrets)
 export class WhatsAppService {
   private providerName: string;
 
-  constructor(providerName = 'Fonnte Gateway (Production)') {
+  constructor(providerName = 'WhatsApp Gateway (GAS ScriptProperties Adapter)') {
     this.providerName = providerName;
   }
 
@@ -123,38 +126,47 @@ export class WhatsAppService {
     return { valid: true };
   }
 
-  // Send WA raw with simulated retry backoff (Max 3 attempts)
+  // Send WA message via Google Apps Script Backend Gateway Adapter
   public async sendWhatsApp(
     phone: string,
     message: string,
-    maxRetries = 3
-  ): Promise<{ success: boolean; attempts: number; error?: string }> {
+    event: WAEvent = 'SURAT_RECEIVED',
+    idRecord?: string,
+    recipientName?: string
+  ): Promise<{ success: boolean; attempts: number; error?: string; messageId?: string }> {
     const formattedPhone = formatPhoneInternational(phone);
-    let attempt = 0;
-    let lastError = '';
 
-    while (attempt < maxRetries) {
-      attempt++;
-      try {
-        // Simulated network call / GAS HTTP trigger
-        await new Promise((resolve) => setTimeout(resolve, 300));
+    try {
+      // Direct call to Google Apps Script backend. GAS will read WHATSAPP_API_URL and WHATSAPP_API_TOKEN from ScriptProperties.
+      const res = await syncDataWithGAS('sendWhatsApp', {
+        recipientPhone: formattedPhone,
+        recipientName: recipientName || 'Warga RT 07',
+        message,
+        event,
+        idRecord
+      });
 
-        // Random simulated transient failure on 1st attempt to test retry mechanism if desired, but 98% success
-        if (attempt === 1 && Math.random() < 0.05) {
-          throw new Error('503 Service Unavailable / Gateway Timeout');
-        }
-
-        return { success: true, attempts: attempt };
-      } catch (err: any) {
-        lastError = err.message || 'Network Exception';
-        if (attempt < maxRetries) {
-          // Retry backoff delay (100ms * attempt)
-          await new Promise((res) => setTimeout(res, 100 * attempt));
-        }
+      if (res && res.success) {
+        return {
+          success: true,
+          attempts: res.data?.attempts || 1,
+          messageId: res.data?.messageId || `MSG-${Date.now()}`
+        };
+      } else {
+        return {
+          success: false,
+          attempts: res?.data?.attempts || 1,
+          error: res?.message || res?.errorCode || 'WHATSAPP_SEND_FAILED'
+        };
       }
+    } catch (err: any) {
+      // Fail closed on error - never fake success
+      return {
+        success: false,
+        attempts: 1,
+        error: err.message || 'Gagal terhubung ke WhatsApp Gateway Backend'
+      };
     }
-
-    return { success: false, attempts: attempt, error: lastError };
   }
 
   // High-level notification trigger
@@ -181,7 +193,13 @@ export class WhatsAppService {
     }
 
     const messageText = buildMessage(event, payload);
-    const sendResult = await this.sendWhatsApp(recipientPhone, messageText, 3);
+    const sendResult = await this.sendWhatsApp(
+      recipientPhone,
+      messageText,
+      event,
+      payload.idRecord,
+      payload.recipientName
+    );
 
     const logEntry: WALogEntry = {
       id: `WALOG-${Date.now()}`,
@@ -200,11 +218,12 @@ export class WhatsAppService {
     return {
       success: sendResult.success,
       message: sendResult.success
-        ? `Notifikasi WA (${event}) berhasil dikirim ke ${formatPhoneInternational(recipientPhone)}!`
-        : `Gagal mengirim WA setelah ${sendResult.attempts} percobaan: ${sendResult.error}`,
+        ? `Notifikasi WA (${event}) berhasil dikirim via WhatsApp Gateway ke ${formatPhoneInternational(recipientPhone)}!`
+        : `Gagal mengirim WA: ${sendResult.error || 'Terjadi kesalahan pada gateway'}`,
       log: logEntry
     };
   }
 }
 
 export const waServiceInstance = new WhatsAppService();
+

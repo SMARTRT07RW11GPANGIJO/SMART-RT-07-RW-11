@@ -167,13 +167,25 @@ export interface Pengurus {
   blok: string;
 }
 
+export type AuditSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
+
 export interface AuditLog {
   id_log: string;
+  logId?: string;
   timestamp: string;
-  user: string;
+  userId?: string;
+  userName?: string;
+  role?: UserRole;
   action: string;
-  module: string;
-  record_id: string;
+  module: 'AUTH' | 'USER' | 'SURAT' | 'DOKUMEN' | 'KEUANGAN' | 'PENGADUAN' | 'WA' | 'AI' | 'SECURITY' | 'SYSTEM' | string;
+  targetType?: string;
+  targetId?: string;
   status: 'SUCCESS' | 'WARNING' | 'FAILED';
-  description: string;
+  severity?: AuditSeverity;
+  details?: string;
+  correlationId?: string;
+  // Backward compatibility fields
+  user?: string;
+  record_id?: string;
+  description?: string;
 }

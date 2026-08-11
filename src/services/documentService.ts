@@ -129,6 +129,37 @@ export const saveDigitalDocumentStore = (docs: DigitalDocument[]): void => {
 };
 
 // Create a new digital document from a SuratPengantar request
+export const storeDigitalDocument = (doc: any): DigitalDocument => {
+  const currentDocs = getStoredDigitalDocuments();
+  const docId = doc.id_dokumen || doc.documentId || generateDocumentId();
+  const newDoc: DigitalDocument = {
+    documentId: docId,
+    requestId: doc.requestId || 'SRT-2026-0001',
+    nomorSurat: doc.nomor_dokumen || doc.nomorSurat || generateNextDocumentNumber(),
+    jenisSurat: doc.jenis_dokumen || doc.jenisSurat || 'Surat Pengantar',
+    tanggalSurat: doc.tanggal_terbit || new Date().toISOString().slice(0, 10),
+    lifecycle: 'PUBLISHED',
+    status: doc.status || 'VALID',
+    createdAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    createdBy: 'Automation Engine RT 07',
+    approvedAt: new Date().toISOString().replace('T', ' ').slice(0, 19),
+    approvedBy: doc.penandatangan || 'Ketua RT 07 (Bambang Sugianto, S.T.)',
+    qrVerificationUrl: doc.qr_code_url || `https://smart-rt07-gpa-ngijo.app/verify/${docId}`,
+    verificationToken: doc.hash_verifikasi || 'VERIFIED-TOKEN',
+    version: 1,
+    pemohonNama: doc.pemohon_nama || 'Warga RT 07',
+    pemohonNikMasked: '350712******0001',
+    pemohonAlamat: 'Perum GPA Ngijo, RT 07 RW 11',
+    keperluan: 'Permohonan Administrasi RT',
+    namaKetua: 'Bambang Sugianto, S.T.',
+    jabatanKetua: 'Ketua RT 07 RW 11'
+  };
+
+  const updatedDocs = [newDoc, ...currentDocs];
+  saveDigitalDocumentStore(updatedDocs);
+  return newDoc;
+};
+
 export const createDigitalDocumentFromSurat = (
   surat: SuratPengantar,
   approvedBy = 'Ketua RT 07 (Bambang Sugianto, S.T.)'

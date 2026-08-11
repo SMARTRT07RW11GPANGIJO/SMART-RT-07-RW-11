@@ -262,13 +262,51 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
 // Open print / preview window for standard A4 PDF download
 export const printOrSavePDF = async (doc: DigitalDocument) => {
   const htmlContent = await renderDocumentHTML(doc);
-  const printWindow = window.open('', '_blank');
-  if (printWindow) {
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+  try {
+    const printWindow = window.open('', '_blank');
+    if (printWindow && printWindow.document) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        try {
+          printWindow.print();
+        } catch (e) {
+          console.warn('Print in popup failed:', e);
+        }
+      }, 500);
+      return;
+    }
+  } catch (e) {
+    console.warn('window.open blocked, using hidden iframe fallback:', e);
+  }
+
+  // Fallback if window.open returns null or fails (sandboxed iframe)
+  try {
+    const printIframe = document.createElement('iframe');
+    printIframe.style.position = 'fixed';
+    printIframe.style.right = '0';
+    printIframe.style.bottom = '0';
+    printIframe.style.width = '0';
+    printIframe.style.height = '0';
+    printIframe.style.border = '0';
+    document.body.appendChild(printIframe);
+    const docObj = printIframe.contentWindow?.document;
+    if (docObj) {
+      docObj.open();
+      docObj.write(htmlContent);
+      docObj.close();
+      setTimeout(() => {
+        printIframe.contentWindow?.focus();
+        printIframe.contentWindow?.print();
+        setTimeout(() => {
+          if (document.body.contains(printIframe)) {
+            document.body.removeChild(printIframe);
+          }
+        }, 2000);
+      }, 500);
+    }
+  } catch (err) {
+    console.error('Failed to trigger PDF print:', err);
   }
 };
