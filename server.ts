@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import { RagRetrieverService } from './src/services/ragRetrieverService';
 
 const app = express();
 const PORT = 3000;
@@ -760,32 +761,45 @@ app.post('/api/ai/chat', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  // 6. RAG Knowledge Base Query Search
-  const kbMatches = KNOWLEDGE_BASE_DATA.filter(item =>
-    item.title.toLowerCase().includes(queryLower) ||
-    item.content.toLowerCase().includes(queryLower) ||
-    item.category.toLowerCase().includes(queryLower)
-  );
+  // 6. RAG 8G Engine Knowledge Retrieval
+  const ragResult = RagRetrieverService.retrieve({
+    query: message,
+    userId,
+    userName,
+    role: userRole,
+    sourceChannel: 'WEB_ASSISTANT'
+  });
 
-  if (kbMatches.length > 0) {
-    const primaryKb = kbMatches[0];
-    logServerAIAudit('AI_KNOWLEDGE_USED', userId, userRole, `RAG match found: ${primaryKb.title}`, 'SUCCESS');
+  if (ragResult.found && ragResult.synthesizedAnswer) {
+    logServerAIAudit('AI_KNOWLEDGE_USED', userId, userRole, `RAG 8G match found: ${ragResult.retrievedDocuments[0]?.title}`, 'SUCCESS');
 
     res.json({
       success: true,
       conversationId,
       message: {
         role: 'assistant',
-        content: `📌 **${primaryKb.title}**\n\n${primaryKb.content}\n\n_Sesuai panduan resmi administrasi RT 07 RW 11 Perum GPA Ngijo._`,
-        sources: [
-          {
-            title: primaryKb.title,
-            version: primaryKb.version,
-            category: primaryKb.category,
-            status: primaryKb.status,
-            snippet: primaryKb.source
-          }
-        ],
+        content: ragResult.synthesizedAnswer,
+        sources: ragResult.retrievedDocuments.map((doc) => ({
+          title: doc.title,
+          version: doc.version,
+          category: doc.category,
+          status: doc.status,
+          snippet: doc.summary
+        })),
+        intent: 'KNOWLEDGE_QUERY'
+      }
+    });
+    return;
+  }
+
+  if (ragResult.deniedReason) {
+    logServerAIAudit('AI_RAG_DENIED', userId, userRole, `RAG denied: ${ragResult.deniedReason}`, 'DENIED');
+    res.json({
+      success: true,
+      conversationId,
+      message: {
+        role: 'assistant',
+        content: `Maaf Bapak/Ibu ${userName}. ${ragResult.deniedReason}`,
         intent: 'KNOWLEDGE_QUERY'
       }
     });

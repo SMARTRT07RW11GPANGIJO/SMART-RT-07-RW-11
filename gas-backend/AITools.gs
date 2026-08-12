@@ -1,46 +1,15 @@
 /**
  * AITools.gs
  * SMART RT 07 RW 11 GPA NGIJO
- * TAHAP 8D — CENTRALIZED AI TOOL REGISTRY
+ * TAHAP 8D — DELEGATION WRAPPER
  * 
- * Tool definitions with required permissions, allowed roles, ownership, confirmation, and risk levels.
+ * [DEPRECATED WRAPPER]
+ * Single Source of Truth for AI Tool Registry is AIToolRegistry.gs.
  */
 
-var AI_TOOL_REGISTRY = {
-  "getMyLetterStatus": {
-    name: "getMyLetterStatus",
-    requiredPermission: "LETTER_READ_SELF",
-    allowedRoles: ["WARGA", "PENGURUS", "KETUA_RT", "ADMIN"],
-    requiresOwnership: true,
-    requiresConfirmation: false,
-    riskLevel: "LOW"
-  },
-  "createLetterRequest": {
-    name: "createLetterRequest",
-    requiredPermission: "LETTER_CREATE",
-    allowedRoles: ["WARGA", "PENGURUS", "KETUA_RT", "ADMIN"],
-    requiresOwnership: true,
-    requiresConfirmation: true,
-    riskLevel: "MEDIUM"
-  },
-  "approveLetter": {
-    name: "approveLetter",
-    requiredPermission: "LETTER_APPROVE",
-    allowedRoles: ["KETUA_RT", "ADMIN"],
-    requiresOwnership: false,
-    requiresConfirmation: true,
-    riskLevel: "HIGH"
-  },
-  "restoreBackup": {
-    name: "restoreBackup",
-    requiredPermission: "BACKUP_RESTORE",
-    allowedRoles: ["ADMIN"],
-    requiresOwnership: false,
-    requiresConfirmation: true,
-    riskLevel: "CRITICAL"
+function getAIToolDefinitionFromAITools(toolName) {
+  if (typeof AI_TOOL_DEFINITIONS !== 'undefined') {
+    return AI_TOOL_DEFINITIONS[toolName] || null;
   }
-};
-
-function getAIToolDefinition(toolName) {
-  return AI_TOOL_REGISTRY[toolName] || null;
+  return null;
 }

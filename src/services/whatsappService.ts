@@ -12,7 +12,8 @@ export type WAEvent =
   | 'PENGADUAN_RECEIVED'
   | 'PENGADUAN_COMPLETED'
   | 'PENGUMUMAN_IMPORTANT'
-  | 'IURAN_REMINDER';
+  | 'IURAN_REMINDER'
+  | 'FINANCE_ALERT';
 
 export interface WALogEntry {
   id: string;

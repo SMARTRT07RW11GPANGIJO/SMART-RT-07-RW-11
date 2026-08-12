@@ -72,10 +72,15 @@ export const AUDIT_EVENTS = {
   WA_SEND_FAILED: 'WA_SEND_FAILED',
   WA_RETRY: 'WA_RETRY',
 
-  // AI Assistant / RITA
+  // AI Assistant / RITA & RAG
   AI_REQUEST: 'AI_REQUEST',
   AI_RESPONSE: 'AI_RESPONSE',
-  AI_ERROR: 'AI_ERROR'
+  AI_ERROR: 'AI_ERROR',
+  AI_RAG_QUERY: 'AI_RAG_QUERY',
+  AI_RAG_RETRIEVAL: 'AI_RAG_RETRIEVAL',
+  AI_RAG_RESPONSE: 'AI_RAG_RESPONSE',
+  AI_RAG_NO_SOURCE: 'AI_RAG_NO_SOURCE',
+  AI_RAG_DENIED: 'AI_RAG_DENIED'
 } as const;
 
 // Privacy & Sanitization Guard: Removes NIK, KK, Passwords, Tokens, API Keys
@@ -501,3 +506,14 @@ export const getAuditRetentionPolicy = () => {
     }
   };
 };
+
+export const AuditLogService = {
+  writeAuditLog,
+  logEvent: writeAuditLog,
+  getAuditLogs: fetchAuditLogs,
+  fetchAuditLogs,
+  getStoredAuditLogs,
+  generateCorrelationId,
+  AUDIT_EVENTS
+};
+

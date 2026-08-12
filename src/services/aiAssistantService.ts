@@ -2,6 +2,7 @@ import { UserRole, SuratPengantar, TagihanIuran, Pengaduan, Pengumuman, AgendaKe
 import { hasPermission, maskNik, maskNoHp } from './securityService';
 import { sanitizeDataForAI, logAIAuditEntry } from './aiAuthorizationService';
 import { AIKnowledgeManagementService } from './aiKnowledgeManagementService';
+import { RagRetrieverService } from './ragRetrieverService';
 
 export interface RitaMessage {
   id: string;
@@ -302,20 +303,94 @@ export async function processRitaChatQuery(
     };
   }
 
-  // Search Knowledge Base via Tahap 9G AI Knowledge Management Service
-  const ragResult = AIKnowledgeManagementService.ragRetrieveKnowledge(userQuery, userRole);
+  // Intent E: Check Active Tata Tertib Warga (v1.1)
+  if (
+    queryLower.includes('aturan') ||
+    queryLower.includes('tata tertib') ||
+    queryLower.includes('parkir') ||
+    queryLower.includes('tamu') ||
+    queryLower.includes('ronda') ||
+    queryLower.includes('portal') ||
+    queryLower.includes('sampah') ||
+    queryLower.includes('kebersihan') ||
+    queryLower.includes('musik') ||
+    queryLower.includes('hajatan') ||
+    queryLower.includes('hewan') ||
+    queryLower.includes('renovasi') ||
+    queryLower.includes('fasilitas') ||
+    queryLower.includes('sanksi') ||
+    queryLower.includes('kewajiban') ||
+    queryLower.includes('hak')
+  ) {
+    // Privacy / Security check: Refuse listing violating residents
+    if (queryLower.includes('siapa melanggar') || queryLower.includes('siapa yang melanggar') || queryLower.includes('daftar pelanggar')) {
+      return {
+        id: `RITA-MSG-${Date.now()}`,
+        sender: 'rita',
+        text: 'Sesuai Kebijakan Keamanan AI & Privasi Warga (Tahap 6C), RITA tidak diperkenankan memberikan daftar individu warga yang melanggar atau belum mematuhi aturan.',
+        timestamp
+      };
+    }
 
-  if (ragResult.found && ragResult.item) {
-    const item = ragResult.item;
+    try {
+      // Import TataTertibService dynamically or use stored active articles
+      const { TataTertibService } = require('./tataTertibService');
+      const activeArticles = TataTertibService.getActiveArticles();
+
+      const matchedArticle = activeArticles.find((art: any) => {
+        const q = queryLower;
+        return (
+          art.title.toLowerCase().includes(q) ||
+          art.summary.toLowerCase().includes(q) ||
+          art.keywords.some((k: string) => k.toLowerCase().includes(q))
+        );
+      }) || activeArticles[0];
+
+      if (matchedArticle) {
+        return {
+          id: `RITA-MSG-${Date.now()}`,
+          sender: 'rita',
+          text: `📜 *${matchedArticle.title} (Versi ${matchedArticle.version})*\n\n_${matchedArticle.summary}_\n\n${matchedArticle.content}\n\n_Sumber: Tata Tertib Warga RT 07 RW 11 GPA Ngijo Versi ${matchedArticle.version} (Berlaku Efektif: ${matchedArticle.effectiveDate})_`,
+          timestamp,
+          quickActions: [
+            { label: 'Buka Tata Tertib', action: 'open_tata_tertib' },
+            { label: 'Lapor Kejadian', action: 'open_complaint_modal' }
+          ]
+        };
+      }
+    } catch (e) {
+      // Fallback if import fails
+    }
+  }
+
+  // Search Knowledge Base via Tahap 8G RagRetrieverService
+  const ragResult = RagRetrieverService.retrieve({
+    query: userQuery,
+    userId: `USR-${userName.replace(/\s+/g, '')}`,
+    userName,
+    role: userRole,
+    sourceChannel: 'WEB_ASSISTANT'
+  });
+
+  if (ragResult.found && ragResult.synthesizedAnswer) {
     return {
       id: `RITA-MSG-${Date.now()}`,
       sender: 'rita',
-      text: `📌 *${item.title} (${item.version})*\n\n${item.content}\n\n_${ragResult.sourceCitation}_`,
+      text: ragResult.synthesizedAnswer,
       timestamp,
       quickActions: [
         { label: 'Ajukan Surat', action: 'open_letter_modal' },
         { label: 'Kirim Pengaduan', action: 'open_complaint_modal' }
       ]
+    };
+  }
+
+  if (ragResult.deniedReason) {
+    return {
+      id: `RITA-MSG-${Date.now()}`,
+      sender: 'rita',
+      text: `Maaf Bapak/Ibu ${userName}. ${ragResult.deniedReason}`,
+      timestamp
     };
   }
 

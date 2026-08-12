@@ -41,6 +41,8 @@ import {
   RAGRetrieveResult
 } from '../types/aiKnowledge';
 import { AIKnowledgeManagementService } from '../services/aiKnowledgeManagementService';
+import { RagRetrieverService, RagRetrievalOutput } from '../services/ragRetrieverService';
+import { RagTestRunnerService, RagTestResult } from '../services/ragTestRunnerService';
 import { UserRole } from '../types/rt';
 
 interface Props {
@@ -86,6 +88,8 @@ export const AdminAIKnowledgeManagementDashboard: React.FC<Props> = ({ currentUs
   const [simRole, setSimRole] = useState<UserRole>('WARGA');
   const [simDate, setSimDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [simResult, setSimResult] = useState<RAGRetrieveResult | null>(null);
+  const [ragOutput, setRagOutput] = useState<RagRetrievalOutput | null>(null);
+  const [testResults, setTestResults] = useState<RagTestResult[] | null>(null);
 
   // Access check
   if (currentUserRole !== 'ADMIN' && currentUserRole !== 'KETUA_RT') {
@@ -178,8 +182,23 @@ export const AdminAIKnowledgeManagementDashboard: React.FC<Props> = ({ currentUs
   };
 
   const handleRunSim = () => {
-    const res = AIKnowledgeManagementService.ragRetrieveKnowledge(simQuery, simRole, simDate);
-    setSimResult(res);
+    const legacyRes = AIKnowledgeManagementService.ragRetrieveKnowledge(simQuery, simRole, simDate);
+    setSimResult(legacyRes);
+
+    const ragRes = RagRetrieverService.retrieve({
+      query: simQuery,
+      userId: `ADM-SIM`,
+      userName: `Admin Tester (${simRole})`,
+      role: simRole,
+      currentDateStr: simDate,
+      sourceChannel: 'ADMIN_TEST'
+    });
+    setRagOutput(ragRes);
+  };
+
+  const handleRunAutoTestSuite = () => {
+    const results = RagTestRunnerService.runAllTestCases();
+    setTestResults(results);
   };
 
   const handleCreateRelease = () => {
@@ -684,81 +703,188 @@ export const AdminAIKnowledgeManagementDashboard: React.FC<Props> = ({ currentUs
         </div>
       )}
 
-      {/* TAB 6: RAG SIMULATOR & EFFECTIVE DATE TEST */}
+      {/* TAB 6: RAG SIMULATOR & AUTOMATED TEST MATRIX */}
       {activeTab === 'RAG_SIMULATOR' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-400" />
-            RAG Effective Date & Role Filter Simulator
-          </h3>
-          <p className="text-xs text-slate-400">
-            Uji bagaimana AI memilih dokumen berdasarkan tanggal simulasi (Effective Date) dan Role Pengguna.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+          <div className="flex justify-between items-center flex-wrap gap-3">
             <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">Pertanyaan Simulasi:</label>
-              <input
-                type="text"
-                value={simQuery}
-                onChange={(e) => setSimQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
-              />
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-blue-400" />
+                Tahap 8G RAG Retriever Engine & Test Suite Matrix
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Uji mekanisme RAG, query classification, authorization filter, boundary tags, dan otomatisasi test suite (RAG-001 s/d RAG-014).
+              </p>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">Role Pemohon:</label>
-              <select
-                value={simRole}
-                onChange={(e) => setSimRole(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
-              >
-                <option value="WARGA">WARGA (Public Documents Only)</option>
-                <option value="PENGURUS">PENGURUS (Public + Internal)</option>
-                <option value="ADMIN">ADMIN (Public + Internal + Restricted)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">Tanggal Simulasi (Effective Date):</label>
-              <input
-                type="date"
-                value={simDate}
-                onChange={(e) => setSimDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
-              />
-            </div>
+            <button
+              onClick={handleRunAutoTestSuite}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg transition-all"
+            >
+              <Zap className="w-4 h-4 text-amber-300" />
+              Jalankan Automated Test Suite (14 Scenarios)
+            </button>
           </div>
 
-          <button
-            onClick={handleRunSim}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-xs flex items-center gap-2"
-          >
-            <Play className="w-4 h-4" />
-            Jalankan Simulasi Retrieval RAG
-          </button>
-
-          {simResult && (
-            <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-2 text-xs">
-              <div className="flex justify-between items-center">
-                <span className="font-bold text-white text-sm">Hasil Pencarian AI:</span>
-                <span
-                  className={`px-2 py-0.5 rounded font-bold ${
-                    simResult.found ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                  }`}
+          {/* Interactive Single Test Section */}
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-4">
+            <h4 className="text-xs font-bold text-cyan-300 uppercase tracking-wider">Simulasi Query RAG Interaktif:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-400 block mb-1">Pertanyaan Simulasi:</label>
+                <input
+                  type="text"
+                  value={simQuery}
+                  onChange={(e) => setSimQuery(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-400 block mb-1">Role Pemohon:</label>
+                <select
+                  value={simRole}
+                  onChange={(e) => setSimRole(e.target.value as any)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
                 >
-                  {simResult.found ? 'FOUND (SUCCESS)' : 'NOT FOUND'}
+                  <option value="WARGA">WARGA (Public Documents Only)</option>
+                  <option value="PENGURUS">PENGURUS (Public + Internal)</option>
+                  <option value="ADMIN">ADMIN (Public + Internal + Restricted)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-400 block mb-1">Tanggal Simulasi (Effective Date):</label>
+                <input
+                  type="date"
+                  value={simDate}
+                  onChange={(e) => setSimDate(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleRunSim}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-xs flex items-center gap-2"
+            >
+              <Play className="w-4 h-4" />
+              Jalankan Retrieval RAG
+            </button>
+
+            {ragOutput && (
+              <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl space-y-3 text-xs">
+                <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">Klasifikasi Intent:</span>
+                    <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono font-bold">
+                      {ragOutput.queryType}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">Confidence:</span>
+                    <span className={`px-2 py-0.5 rounded font-mono font-bold ${
+                      ragOutput.confidence === 'HIGH_CONFIDENCE' ? 'bg-emerald-500/20 text-emerald-400' :
+                      ragOutput.confidence === 'MEDIUM_CONFIDENCE' ? 'bg-amber-500/20 text-amber-300' :
+                      'bg-rose-500/20 text-rose-400'
+                    }`}>
+                      {ragOutput.confidence}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    ID: {ragOutput.correlationId}
+                  </span>
+                </div>
+
+                {ragOutput.deniedReason ? (
+                  <div className="p-3 bg-rose-950/40 border border-rose-500/40 rounded-lg text-rose-300 space-y-1">
+                    <strong className="block text-rose-400 flex items-center gap-1">
+                      <ShieldAlert className="w-4 h-4" /> Akses Ditolak / Privacy Guard Active:
+                    </strong>
+                    <p>{ragOutput.deniedReason}</p>
+                  </div>
+                ) : ragOutput.found ? (
+                  <div className="space-y-2">
+                    <div className="text-blue-300 font-bold">
+                      📌 Dokumen Ditemukan: {ragOutput.retrievedDocuments[0]?.title} ({ragOutput.retrievedDocuments[0]?.version})
+                    </div>
+                    <p className="text-slate-200 bg-slate-950 p-3 rounded-lg border border-slate-800 leading-relaxed font-sans">
+                      {ragOutput.synthesizedAnswer}
+                    </p>
+                    <div className="text-emerald-400 font-mono text-[11px]">
+                      {ragOutput.sourceCitation}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-amber-950/30 border border-amber-500/30 rounded-lg text-amber-300">
+                    Informasi tidak ditemukan dalam Knowledge Base resmi RT 07.
+                  </div>
+                )}
+
+                {/* Prompt Boundary Context Preview */}
+                <details className="pt-2 border-t border-slate-800">
+                  <summary className="text-slate-400 hover:text-white font-mono cursor-pointer">
+                    🔍 Lihat Boundary Context Tag (&lt;KNOWLEDGE_CONTEXT&gt;)
+                  </summary>
+                  <pre className="mt-2 p-3 bg-slate-950 border border-slate-800 rounded-lg text-[10px] text-slate-300 font-mono whitespace-pre-wrap max-h-48 overflow-y-auto">
+                    {ragOutput.contextPrompt}
+                  </pre>
+                </details>
+              </div>
+            )}
+          </div>
+
+          {/* Automated Test Results Matrix Table */}
+          {testResults && (
+            <div className="space-y-3 pt-2">
+              <div className="flex justify-between items-center">
+                <h4 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Results Test Matrix (20 Scenarios)
+                </h4>
+                <span className="text-xs font-mono text-slate-400">
+                  Total Test: {testResults.length} | Passed: {testResults.filter(t => t.status === 'PASS' || t.status === 'BLOCKED').length}
                 </span>
               </div>
-              {simResult.found && simResult.item ? (
-                <div className="space-y-2 pt-2 border-t border-slate-800">
-                  <div className="text-blue-300 font-bold">
-                    📌 {simResult.item.title} ({simResult.item.version})
-                  </div>
-                  <p className="text-slate-300 bg-slate-900 p-2.5 rounded border border-slate-800">{simResult.item.content}</p>
-                  <div className="text-emerald-400 font-semibold">{simResult.sourceCitation}</div>
-                </div>
-              ) : (
-                <p className="text-rose-300 italic pt-2">{simResult.rejectionReason}</p>
-              )}
+
+              <div className="overflow-x-auto border border-slate-800 rounded-xl bg-slate-950">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-900 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Test ID</th>
+                      <th className="p-3">Nama Skenario</th>
+                      <th className="p-3">Role</th>
+                      <th className="p-3">Query</th>
+                      <th className="p-3">Scope / Auth</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3">Catatan Audit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-slate-300">
+                    {testResults.map((t) => (
+                      <tr key={t.testId} className="hover:bg-slate-900/60 transition-colors">
+                        <td className="p-3 font-mono font-bold text-cyan-300">{t.testId}</td>
+                        <td className="p-3 font-semibold text-white">{t.name}</td>
+                        <td className="p-3 font-mono text-slate-400">{t.userRole}</td>
+                        <td className="p-3 max-w-xs truncate text-slate-300">{t.query}</td>
+                        <td className="p-3 font-mono">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            t.authorization === 'ALLOWED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'
+                          }`}>
+                            {t.expectedScope} / {t.authorization}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-black ${
+                            t.status === 'PASS' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                            t.status === 'BLOCKED' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                            'bg-rose-500/20 text-rose-400 border border-rose-500/40'
+                          }`}>
+                            {t.status}
+                          </span>
+                        </td>
+                        <td className="p-3 text-[11px] text-slate-400 max-w-xs truncate">{t.notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

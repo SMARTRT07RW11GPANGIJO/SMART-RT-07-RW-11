@@ -95,6 +95,8 @@ interface DashboardProps {
   openComplaintModal: () => void;
   openArchModal: () => void;
   openArchiveModal?: () => void;
+  openFinanceModal?: () => void;
+  openTataTertibModal?: () => void;
   activeSubTab: string;
   setActiveSubTab: (tab: any) => void;
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
@@ -124,6 +126,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   openComplaintModal,
   openArchModal,
   openArchiveModal,
+  openFinanceModal,
+  openTataTertibModal,
   activeSubTab,
   setActiveSubTab,
   addToast
@@ -442,6 +446,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
             <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
               Rp 50rb/bln
+            </span>
+          </button>
+
+          <button
+            onClick={() => openTataTertibModal ? openTataTertibModal() : null}
+            className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-sm"
+          >
+            <div className="flex items-center gap-2.5">
+              <BookOpen className="w-4 h-4 text-emerald-700" />
+              <span>📜 Tata Tertib Warga</span>
+            </div>
+            <span className="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+              v1.1
             </span>
           </button>
 

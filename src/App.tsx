@@ -28,6 +28,8 @@ import { AdminAIEvaluationDashboard } from './components/AdminAIEvaluationDashbo
 import { AdminAIProductionDashboard } from './components/AdminAIProductionDashboard';
 import { AdminProductionMonitoringDashboard } from './components/AdminProductionMonitoringDashboard';
 import { AdminAlertsDashboard } from './components/AdminAlertsDashboard';
+import { FinanceManagementModal } from './components/FinanceManagementModal';
+import { TataTertibModal } from './components/TataTertibModal';
 import { AdminBackupVerificationDashboard } from './components/AdminBackupVerificationDashboard';
 import { AdminDisasterRecoveryDashboard } from './components/AdminDisasterRecoveryDashboard';
 import { AdminSecurityOperationsDashboard } from './components/AdminSecurityOperationsDashboard';
@@ -99,6 +101,8 @@ export default function App() {
   const [monitorModalOpen, setMonitorModalOpen] = useState(false);
   const [aiPermissionsModalOpen, setAiPermissionsModalOpen] = useState(false);
   const [aiToolsModalOpen, setAiToolsModalOpen] = useState(false);
+  const [financeModalOpen, setFinanceModalOpen] = useState(false);
+  const [tataTertibModalOpen, setTataTertibModalOpen] = useState(false);
 
   const handleRestoreState = (restoredData: any) => {
     if (restoredData.wargaList) setWargaList(restoredData.wargaList);
@@ -229,6 +233,8 @@ export default function App() {
         openBackupVerificationModal={() => setTab('prod-backup')}
         openDisasterRecoveryModal={() => setTab('prod-dr')}
         openSecurityOpsModal={() => setTab('prod-sec-ops')}
+        openFinanceModal={() => setFinanceModalOpen(true)}
+        openTataTertibModal={() => setTataTertibModalOpen(true)}
       />
 
       {/* Main App Body */}
@@ -272,6 +278,8 @@ export default function App() {
               refreshDigitalDocs();
               setArchiveModalOpen(true);
             }}
+            openFinanceModal={() => setFinanceModalOpen(true)}
+            openTataTertibModal={() => setTataTertibModalOpen(true)}
             activeSubTab={activeSubTab}
             setActiveSubTab={setActiveSubTab}
             addToast={addToast}
@@ -482,6 +490,22 @@ export default function App() {
         onClose={() => setAiToolsModalOpen(false)}
         currentRole={currentRole}
         userName={currentRole === 'PUBLIC' ? 'Tamu RT 07' : `Warga (${currentRole})`}
+      />
+
+      {/* MODUL KEUANGAN RT v2.0 */}
+      <FinanceManagementModal
+        isOpen={financeModalOpen}
+        onClose={() => setFinanceModalOpen(false)}
+        currentRole={currentRole}
+        addToast={(msg, type) => addToast(type === 'error' ? 'error' : type === 'success' ? 'success' : 'info', 'Keuangan RT', msg)}
+      />
+
+      {/* MODUL TATA TERTIB WARGA v1.0 */}
+      <TataTertibModal
+        isOpen={tataTertibModalOpen}
+        onClose={() => setTataTertibModalOpen(false)}
+        currentRole={currentRole}
+        addToast={(msg, type) => addToast(type === 'error' ? 'error' : type === 'success' ? 'success' : 'info', 'Tata Tertib', msg)}
       />
 
       {/* Tahap 8 AI Assistant RITA Floating Widget */}

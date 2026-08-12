@@ -47,6 +47,8 @@ interface HeaderProps {
   openDisasterRecoveryModal?: () => void;
   openSecurityOpsModal?: () => void;
   openContinuousEvalModal?: () => void;
+  openFinanceModal?: () => void;
+  openTataTertibModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -72,7 +74,9 @@ export const Header: React.FC<HeaderProps> = ({
   openBackupVerificationModal,
   openDisasterRecoveryModal,
   openSecurityOpsModal,
-  openContinuousEvalModal
+  openContinuousEvalModal,
+  openFinanceModal,
+  openTataTertibModal
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -141,6 +145,24 @@ export const Header: React.FC<HeaderProps> = ({
             >
               PORTAL DASHBOARD
             </button>
+
+            {openFinanceModal && (
+              <button
+                onClick={openFinanceModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#D4A72C]/30 hover:bg-[#D4A72C]/40 text-[#D4A72C] border border-[#D4A72C]/60 transition-all flex items-center gap-1.5 shadow"
+              >
+                💰 KEUANGAN RT
+              </button>
+            )}
+
+            {openTataTertibModal && (
+              <button
+                onClick={openTataTertibModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 border border-emerald-400/50 transition-all flex items-center gap-1.5 shadow"
+              >
+                📜 TATA TERTIB
+              </button>
+            )}
 
             <button
               onClick={() => handleNavClick('verify')}
