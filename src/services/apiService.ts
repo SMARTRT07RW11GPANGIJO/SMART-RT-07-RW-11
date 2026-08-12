@@ -15,6 +15,18 @@ export interface GASApiResponse<T = any> {
 const STORAGE_KEY_WEBAPP_URL = 'SMART_RT_GAS_WEBAPP_URL';
 const DEFAULT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx_SMART_RT07_EXEC/exec';
 
+export const isPlaceholderGasUrl = (url: string): boolean => {
+  if (!url || typeof url !== 'string') return true;
+  const trimmed = url.trim();
+  return (
+    trimmed === '' ||
+    trimmed.includes('AKfycbx_SMART_RT07_EXEC') ||
+    trimmed.includes('placeholder') ||
+    trimmed.includes('example.com') ||
+    !trimmed.startsWith('https://script.google.com/macros/s/')
+  );
+};
+
 export const getGasWebappUrl = (): string => {
   return localStorage.getItem(STORAGE_KEY_WEBAPP_URL) || DEFAULT_WEBAPP_URL;
 };
@@ -25,6 +37,14 @@ export const setGasWebappUrl = (url: string): void => {
 
 export const testGasConnection = async (url?: string): Promise<GASApiResponse> => {
   const targetUrl = url || getGasWebappUrl();
+  if (isPlaceholderGasUrl(targetUrl)) {
+    return {
+      success: false,
+      errorCode: 'BACKEND_NOT_CONNECTED',
+      message: 'Backend belum terhubung. Silakan atur Google Apps Script WebApp URL di Pengaturan Sistem.',
+      data: { status: 'NOT_CONNECTED', url: targetUrl }
+    };
+  }
   try {
     const response = await fetch(`${targetUrl}?action=ping`, {
       method: 'GET',
@@ -36,23 +56,33 @@ export const testGasConnection = async (url?: string): Promise<GASApiResponse> =
       return {
         success: false,
         errorCode: 'HTTP_ERROR',
-        message: 'Terjadi kesalahan. Silakan hubungi administrator.'
+        message: 'Terjadi kesalahan koneksi backend GAS.'
       };
     }
     const result = await response.json();
     return result;
   } catch (err: any) {
-    console.error('GAS Connection Test Technical Error:', err);
+    console.warn('[GAS Sync] Connection test warning:', err?.message || err);
     return {
       success: false,
       errorCode: 'CONNECTION_FAILED',
-      message: 'Terjadi kesalahan. Silakan hubungi administrator.'
+      message: 'Gagal terhubung ke GAS Backend server.'
     };
   }
 };
 
 export const syncDataWithGAS = async (action: string, payload?: any): Promise<GASApiResponse> => {
   const url = getGasWebappUrl();
+
+  if (isPlaceholderGasUrl(url)) {
+    return {
+      success: false,
+      errorCode: 'BACKEND_NOT_CONNECTED',
+      message: 'Backend belum terhubung. Konfigurasikan URL Apps Script WebApp di Pengaturan Sistem.',
+      data: { status: 'NOT_CONNECTED', action }
+    };
+  }
+
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -69,18 +99,18 @@ export const syncDataWithGAS = async (action: string, payload?: any): Promise<GA
       return {
         success: false,
         errorCode: 'SYNC_ERROR',
-        message: 'Terjadi kesalahan. Silakan hubungi administrator.'
+        message: 'Terjadi kesalahan pada backend GAS.'
       };
     }
 
     const json = await response.json();
     return json;
   } catch (error: any) {
-    console.error(`GAS Sync ${action} Technical Error:`, error);
+    console.warn(`[GAS Sync] Network notification for ${action}:`, error?.message || error);
     return {
       success: false,
       errorCode: 'NETWORK_ERROR',
-      message: 'Terjadi kesalahan. Silakan hubungi administrator.'
+      message: 'Gagal terhubung ke server GAS backend.'
     };
   }
 };

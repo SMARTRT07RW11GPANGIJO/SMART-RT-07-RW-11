@@ -23,6 +23,22 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
   const qrUrl = doc.qrVerificationUrl || `${window.location.origin}/verify/${doc.documentId}`;
   const qrDataUrl = await generateQRCodeDataUrl(qrUrl);
 
+  let logoDataUrl = '/logo-kabupaten-malang.png';
+  try {
+    const resp = await fetch('/logo-kabupaten-malang.png');
+    if (resp.ok) {
+      const blob = await resp.blob();
+      logoDataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('/logo-kabupaten-malang.png');
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch {
+    logoDataUrl = '/logo-kabupaten-malang.png';
+  }
+
   const formattedDate = new Date(doc.tanggalSurat).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -38,7 +54,7 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
     <style>
       @page {
         size: A4 portrait;
-        margin: 20mm;
+        margin: 18mm 20mm 20mm 20mm;
       }
       body {
         font-family: 'Times New Roman', Times, serif;
@@ -50,18 +66,23 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
         padding: 0;
       }
       .kop-header {
-        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
         border-bottom: 3px double #123B5D;
-        padding-bottom: 8px;
-        margin-bottom: 20px;
-        position: relative;
+        padding-bottom: 12px;
+        margin-bottom: 22px;
       }
       .kop-logo {
-        position: absolute;
-        left: 10px;
-        top: 5px;
-        width: 70px;
-        height: 70px;
+        width: 85px;
+        height: 102px;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
+      .kop-text-block {
+        text-align: center;
+        flex: 1;
       }
       .kop-title {
         font-size: 16pt;
@@ -69,26 +90,38 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
         color: #123B5D;
         text-transform: uppercase;
         margin: 0;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
+        line-height: 1.25;
       }
       .kop-subtitle {
-        font-size: 14pt;
+        font-size: 13.5pt;
         font-weight: bold;
         color: #2E7D52;
+        margin: 3px 0 2px 0;
+        text-transform: uppercase;
+        line-height: 1.2;
+      }
+      .kop-district {
+        font-size: 11pt;
+        font-weight: bold;
+        color: #111827;
+        text-transform: uppercase;
         margin: 2px 0;
+        line-height: 1.2;
       }
       .kop-address {
-        font-size: 10pt;
-        color: #444;
-        margin: 0;
+        font-size: 9.5pt;
+        color: #333333;
+        margin: 2px 0 0 0;
         font-style: italic;
+        line-height: 1.2;
       }
       .kop-tagline {
-        font-size: 9pt;
+        font-size: 8.5pt;
         color: #D4A72C;
         font-weight: bold;
         text-transform: uppercase;
-        margin-top: 4px;
+        margin-top: 2px;
         letter-spacing: 0.5px;
       }
       .doc-title {
@@ -185,10 +218,13 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
     ${doc.status === 'REVOKED' ? '<div class="watermark-status">DOKUMEN DICABUT</div>' : ''}
     
     <div class="kop-header">
-      <div class="kop-title">RUKUN TETANGGA 07 RUKUN WARGA 11</div>
-      <div class="kop-subtitle">PERUMAHAN GPA NGIJO KARANGPLOSO</div>
-      <div class="kop-address">Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152</div>
-      <div class="kop-tagline">"Bersama Melayani, Bersama Membangun"</div>
+      <img src="${logoDataUrl}" alt="Logo Kabupaten Malang" class="kop-logo" />
+      <div class="kop-text-block">
+        <div class="kop-title">RUKUN TETANGGA 07 RUKUN WARGA 11</div>
+        <div class="kop-subtitle">PERUMAHAN GPA NGIJO</div>
+        <div class="kop-district">KECAMATAN KARANGPLOSO • KABUPATEN MALANG</div>
+        <div class="kop-address">Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152</div>
+      </div>
     </div>
 
     <div class="doc-title">
@@ -262,9 +298,14 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
 // Open print / preview window for standard A4 PDF download
 export const printOrSavePDF = async (doc: DigitalDocument) => {
   const htmlContent = await renderDocumentHTML(doc);
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+
+  // Strategy 1: Try opening clean print window
   try {
     const printWindow = window.open('', '_blank');
     if (printWindow && printWindow.document) {
+      printWindow.document.open();
       printWindow.document.write(htmlContent);
       printWindow.document.close();
       printWindow.focus();
@@ -272,41 +313,81 @@ export const printOrSavePDF = async (doc: DigitalDocument) => {
         try {
           printWindow.print();
         } catch (e) {
-          console.warn('Print in popup failed:', e);
+          console.warn('Print in popup window failed:', e);
         }
-      }, 500);
+      }, 400);
       return;
     }
   } catch (e) {
-    console.warn('window.open blocked, using hidden iframe fallback:', e);
+    console.warn('window.open blocked in iframe sandbox:', e);
   }
 
-  // Fallback if window.open returns null or fails (sandboxed iframe)
+  // Strategy 2: Hidden Iframe Print inside current window
+  let iframePrinted = false;
   try {
     const printIframe = document.createElement('iframe');
     printIframe.style.position = 'fixed';
-    printIframe.style.right = '0';
-    printIframe.style.bottom = '0';
-    printIframe.style.width = '0';
-    printIframe.style.height = '0';
+    printIframe.style.top = '-9999px';
+    printIframe.style.left = '-9999px';
+    printIframe.style.width = '210mm';
+    printIframe.style.height = '297mm';
     printIframe.style.border = '0';
     document.body.appendChild(printIframe);
+
     const docObj = printIframe.contentWindow?.document;
     if (docObj) {
       docObj.open();
       docObj.write(htmlContent);
       docObj.close();
-      setTimeout(() => {
-        printIframe.contentWindow?.focus();
-        printIframe.contentWindow?.print();
+
+      await new Promise<void>((resolve) => {
         setTimeout(() => {
-          if (document.body.contains(printIframe)) {
-            document.body.removeChild(printIframe);
+          try {
+            printIframe.contentWindow?.focus();
+            printIframe.contentWindow?.print();
+            iframePrinted = true;
+          } catch (err) {
+            console.warn('Iframe print failed:', err);
           }
-        }, 2000);
-      }, 500);
+          setTimeout(() => {
+            if (document.body.contains(printIframe)) {
+              document.body.removeChild(printIframe);
+            }
+            resolve();
+          }, 1000);
+        }, 500);
+      });
     }
   } catch (err) {
-    console.error('Failed to trigger PDF print:', err);
+    console.warn('Iframe setup failed:', err);
+  }
+
+  if (iframePrinted) return;
+
+  // Strategy 3: Direct window.print() on parent
+  try {
+    window.print();
+  } catch (e) {
+    console.warn('window.print() failed:', e);
+    // Fallback: Open Blob URL
+    window.open(blobUrl, '_blank');
+  }
+};
+
+// Open document in a new tab or trigger file download
+export const openDocumentInNewTab = async (doc: DigitalDocument) => {
+  const htmlContent = await renderDocumentHTML(doc);
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  
+  const win = window.open(blobUrl, '_blank');
+  if (!win) {
+    // If popup blocked, force download file
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `Dokumen_${doc.nomorSurat.replace(/[\/\\]/g, '_')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 };

@@ -20,11 +20,55 @@ body {
 }
 
 @media print {
-  .no-print {
-    display: none !important;
+  @page {
+    size: A4 portrait;
+    margin: 10mm 15mm;
   }
-  .print-only {
-    display: block !important;
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Reset fixed modal overlays and scroll containers during print */
+  .fixed, .backdrop-blur-sm, .overflow-y-auto {
+    position: static !important;
+    overflow: visible !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .no-print,
+  .no-print * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .document-print-area {
+    visibility: visible !important;
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 5mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .document-print-area * {
+    visibility: visible !important;
+  }
+
+  img, svg, canvas {
+    max-width: 100% !important;
+    page-break-inside: avoid !important;
   }
 }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Printer, ShieldCheck, Download, AlertTriangle, CheckCircle2, FileText, Ban, ExternalLink } from 'lucide-react';
 import { DigitalDocument } from '../types/rt';
-import { renderDocumentHTML, printOrSavePDF, generateQRCodeDataUrl } from '../services/pdfGeneratorService';
+import { renderDocumentHTML, printOrSavePDF, openDocumentInNewTab, generateQRCodeDataUrl } from '../services/pdfGeneratorService';
 
 interface PdfDocumentViewerProps {
   isOpen: boolean;
@@ -21,6 +21,8 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [htmlPreview, setHtmlPreview] = useState<string>('');
 
+  const [printError, setPrintError] = useState<string | null>(null);
+
   useEffect(() => {
     if (doc) {
       generateQRCodeDataUrl(doc.qrVerificationUrl || `${window.location.origin}/verify/${doc.documentId}`).then(setQrDataUrl);
@@ -30,8 +32,23 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
 
   if (!isOpen || !doc) return null;
 
-  const handlePrint = () => {
-    printOrSavePDF(doc);
+  const handlePrint = async () => {
+    setPrintError(null);
+    try {
+      await printOrSavePDF(doc);
+    } catch (err) {
+      console.error('Print failed:', err);
+      try {
+        window.print();
+      } catch (e) {
+        setPrintError('Gagal membuka dialog cetak. Gunakan tombol "Buka Tab Baru" untuk mencetak/mengunduh PDF.');
+      }
+    }
+  };
+
+  const handleOpenInNewTab = async () => {
+    if (!doc) return;
+    await openDocumentInNewTab(doc);
   };
 
   return (
@@ -39,7 +56,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
       <div className="bg-[#0A2338] text-white w-full max-w-4xl rounded-3xl shadow-2xl border-2 border-emerald-500 overflow-hidden my-4 flex flex-col max-h-[92vh]">
         
         {/* Header Bar */}
-        <div className="p-4 bg-[#123B5D] border-b border-[#2E7D52] flex items-center justify-between">
+        <div className="p-4 bg-[#123B5D] border-b border-[#2E7D52] flex items-center justify-between no-print">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#2E7D52] flex items-center justify-center border border-[#D4A72C] shadow">
               <FileText className="w-5 h-5 text-emerald-300" />
@@ -57,22 +74,36 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleOpenInNewTab}
+              className="bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow cursor-pointer"
+              title="Buka dokumen di tab baru untuk dicetak / diunduh sebagai PDF"
+            >
+              <ExternalLink className="w-4 h-4" /> Buka Tab Baru
+            </button>
             <button
               onClick={handlePrint}
-              className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow"
+              className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow cursor-pointer"
+              title="Cetak langsung atau simpan sebagai PDF"
             >
               <Printer className="w-4 h-4" /> Cetak / Unduh PDF A4
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white">
+            <button onClick={onClose} className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white" title="Tutup">
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        {printError && (
+          <div className="bg-red-900 text-red-100 p-2.5 px-6 text-xs flex items-center justify-between border-b border-red-700 no-print">
+            <span>{printError}</span>
+          </div>
+        )}
+
         {/* Warning Banner if Revoked */}
         {doc.status === 'REVOKED' && (
-          <div className="bg-red-900/90 text-white p-3 px-6 border-b border-red-700 text-xs flex items-center justify-between">
+          <div className="bg-red-900/90 text-white p-3 px-6 border-b border-red-700 text-xs flex items-center justify-between no-print">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
               <span>
@@ -85,7 +116,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
 
         {/* PDF Body Container - Simulating standard A4 paper preview */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-900 flex justify-center">
-          <div className="bg-white text-slate-900 w-full max-w-[210mm] min-h-[297mm] p-6 sm:p-10 rounded-xl shadow-2xl border border-slate-300 font-serif relative text-xs sm:text-sm leading-relaxed">
+          <div className="document-print-area bg-white text-slate-900 w-full max-w-[210mm] min-h-[297mm] p-6 sm:p-10 rounded-xl shadow-2xl border border-slate-300 font-serif relative text-xs sm:text-sm leading-relaxed">
             
             {/* Watermark if Revoked */}
             {doc.status === 'REVOKED' && (
@@ -97,18 +128,25 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
             )}
 
             {/* Kop Surat */}
-            <div className="text-center border-b-4 border-double border-[#123B5D] pb-3 mb-6 relative">
-              <div className="text-base sm:text-lg font-bold text-[#123B5D] uppercase tracking-wider font-sans">
-                RUKUN TETANGGA 07 RUKUN WARGA 11
-              </div>
-              <div className="text-sm sm:text-base font-bold text-[#2E7D52] uppercase font-sans">
-                PERUMAHAN GPA NGIJO KARANGPLOSO
-              </div>
-              <div className="text-[11px] text-slate-600 italic font-sans">
-                Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152
-              </div>
-              <div className="text-[10px] text-[#D4A72C] font-bold uppercase tracking-widest font-sans mt-1">
-                "Bersama Melayani, Bersama Membangun"
+            <div className="text-center border-b-4 border-double border-[#123B5D] pb-4 mb-6 relative flex items-center justify-center gap-4 sm:gap-6">
+              <img
+                src="/logo-kabupaten-malang.png"
+                alt="Logo Kabupaten Malang"
+                className="w-20 h-24 sm:w-24 sm:h-28 object-contain shrink-0"
+              />
+              <div className="text-center">
+                <div className="text-base sm:text-xl font-bold text-[#123B5D] uppercase tracking-wider font-sans leading-tight">
+                  RUKUN TETANGGA 07 RUKUN WARGA 11
+                </div>
+                <div className="text-sm sm:text-lg font-bold text-[#2E7D52] uppercase font-sans leading-tight mt-0.5">
+                  PERUMAHAN GPA NGIJO
+                </div>
+                <div className="text-xs sm:text-base font-semibold text-slate-800 uppercase font-sans leading-tight mt-0.5">
+                  KECAMATAN KARANGPLOSO • KABUPATEN MALANG
+                </div>
+                <div className="text-xs sm:text-sm text-slate-600 italic font-sans mt-1">
+                  Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152
+                </div>
               </div>
             </div>
 
@@ -204,7 +242,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-[#123B5D] border-t border-slate-800 flex items-center justify-between text-xs text-slate-300">
+        <div className="p-4 bg-[#123B5D] border-t border-slate-800 flex items-center justify-between text-xs text-slate-300 no-print">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Digital Document Security Token: <code className="text-amber-300 font-mono">{doc.verificationToken}</code></span>

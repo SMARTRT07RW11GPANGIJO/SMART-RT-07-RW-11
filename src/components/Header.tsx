@@ -17,7 +17,10 @@ import {
   Award,
   Bell,
   Flame,
-  Lock
+  Lock,
+  Terminal,
+  GraduationCap,
+  Rocket
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -319,6 +322,46 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <BookOpen className="w-4 h-4 text-blue-400" />
               KM 9G
+            </button>
+
+            <button
+              onClick={() => setTab('ai-feedback-9h')}
+              className="px-3 py-2 rounded-lg text-sm font-bold bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-500/50 shadow-lg transition-all flex items-center gap-1.5"
+            >
+              <MessageSquare className="w-4 h-4 text-amber-400" />
+              FEEDBACK 9H
+            </button>
+
+            <button
+              onClick={() => setTab('control-center-9j')}
+              className="px-3 py-2 rounded-lg text-sm font-bold bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-500/50 shadow-lg transition-all flex items-center gap-1.5"
+            >
+              <Terminal className="w-4 h-4 text-emerald-400" />
+              CONTROL 9J
+            </button>
+
+            <button
+              onClick={() => setTab('system-docs-9k')}
+              className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#1E3A5F] text-emerald-300 border border-emerald-400/60 shadow-lg transition-all flex items-center gap-1.5"
+            >
+              <BookOpen className="w-4 h-4 text-emerald-400" />
+              SYSTEM DOCS 9K
+            </button>
+
+            <button
+              onClick={() => setTab('system-training-9l')}
+              className="px-3 py-2 rounded-lg text-sm font-bold bg-[#122E1F] hover:bg-[#1C452F] text-emerald-300 border border-emerald-400/60 shadow-lg transition-all flex items-center gap-1.5"
+            >
+              <GraduationCap className="w-4 h-4 text-emerald-400" />
+              TRAINING 9L
+            </button>
+
+            <button
+              onClick={() => setTab('official-launch-9m')}
+              className="px-3 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-emerald-900 to-slate-900 hover:from-emerald-800 hover:to-slate-800 text-emerald-300 border border-emerald-400 shadow-xl transition-all flex items-center gap-1.5"
+            >
+              <Rocket className="w-4 h-4 text-emerald-400 animate-pulse" />
+              LAUNCH 2.0
             </button>
           </nav>
 

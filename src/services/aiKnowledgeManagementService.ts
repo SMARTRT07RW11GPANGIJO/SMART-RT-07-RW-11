@@ -950,4 +950,22 @@ export class AIKnowledgeManagementService {
 
     return release;
   }
+
+  /**
+   * Flag Document for Review (Triggered by Feedback 9H)
+   */
+  public static flagDocumentForReview(
+    knowledgeId: string,
+    reason: string,
+    reviewer: string
+  ): void {
+    const docs = this.getAllDocuments();
+    const doc = docs.find((d) => d.knowledgeId === knowledgeId || d.title.toLowerCase().includes(knowledgeId.toLowerCase()));
+    if (doc) {
+      doc.status = 'UNDER_REVIEW';
+      doc.qualityStatus = 'OUTDATED';
+      doc.updatedAt = new Date().toISOString();
+      this.saveDocuments(docs);
+    }
+  }
 }

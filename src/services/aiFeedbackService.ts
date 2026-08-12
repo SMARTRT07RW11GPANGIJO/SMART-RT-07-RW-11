@@ -545,12 +545,10 @@ export class AIFeedbackService {
         const newTestCaseId = `TC-FB-${updated.feedbackId}`;
         AIContinuousEvaluationService.addCustomTestCase({
           id: newTestCaseId,
-          category: 'ACCURACY',
-          name: `Evaluasi Feedback ${updated.feedbackId}: ${updated.reasonCode || 'Kualitas Jawaban'}`,
-          description: `Test Case dibuat otomatis dari Valid User Feedback (${updated.feedbackId}). Pertanyaan: "${updated.question}"`,
-          prompt: updated.question,
-          expectedKeywords: [],
-          minScore: 0.85,
+          category: 'WARGA',
+          question: updated.question,
+          expectedBehavior: `Jawaban akurat tanpa kesalahan. Ref feedback: ${updated.feedbackId}`,
+          allowedRole: updated.userRole || 'WARGA',
           active: true
         });
         updated.associatedTestCaseId = newTestCaseId;
@@ -569,7 +567,8 @@ export class AIFeedbackService {
         const targetSource = updated.knowledgeSources[0];
         AIKnowledgeManagementService.flagDocumentForReview(
           targetSource,
-          `Feedback ${updated.feedbackId} menandai dokumen ini sebagai kedaluwarsa/salah. Catatan: ${updated.reviewNotes}`
+          `Feedback ${updated.feedbackId} menandai dokumen ini sebagai kedaluwarsa/salah. Catatan: ${updated.reviewNotes}`,
+          params.reviewer
         );
         updated.associatedKnowledgeDocId = targetSource;
       } catch (e) {
@@ -733,7 +732,7 @@ export class AIFeedbackService {
       action: 'IMPROVEMENT_DEPLOYED',
       tool: 'AI_USER_FEEDBACK_9H',
       resourceId: proposalId,
-      result: 'WARNING',
+      result: 'SUCCESS',
       decision: `Rollback versi ${updated.proposedVersion} kembali ke ${updated.currentVersion}. Alasan: ${reason}`
     });
 

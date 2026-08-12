@@ -17,6 +17,7 @@ import { BottomNav } from './components/BottomNav';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { waServiceInstance } from './services/whatsappService';
 import { getStoredDigitalDocuments, revokeDigitalDocument } from './services/documentService';
+import { SuratService } from './services/suratService';
 import { SecurityHealthDashboard } from './components/SecurityHealthDashboard';
 import { AdminSystemDashboard } from './components/AdminSystemDashboard';
 import { SystemMonitoringDashboard } from './components/SystemMonitoringDashboard';
@@ -32,6 +33,11 @@ import { AdminDisasterRecoveryDashboard } from './components/AdminDisasterRecove
 import { AdminSecurityOperationsDashboard } from './components/AdminSecurityOperationsDashboard';
 import { AdminAIContinuousEvalDashboard } from './components/AdminAIContinuousEvalDashboard';
 import { AdminAIKnowledgeManagementDashboard } from './components/AdminAIKnowledgeManagementDashboard';
+import { AdminAIFeedbackDashboard } from './components/AdminAIFeedbackDashboard';
+import { AdminControlCenterDashboard } from './components/AdminControlCenterDashboard';
+import { AdminSystemDocumentationDashboard } from './components/AdminSystemDocumentationDashboard';
+import { AdminTrainingDashboard } from './components/AdminTrainingDashboard';
+import { AdminLaunchDashboard } from './components/AdminLaunchDashboard';
 import { RitaAssistantWidget } from './components/RitaAssistantWidget';
 import { AIAssistantPage } from './pages/AIAssistant';
 
@@ -319,6 +325,40 @@ export default function App() {
         {(currentTab === 'ai-knowledge-9g' || currentTab === 'admin-knowledge' || currentTab === 'knowledge-management') && (
           <AdminAIKnowledgeManagementDashboard currentUserRole={currentRole} />
         )}
+
+        {(currentTab === 'ai-feedback-9h' || currentTab === 'admin-ai-feedback' || currentTab === 'ai-feedback' || currentTab === 'user-feedback') && (
+          <AdminAIFeedbackDashboard currentUserRole={currentRole} />
+        )}
+
+        {(currentTab === 'control-center-9j' || currentTab === 'control-center' || currentTab === 'admin-control-center' || currentTab === 'sys-control') && (
+          <AdminControlCenterDashboard
+            currentUserRole={currentRole}
+            onOpenDocumentation={() => setTab('system-docs-9k')}
+            onOpenTraining={() => setTab('system-training-9l')}
+            onOpenLaunch={() => setTab('official-launch-9m')}
+          />
+        )}
+
+        {(currentTab === 'system-docs-9k' || currentTab === 'system-documentation' || currentTab === 'admin-docs' || currentTab === 'docs') && (
+          <AdminSystemDocumentationDashboard
+            currentUserRole={currentRole}
+            onNavigateToControlCenter={() => setTab('control-center-9j')}
+          />
+        )}
+
+        {(currentTab === 'system-training-9l' || currentTab === 'system-training' || currentTab === 'admin-training' || currentTab === 'training') && (
+          <AdminTrainingDashboard
+            currentUserRole={currentRole}
+            onNavigateToControlCenter={() => setTab('control-center-9j')}
+          />
+        )}
+
+        {(currentTab === 'official-launch-9m' || currentTab === 'official-launch' || currentTab === 'admin-launch' || currentTab === 'launch' || currentTab === 'launch-2.0') && (
+          <AdminLaunchDashboard
+            currentUserRole={currentRole}
+            onNavigateToControlCenter={() => setTab('control-center-9j')}
+          />
+        )}
       </main>
 
       {/* Footer */}
@@ -345,6 +385,10 @@ export default function App() {
         suratList={suratList}
         onAddSurat={handleAddSurat}
         currentRole={currentRole}
+        onRefreshList={() => {
+          const fresh = SuratService.getStoredSuratList();
+          if (fresh && fresh.length > 0) setSuratList(fresh);
+        }}
       />
 
       <ComplaintModal

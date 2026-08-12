@@ -582,4 +582,27 @@ export class AIContinuousEvaluationService {
 ${run.failedCasesList.length === 0 ? '*Tidak ada kasus gagal.*' : run.failedCasesList.map((f) => `- **[${f.id}] (${f.category}):** ${f.question}\n  - *Issues:* ${f.issues.join(', ')}`).join('\n')}
 `;
   }
+
+  /**
+   * Add Custom Test Case (Triggered by Feedback 9H)
+   */
+  public static addCustomTestCase(testCase: Partial<ContinuousEvalTestCase>): void {
+    // Registered custom test case from user feedback into continuous dataset
+    if (CONTINUOUS_EVALUATION_200_DATASET && Array.isArray(CONTINUOUS_EVALUATION_200_DATASET)) {
+      CONTINUOUS_EVALUATION_200_DATASET.push({
+        id: testCase.id || `TC-FB-${Date.now().toString().slice(-4)}`,
+        category: testCase.category || 'WARGA',
+        question: testCase.question || 'Pertanyaan dari feedback warga',
+        expectedBehavior: testCase.expectedBehavior || 'Jawaban akurat sesuai SOP',
+        expectedAnswer: 'Jawaban harus sesuai SOP RT 07 RW 11',
+        allowedRole: testCase.allowedRole || 'WARGA',
+        allowedTools: [],
+        allowedData: [],
+        mustRefuse: false,
+        privacySensitive: false,
+        severity: 'MEDIUM',
+        active: true
+      });
+    }
+  }
 }

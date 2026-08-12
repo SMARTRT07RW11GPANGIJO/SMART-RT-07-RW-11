@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { SuratPengantar, UserRole } from '../types/rt';
-import { X, Printer, Download, CheckCircle, ShieldCheck, Copy, Check, FileCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { SuratPengantar, UserRole, DigitalDocument } from '../types/rt';
+import { X, Printer, Download, CheckCircle, ShieldCheck, Copy, Check, FileCheck, AlertCircle, ExternalLink, Send, ShieldAlert, Loader2, CheckCircle2 } from 'lucide-react';
+import { generateQRCodeDataUrl, printOrSavePDF, openDocumentInNewTab } from '../services/pdfGeneratorService';
+import { SuratService } from '../services/suratService';
+import { AuthoritativeSessionContext } from '../security/authorization';
 
 interface LetterModalProps {
   isOpen: boolean;
@@ -8,6 +11,7 @@ interface LetterModalProps {
   suratList: SuratPengantar[];
   onAddSurat: (newSurat: SuratPengantar) => void;
   currentRole: UserRole;
+  onRefreshList?: () => void;
 }
 
 export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
@@ -15,7 +19,8 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
   onClose,
   suratList,
   onAddSurat,
-  currentRole
+  currentRole,
+  onRefreshList
 }) => {
   const [activeTab, setActiveTab] = useState<'form' | 'preview'>('form');
   const [selectedSurat, setSelectedSurat] = useState<SuratPengantar | null>(suratList[0] || null);
@@ -27,40 +32,178 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
   const [noKk, setNoKk] = useState('');
   const [blokRumah, setBlokRumah] = useState('Blok C-07');
   const [keperluan, setKeperluan] = useState('');
+  const [noHp, setNoHp] = useState('');
+  
+  // Action & Feedback States
   const [copied, setCopied] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!namaPemohon || !nikPemohon || !keperluan) return;
-
-    const nextIndex = suratList.length + 1;
-    const autoNumber = `${String(nextIndex).padStart(3, '0')}/RT07-RW11/VIII/2026`;
-    const newRecord: SuratPengantar = {
-      id_surat: `SRT-2026-${String(nextIndex).padStart(4, '0')}`,
-      nomor_surat: autoNumber,
-      jenis_surat: jenisSurat,
-      id_warga: `WRG-${Date.now().toString().slice(-4)}`,
-      nama_pemohon: namaPemohon,
-      nik_pemohon: nikPemohon,
-      no_kk: noKk || '3507120101150001',
-      blok_rumah: blokRumah,
-      keperluan: keperluan,
-      tanggal_pengajuan: new Date().toISOString().split('T')[0],
-      status: 'DIAJUKAN',
-      qr_code_hash: `VERIFY-SRT-${nextIndex}-GPA0711`
-    };
-
-    onAddSurat(newRecord);
-    setSelectedSurat(newRecord);
-    setActiveTab('preview');
-  };
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const currentPreview = selectedSurat || suratList[0];
 
-  const handlePrint = () => {
-    window.print();
+  // Helper session context for client-side authoritative check
+  const sessionContext: AuthoritativeSessionContext = {
+    sessionId: `SESS-${currentRole.toLowerCase()}-${Date.now()}`,
+    userId: currentRole === 'WARGA' ? 'warga_0711' : currentRole.toLowerCase(),
+    role: currentRole,
+    isValid: true,
+    isUserActive: true
+  };
+
+  useEffect(() => {
+    if (currentPreview) {
+      const link = `${window.location.origin}/verify?code=${currentPreview.qr_code_hash}`;
+      generateQRCodeDataUrl(link).then(setQrDataUrl);
+    }
+  }, [currentPreview]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatusMessage(null);
+    setIsProcessing(true);
+
+    try {
+      const result = await SuratService.createSurat(
+        {
+          jenis_surat: jenisSurat,
+          nama_pemohon: namaPemohon,
+          nik_pemohon: nikPemohon,
+          no_kk: noKk,
+          blok_rumah: blokRumah,
+          keperluan: keperluan,
+          no_hp: noHp
+        },
+        sessionContext
+      );
+
+      if (result.success && result.surat) {
+        onAddSurat(result.surat);
+        setSelectedSurat(result.surat);
+        setActiveTab('preview');
+        setStatusMessage({
+          type: result.backendConnected ? 'success' : 'info',
+          text: result.message
+        });
+      } else {
+        setStatusMessage({ type: 'error', text: result.message || 'Gagal menyimpan permohonan.' });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: err?.message || 'Terjadi kesalahan sistem.' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Process Approval + Document Generation + Digital Signature
+  const handleApproveAndPublish = async () => {
+    if (!currentPreview) return;
+    setStatusMessage(null);
+    setIsProcessing(true);
+
+    try {
+      const result = await SuratService.processSuratApprovalAndGeneration(
+        currentPreview.id_surat,
+        'Disetujui dan ditandatangani digital oleh Ketua RT 07',
+        sessionContext
+      );
+
+      if (result.success && result.surat) {
+        setSelectedSurat(result.surat);
+        if (onRefreshList) onRefreshList();
+        setStatusMessage({
+          type: result.backendConnected ? 'success' : 'info',
+          text: result.message
+        });
+      } else {
+        setStatusMessage({ type: 'error', text: result.message || 'Gagal menyetujui surat.' });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: err?.message || 'Akses ditolak atau terjadi kesalahan.' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Process Verification by Pengurus
+  const handleVerifyByPengurus = async () => {
+    if (!currentPreview) return;
+    setStatusMessage(null);
+    setIsProcessing(true);
+
+    try {
+      const result = await SuratService.verifySurat(
+        currentPreview.id_surat,
+        'VERIFY',
+        'Berkas telah diverifikasi lengkap oleh Sekretaris RT',
+        sessionContext
+      );
+
+      if (result.success && result.surat) {
+        setSelectedSurat(result.surat);
+        if (onRefreshList) onRefreshList();
+        setStatusMessage({ type: 'success', text: result.message });
+      } else {
+        setStatusMessage({ type: 'error', text: result.message || 'Gagal memverifikasi surat.' });
+      }
+    } catch (err: any) {
+      setStatusMessage({ type: 'error', text: err?.message || 'Akses ditolak.' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const getDocFromPreview = (): DigitalDocument => {
+    return {
+      documentId: currentPreview.id_surat || `DOC-2026-${Date.now().toString().slice(-6)}`,
+      requestId: currentPreview.id_surat,
+      nomorSurat: currentPreview.nomor_surat,
+      jenisSurat: currentPreview.jenis_surat,
+      tanggalSurat: currentPreview.tanggal_pengajuan,
+      lifecycle: currentPreview.status === 'SELESAI' || currentPreview.status === 'DISETUJUI' ? 'APPROVED' : 'SUBMITTED',
+      status: 'VALID',
+      createdAt: currentPreview.tanggal_pengajuan,
+      createdBy: 'Ketua RT 07',
+      qrVerificationUrl: `${window.location.origin}/verify?code=${currentPreview.qr_code_hash}`,
+      verificationToken: currentPreview.qr_code_hash,
+      version: 1,
+      pemohonNama: currentPreview.nama_pemohon,
+      pemohonNikMasked: currentPreview.nik_pemohon
+        ? (currentPreview.nik_pemohon.length === 16
+            ? currentPreview.nik_pemohon.slice(0, 6) + '******' + currentPreview.nik_pemohon.slice(-4)
+            : currentPreview.nik_pemohon)
+        : '350712******0001',
+      pemohonAlamat: `${currentPreview.blok_rumah}, RT 07 RW 11 Perum GPA Ngijo`,
+      keperluan: currentPreview.keperluan,
+      namaKetua: 'Sutrisno, S.T.',
+      jabatanKetua: 'Ketua RT 07 RW 11'
+    };
+  };
+
+  const handlePrint = async () => {
+    if (!currentPreview) return;
+    try {
+      const doc = getDocFromPreview();
+      await printOrSavePDF(doc);
+    } catch (err) {
+      console.error('Failed to trigger print:', err);
+      try {
+        window.print();
+      } catch (e) {
+        setStatusMessage({
+          type: 'error',
+          text: 'Gagal membuka dialog cetak. Silakan gunakan tombol "Buka Tab Baru" untuk mencetak.'
+        });
+      }
+    }
+  };
+
+  const handleOpenInNewTab = async () => {
+    if (!currentPreview) return;
+    const doc = getDocFromPreview();
+    await openDocumentInNewTab(doc);
   };
 
   const copyVerifyLink = () => {
@@ -82,8 +225,13 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
               <FileCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base">Generator & Layanan Surat RT 07 RW 11</h3>
-              <p className="text-xs text-slate-300">Pengajuan Mandiri & Pratinjau Surat Pengantar Resmi</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base">Generator & Layanan Surat RT 07 RW 11</h3>
+                <span className="bg-[#D4A72C] text-[#123B5D] text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                  v2.0 PROD
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">Pengajuan Mandiri & Penerbitan Dokumen Resmi Berbasis QR Verification</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-lg hover:bg-white/10">
@@ -91,8 +239,8 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Selector */}
-        <div className="bg-slate-100 px-6 py-2 border-b border-slate-200 flex items-center justify-between no-print">
+        {/* Tab Selector & Controls */}
+        <div className="bg-slate-100 px-6 py-2.5 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2 no-print">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('form')}
@@ -108,12 +256,36 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                 activeTab === 'preview' ? 'bg-[#123B5D] text-white shadow' : 'bg-white text-slate-700 hover:bg-slate-200'
               }`}
             >
-              2. Pratinjau Document PDF
+              2. Pratinjau Dokumen PDF
             </button>
           </div>
 
           {activeTab === 'preview' && currentPreview && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Role Action Controls */}
+              {['KETUA_RT', 'ADMIN'].includes(currentRole) && currentPreview.status !== 'SELESAI' && currentPreview.status !== 'DISETUJUI' && (
+                <button
+                  onClick={handleApproveAndPublish}
+                  disabled={isProcessing}
+                  className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow disabled:opacity-50 cursor-pointer"
+                  title="Setujui dan tanda tangani digital"
+                >
+                  {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                  Setujui & Terbitkan PDF
+                </button>
+              )}
+
+              {currentRole === 'PENGURUS' && currentPreview.status === 'DIAJUKAN' && (
+                <button
+                  onClick={handleVerifyByPengurus}
+                  disabled={isProcessing}
+                  className="bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow disabled:opacity-50 cursor-pointer"
+                >
+                  {isProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  Verifikasi Berkas Sekretaris
+                </button>
+              )}
+
               <button
                 onClick={copyVerifyLink}
                 className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5"
@@ -122,8 +294,17 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                 {copied ? 'Link Tersalin' : 'Salin Verification Link'}
               </button>
               <button
+                onClick={handleOpenInNewTab}
+                className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow cursor-pointer"
+                title="Buka dokumen HTML/PDF di tab baru"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Buka Tab Baru
+              </button>
+              <button
                 onClick={handlePrint}
-                className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow"
+                className="bg-[#123B5D] hover:bg-[#0c2840] text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow cursor-pointer"
+                title="Cetak atau Simpan sebagai PDF"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Cetak / Simpan PDF
@@ -132,14 +313,28 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
           )}
         </div>
 
+        {/* System Notification Bar */}
+        {statusMessage && (
+          <div className={`p-3 px-6 text-xs flex items-center gap-2 no-print ${
+            statusMessage.type === 'success' ? 'bg-emerald-50 border-b border-emerald-200 text-emerald-800' :
+            statusMessage.type === 'info' ? 'bg-sky-50 border-b border-sky-200 text-sky-800' :
+            'bg-red-50 border-b border-red-200 text-red-800'
+          }`}>
+            {statusMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> :
+             statusMessage.type === 'info' ? <AlertCircle className="w-4 h-4 text-sky-600 shrink-0" /> :
+             <ShieldAlert className="w-4 h-4 text-red-600 shrink-0" />}
+            <span className="font-medium">{statusMessage.text}</span>
+          </div>
+        )}
+
         {/* Modal Content */}
         <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
           
           {activeTab === 'form' ? (
-            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 no-print">
               <div className="border-b border-slate-100 pb-3">
                 <h4 className="font-bold text-[#123B5D] text-base">Formulir Permohonan Surat Pengantar RT</h4>
-                <p className="text-xs text-slate-500">Isi data permohonan sesuai dengan KTP & Kartu Keluarga Anda.</p>
+                <p className="text-xs text-slate-500">Isi data permohonan sesuai dengan KTP & Kartu Keluarga resmi Anda.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -180,7 +375,7 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                     maxLength={16}
                     placeholder="350712xxxxxx0001"
                     value={nikPemohon}
-                    onChange={(e) => setNikPemohon(e.target.value)}
+                    onChange={(e) => setNikPemohon(e.target.value.replace(/[^0-9]/g, ''))}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#123B5D] focus:outline-none"
                   />
                 </div>
@@ -189,9 +384,10 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                   <label className="block text-xs font-bold text-slate-700 mb-1">Nomor Kartu Keluarga (KK)</label>
                   <input
                     type="text"
+                    maxLength={16}
                     placeholder="350712xxxxxx0001"
                     value={noKk}
-                    onChange={(e) => setNoKk(e.target.value)}
+                    onChange={(e) => setNoKk(e.target.value.replace(/[^0-9]/g, ''))}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#123B5D] focus:outline-none"
                   />
                 </div>
@@ -212,12 +408,23 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">No. WhatsApp Notifikasi</label>
+                  <input
+                    type="text"
+                    placeholder="081234567890"
+                    value={noHp}
+                    onChange={(e) => setNoHp(e.target.value)}
+                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#123B5D] focus:outline-none"
+                  />
+                </div>
+
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1">Keperluan Pengajuan Surat</label>
                   <textarea
                     required
                     rows={3}
-                    placeholder="Jelaskan secara rinci untuk keperluan apa surat ini diajukan..."
+                    placeholder="Jelaskan secara rinci keperluan pengajuan..."
                     value={keperluan}
                     onChange={(e) => setKeperluan(e.target.value)}
                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#123B5D] focus:outline-none"
@@ -235,29 +442,52 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#2E7D52] hover:bg-[#236340] shadow flex items-center gap-1.5"
+                  disabled={isProcessing}
+                  className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-[#2E7D52] hover:bg-[#236340] shadow flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <CheckCircle className="w-4 h-4" />
-                  Kirim & Generasi Surat
+                  {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Kirim & Proses Permohonan
                 </button>
               </div>
             </form>
           ) : (
             /* Printable Official Surat Layout */
-            <div className="max-w-2xl mx-auto bg-white p-8 sm:p-12 rounded-xl shadow-md border border-slate-300 text-slate-900 font-serif leading-relaxed text-sm relative">
+            <div className="document-print-area max-w-2xl mx-auto bg-white p-8 sm:p-12 rounded-xl shadow-md border border-slate-300 text-slate-900 font-serif leading-relaxed text-sm relative">
               
               {/* Kop Surat Resmi RT */}
-              <div className="border-b-4 border-double border-slate-900 pb-4 mb-6 text-center relative">
-                <div className="flex items-center justify-center gap-4 mb-1">
-                  <div className="w-12 h-12 bg-[#123B5D] text-[#D4A72C] rounded-lg flex items-center justify-center font-bold text-xl border border-[#D4A72C] no-print">
-                    RT07
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-lg sm:text-xl tracking-wider text-slate-900 uppercase">RUKUN TETANGGA 07 RUKUN WARGA 11</h2>
-                    <h3 className="font-bold text-sm sm:text-base tracking-wide text-slate-800 uppercase">PERUMAHAN GPA NGIJO - KECAMATAN KARANGPLOSO</h3>
-                    <p className="text-xs text-slate-600 font-sans mt-0.5">Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152</p>
-                  </div>
+              <div className="border-b-4 border-double border-slate-900 pb-4 mb-6 text-center relative flex items-center justify-center gap-4 sm:gap-6">
+                <img
+                  src="/logo-kabupaten-malang.png"
+                  alt="Logo Kabupaten Malang"
+                  className="w-[85px] h-[102px] object-contain shrink-0"
+                />
+                <div className="text-center">
+                  <h2 className="font-bold text-base sm:text-xl tracking-wider text-slate-900 uppercase leading-tight">
+                    RUKUN TETANGGA 07 RUKUN WARGA 11
+                  </h2>
+                  <h3 className="font-bold text-sm sm:text-lg tracking-wide text-[#2E7D52] uppercase leading-tight mt-0.5">
+                    PERUMAHAN GPA NGIJO
+                  </h3>
+                  <p className="text-xs sm:text-base font-semibold text-slate-800 uppercase leading-tight mt-0.5">
+                    KECAMATAN KARANGPLOSO • KABUPATEN MALANG
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600 font-sans italic mt-1">
+                    Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152
+                  </p>
                 </div>
+              </div>
+
+              {/* Status Ribbon (Screen Only) */}
+              <div className="no-print absolute top-4 right-4">
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border ${
+                  currentPreview?.status === 'SELESAI' || currentPreview?.status === 'DISETUJUI'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : currentPreview?.status === 'DIVERIFIKASI'
+                    ? 'bg-sky-100 text-sky-800 border-sky-300'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}>
+                  {currentPreview?.status || 'DIAJUKAN'}
+                </span>
               </div>
 
               {/* Judul Surat & Nomor */}
@@ -273,7 +503,7 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
               {/* Isi Surat */}
               <div className="space-y-4 font-sans text-xs sm:text-sm">
                 <p>
-                  Yang bertanda tangan di bawah ini Ketua RT 07 RW 11 Perumahan GPA Ngijo, Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, menerangkan dengan sebenarnya bahwa:
+                  Yang bertanda tangan di bawah ini Pengurus RT 07 RW 11 Perumahan GPA Ngijo, Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, menerangkan dengan sebenarnya bahwa:
                 </p>
 
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1.5 my-3">
@@ -308,7 +538,7 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                 </p>
 
                 <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 font-semibold text-slate-800">
-                  "{currentPreview?.keperluan || 'Persyaratan Administrasi Pekerjaan & Pembukaan Rekening Bank'}"
+                  "{currentPreview?.keperluan || 'Persyaratan Administrasi Kependudukan & Instansi Terkait'}"
                 </div>
 
                 <p>
@@ -319,13 +549,16 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
               {/* Tanda Tangan & QR Code Verification */}
               <div className="mt-8 pt-6 border-t border-slate-200 grid grid-cols-2 gap-4 font-sans text-xs items-end">
                 <div className="text-center space-y-2">
-                  <div className="p-2 bg-slate-100 rounded-lg border border-slate-200 inline-block">
-                    {/* Simulated QR Code */}
-                    <div className="w-20 h-20 bg-slate-900 text-white p-1 flex flex-col items-center justify-center text-[8px] text-center font-mono rounded">
-                      <ShieldCheck className="w-6 h-6 text-[#D4A72C] mb-1" />
-                      <span>VERIFIED DOC</span>
-                      <span>RT 07 RW 11</span>
-                    </div>
+                  <div className="p-2 bg-slate-50 rounded-lg border border-slate-300 inline-block">
+                    {qrDataUrl ? (
+                      <img src={qrDataUrl} alt="QR Code Verifikasi" className="w-24 h-24 mx-auto object-contain" />
+                    ) : (
+                      <div className="w-24 h-24 bg-slate-900 text-white p-1 flex flex-col items-center justify-center text-[8px] text-center font-mono rounded">
+                        <ShieldCheck className="w-6 h-6 text-[#D4A72C] mb-1" />
+                        <span>VERIFIED DOC</span>
+                        <span>RT 07 RW 11</span>
+                      </div>
+                    )}
                   </div>
                   <p className="text-[10px] text-slate-500 font-medium">Scan QR untuk verifikasi keaslian di portal SMART RT</p>
                 </div>
@@ -340,8 +573,8 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-24 h-24 border-2 border-dashed border-blue-600/40 rounded-full flex items-center justify-center rotate-[-12deg] pointer-events-none">
                       <span className="text-[9px] font-bold text-blue-700/60 text-center uppercase leading-tight">STEMPEL RESMI<br/>RT 07 RW 11<br/>GPA NGIJO</span>
                     </div>
-                    <p className="font-bold text-slate-900 underline text-sm">BAMBANG SUGIANTO, S.T.</p>
-                    <p className="text-[10px] text-slate-500">NIP / ID: RT07-2025-01</p>
+                    <p className="font-bold text-slate-900 underline text-sm">SUTRISNO, S.T.</p>
+                    <p className="text-[10px] text-slate-500">ID REG: RT07-2025-01</p>
                   </div>
                 </div>
               </div>
