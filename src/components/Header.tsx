@@ -20,7 +20,8 @@ import {
   Lock,
   Terminal,
   GraduationCap,
-  Rocket
+  Rocket,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -50,6 +51,7 @@ interface HeaderProps {
   openFinanceModal?: () => void;
   openTataTertibModal?: () => void;
   openOmplonganModal?: () => void;
+  openGoogleSheetsModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -78,7 +80,8 @@ export const Header: React.FC<HeaderProps> = ({
   openContinuousEvalModal,
   openFinanceModal,
   openTataTertibModal,
-  openOmplonganModal
+  openOmplonganModal,
+  openGoogleSheetsModal
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
@@ -154,6 +157,15 @@ export const Header: React.FC<HeaderProps> = ({
                 className="px-3 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-[#C62828] via-[#123B5D] to-[#2E7D52] hover:from-[#A32020] hover:to-[#236340] text-white border border-[#D4A72C]/60 transition-all flex items-center gap-1.5 shadow-md transform hover:scale-[1.02]"
               >
                 🇮🇩 OMPLONGAN AGUSTUSAN
+              </button>
+            )}
+
+            {openGoogleSheetsModal && (
+              <button
+                onClick={openGoogleSheetsModal}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-emerald-800/90 hover:bg-emerald-700 text-emerald-100 border border-emerald-400/60 transition-all flex items-center gap-1.5 shadow"
+              >
+                📊 GOOGLE SHEETS
               </button>
             )}
 
@@ -477,9 +489,17 @@ export const Header: React.FC<HeaderProps> = ({
             {openOmplonganModal && (
               <button
                 onClick={() => { openOmplonganModal(); setMobileMenuOpen(false); }}
-                className="col-span-2 px-3 py-2 rounded-lg text-xs font-bold text-center bg-gradient-to-r from-[#C62828] via-[#123B5D] to-[#2E7D52] text-white border border-[#D4A72C]/60 shadow"
+                className="col-span-1 px-3 py-2 rounded-lg text-xs font-bold text-center bg-gradient-to-r from-[#C62828] via-[#123B5D] to-[#2E7D52] text-white border border-[#D4A72C]/60 shadow"
               >
-                🇮🇩 OMPLONGAN AGUSTUSAN
+                🇮🇩 OMPLONGAN
+              </button>
+            )}
+            {openGoogleSheetsModal && (
+              <button
+                onClick={() => { openGoogleSheetsModal(); setMobileMenuOpen(false); }}
+                className="col-span-1 px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-800 text-emerald-100 border border-emerald-400/60 shadow flex items-center justify-center gap-1"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" /> SHEETS
               </button>
             )}
           </div>

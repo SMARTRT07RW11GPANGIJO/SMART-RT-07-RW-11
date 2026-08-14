@@ -31,6 +31,7 @@ import { AdminAlertsDashboard } from './components/AdminAlertsDashboard';
 import { FinanceManagementModal } from './components/FinanceManagementModal';
 import { TataTertibModal } from './components/TataTertibModal';
 import { OmplonganManagementModal } from './components/OmplonganManagementModal';
+import { GoogleSheetsSyncModal } from './components/GoogleSheetsSyncModal';
 import { AdminBackupVerificationDashboard } from './components/AdminBackupVerificationDashboard';
 import { AdminDisasterRecoveryDashboard } from './components/AdminDisasterRecoveryDashboard';
 import { AdminSecurityOperationsDashboard } from './components/AdminSecurityOperationsDashboard';
@@ -105,6 +106,7 @@ export default function App() {
   const [financeModalOpen, setFinanceModalOpen] = useState(false);
   const [tataTertibModalOpen, setTataTertibModalOpen] = useState(false);
   const [omplonganModalOpen, setOmplonganModalOpen] = useState(false);
+  const [googleSheetsModalOpen, setGoogleSheetsModalOpen] = useState(false);
 
   const handleRestoreState = (restoredData: any) => {
     if (restoredData.wargaList) setWargaList(restoredData.wargaList);
@@ -238,6 +240,7 @@ export default function App() {
         openFinanceModal={() => setFinanceModalOpen(true)}
         openTataTertibModal={() => setTataTertibModalOpen(true)}
         openOmplonganModal={() => setOmplonganModalOpen(true)}
+        openGoogleSheetsModal={() => setGoogleSheetsModalOpen(true)}
       />
 
       {/* Main App Body */}
@@ -284,6 +287,7 @@ export default function App() {
             openFinanceModal={() => setFinanceModalOpen(true)}
             openTataTertibModal={() => setTataTertibModalOpen(true)}
             openOmplonganModal={() => setOmplonganModalOpen(true)}
+            openGoogleSheetsModal={() => setGoogleSheetsModalOpen(true)}
             activeSubTab={activeSubTab}
             setActiveSubTab={setActiveSubTab}
             addToast={addToast}
@@ -518,6 +522,16 @@ export default function App() {
         onClose={() => setOmplonganModalOpen(false)}
         currentRole={currentRole}
         currentUserId={currentRole === 'PUBLIC' ? 'Tamu' : `WRG-${currentRole}`}
+        addToast={addToast}
+      />
+
+      {/* GOOGLE SHEETS & DRIVE SYNC INTEGRATION */}
+      <GoogleSheetsSyncModal
+        isOpen={googleSheetsModalOpen}
+        onClose={() => setGoogleSheetsModalOpen(false)}
+        wargaList={wargaList}
+        setWargaList={setWargaList}
+        suratList={suratList}
         addToast={addToast}
       />
 

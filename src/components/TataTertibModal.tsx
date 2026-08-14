@@ -65,8 +65,6 @@ export const TataTertibModal: React.FC<TataTertibModalProps> = ({
   openFinanceModal,
   addToast
 }) => {
-  if (!isOpen) return null;
-
   const userId = currentRole === 'WARGA' ? 'warga_01' : currentRole === 'KETUA_RT' ? 'ketua_rt' : currentRole === 'PENGURUS' ? 'pengurus_01' : 'admin_01';
 
   // Submenu Tabs
@@ -123,8 +121,10 @@ export const TataTertibModal: React.FC<TataTertibModalProps> = ({
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen]);
 
   const loadData = () => {
     const allArticles = TataTertibService.getArticles();
@@ -261,6 +261,8 @@ export const TataTertibModal: React.FC<TataTertibModalProps> = ({
 
     return true;
   });
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">

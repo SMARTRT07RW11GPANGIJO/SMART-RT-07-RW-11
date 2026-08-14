@@ -44,7 +44,8 @@ import {
   Building,
   Activity,
   CheckCircle2,
-  Database
+  Database,
+  FileSpreadsheet
 } from 'lucide-react';
 
 import {
@@ -98,6 +99,7 @@ interface DashboardProps {
   openFinanceModal?: () => void;
   openTataTertibModal?: () => void;
   openOmplonganModal?: () => void;
+  openGoogleSheetsModal?: () => void;
   activeSubTab: string;
   setActiveSubTab: (tab: any) => void;
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
@@ -130,6 +132,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   openFinanceModal,
   openTataTertibModal,
   openOmplonganModal,
+  openGoogleSheetsModal,
   activeSubTab,
   setActiveSubTab,
   addToast
@@ -451,6 +454,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           )}
 
+          {openGoogleSheetsModal && (
+            <button
+              onClick={openGoogleSheetsModal}
+              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-800/90 text-white shadow-sm hover:bg-emerald-700"
+            >
+              <div className="flex items-center gap-2.5">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+                <span>Google Sheets & Drive</span>
+              </div>
+              <span className="bg-emerald-950/60 border border-emerald-400/40 text-[9px] px-1.5 py-0.5 rounded font-black text-emerald-200">
+                SYNC
+              </span>
+            </button>
+          )}
+
           <button
             onClick={() => setActiveSubTab('iuran')}
             className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
@@ -725,6 +743,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span>🇮🇩</span> Kelola Omplongan Agustusan
                     </button>
                   )}
+                  {openGoogleSheetsModal && (
+                    <button
+                      onClick={openGoogleSheetsModal}
+                      className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow flex items-center gap-1.5 border border-emerald-400/40"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" /> Google Sheets Sync
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -741,6 +767,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {openGoogleSheetsModal && (
+                    <button
+                      onClick={openGoogleSheetsModal}
+                      className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5" /> Sync Google Sheets
+                    </button>
+                  )}
+
                   <button
                     onClick={() => setShowFullNik(!showFullNik)}
                     className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 border border-slate-300"

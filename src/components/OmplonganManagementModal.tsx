@@ -196,8 +196,6 @@ export const OmplonganManagementModal: React.FC<OmplonganManagementModalProps> =
     }
   }, [isOpen, authSession]);
 
-  if (!isOpen) return null;
-
   // Selected Tarikan Data
   const currentSelectedTarikan = tarikanList.find((t) => t.idTarikan === selectedTarikanId) || tarikanList[0];
   const itemsForSelectedTarikan = itemsList.filter((i) => i.tarikanId === currentSelectedTarikan?.idTarikan);
@@ -421,6 +419,8 @@ export const OmplonganManagementModal: React.FC<OmplonganManagementModalProps> =
     });
     if (addToast) addToast('info', 'Mencetak Laporan PDF', `Format A4 ${type} telah dikirim ke printer browser.`);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
