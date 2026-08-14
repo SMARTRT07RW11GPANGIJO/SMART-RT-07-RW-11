@@ -62,12 +62,12 @@ export class AuditLogger {
    */
   static getLogs(): AIAuditLog[] {
     try {
+      if (typeof localStorage === 'undefined') return this.getSeedAuditLogs().concat(memoryFallbackQueue);
       const raw = localStorage.getItem(STORAGE_AUDIT_V2_KEY);
       if (!raw) return this.getSeedAuditLogs();
       const stored: AIAuditLog[] = JSON.parse(raw);
       return stored.concat(memoryFallbackQueue);
     } catch (e) {
-      console.error('Failed to parse Audit Logs V2:', e);
       return this.getSeedAuditLogs().concat(memoryFallbackQueue);
     }
   }
@@ -128,9 +128,12 @@ export class AuditLogger {
         const updatedLogs = [fullRecord, ...allLogs];
 
         try {
-          localStorage.setItem(STORAGE_AUDIT_V2_KEY, JSON.stringify(updatedLogs.slice(0, 500)));
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(STORAGE_AUDIT_V2_KEY, JSON.stringify(updatedLogs.slice(0, 500)));
+          } else {
+            memoryFallbackQueue.push(fullRecord);
+          }
         } catch (storageErr) {
-          console.warn('[AuditLogger] Storage write failed, queuing in memory fallback buffer:', storageErr);
           memoryFallbackQueue.push(fullRecord);
         }
 

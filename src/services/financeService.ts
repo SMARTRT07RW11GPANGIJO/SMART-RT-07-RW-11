@@ -256,12 +256,22 @@ export class FinanceService {
    * CALCULATE REAL-TIME BALANCES PER FUND
    * DOUBLE ENTRY LEDGER AGGREGATION
    */
-  static calculateBalances(ledger?: FinanceTransaction[]): Record<FundId, FundAccount> {
+  static calculateBalances(ledger?: FinanceTransaction[]): Record<string, FundAccount> {
     const data = ledger || this.getStoredLedger();
 
-    const accounts: Record<FundId, FundAccount> = {
+    const accounts: Record<string, FundAccount> = {
       KAS_UMUM: {
         fundId: 'KAS_UMUM',
+        fundName: 'Kas Umum RT 07',
+        description: 'Dana operasional utama RT 07 RW 11',
+        balance: 10000000, // Initial base balance
+        totalIncome: 0,
+        totalExpense: 0,
+        icon: 'Wallet',
+        color: 'bg-emerald-600'
+      },
+      RT_UMUM: {
+        fundId: 'RT_UMUM',
         fundName: 'Kas Umum RT 07',
         description: 'Dana operasional utama RT 07 RW 11',
         balance: 10000000, // Initial base balance
@@ -282,6 +292,16 @@ export class FinanceService {
       },
       DANA_AGUSTUSAN: {
         fundId: 'DANA_AGUSTUSAN',
+        fundName: 'Dana Amplongan / Agustusan',
+        description: 'Dana kegiatan peringatan HUT RI ke-81',
+        balance: 0, // Initial base balance
+        totalIncome: 0,
+        totalExpense: 0,
+        icon: 'Flag',
+        color: 'bg-amber-600'
+      },
+      OMPLOGAN: {
+        fundId: 'OMPLOGAN',
         fundName: 'Dana Amplongan / Agustusan',
         description: 'Dana kegiatan peringatan HUT RI ke-81',
         balance: 0, // Initial base balance

@@ -97,6 +97,7 @@ interface DashboardProps {
   openArchiveModal?: () => void;
   openFinanceModal?: () => void;
   openTataTertibModal?: () => void;
+  openOmplonganModal?: () => void;
   activeSubTab: string;
   setActiveSubTab: (tab: any) => void;
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
@@ -128,6 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   openArchiveModal,
   openFinanceModal,
   openTataTertibModal,
+  openOmplonganModal,
   activeSubTab,
   setActiveSubTab,
   addToast
@@ -434,6 +436,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             Keuangan & Kas RT
           </button>
 
+          {openOmplonganModal && (
+            <button
+              onClick={openOmplonganModal}
+              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-gradient-to-r from-red-700 via-[#123B5D] to-[#2E7D52] text-white shadow-sm hover:opacity-95"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm">🇮🇩</span>
+                <span>Omplongan Agustusan</span>
+              </div>
+              <span className="bg-red-500/30 border border-white/30 text-[9px] px-1.5 py-0.5 rounded font-black text-amber-200">
+                BARU
+              </span>
+            </button>
+          )}
+
           <button
             onClick={() => setActiveSubTab('iuran')}
             className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
@@ -700,6 +717,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   >
                     <Wallet className="w-4 h-4" /> Catat Kas RT
                   </button>
+                  {openOmplonganModal && (
+                    <button
+                      onClick={openOmplonganModal}
+                      className="bg-gradient-to-r from-red-700 to-[#123B5D] hover:from-red-800 hover:to-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow flex items-center gap-1.5 border border-amber-300/40"
+                    >
+                      <span>🇮🇩</span> Kelola Omplongan Agustusan
+                    </button>
+                  )}
                 </div>
               </div>
 

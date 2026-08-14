@@ -50,12 +50,13 @@ export class RagRetrieverService {
   public static analyzeQuery(query: string): QueryClassification {
     const q = query.toLowerCase().trim();
 
-    // 1. Check for Private Data Requests (NIK, KK, Passwords, Unpaid lists, Phones, Addresses)
+    // 1. Check for Private Data Requests (NIK, KK, Passwords, Unpaid lists, Phones, Addresses) & Prompt Injection
     const privateDataPatterns = [
       'nik', 'nomor kk', 'no kk', 'kartu keluarga', 'password', 'kata sandi', 'secret', 'token', 'api key',
       'siapa belum bayar', 'siapa yang belum bayar', 'daftar penunggak', 'daftar penunggang',
       'semua nik', 'daftar warga lengkap', 'rekening pribadi', 'nomor hp', 'no hp', 'nomor telepon', 'no telp',
-      'nomor telp', 'hp warga', 'telepon warga', 'alamat lengkap', 'data kk', 'no rekening', 'nomor rekening'
+      'nomor telp', 'hp warga', 'telepon warga', 'alamat lengkap', 'data kk', 'no rekening', 'nomor rekening',
+      'system override', 'set role', 'role spoofing', 'override role', 'ignore previous', 'ignore all'
     ];
     if (privateDataPatterns.some(p => q.includes(p))) {
       return 'PRIVATE_DATA';
@@ -194,8 +195,9 @@ export class RagRetrieverService {
         const categoryMatch = doc.category.toLowerCase().includes(queryLower);
         const contentMatch = doc.content.toLowerCase().includes(queryLower);
 
-        // Keyword token match
-        const queryTokens = queryLower.split(/\s+/).filter(t => t.length >= 3 && !['dengan', 'untuk', 'yang', 'pada', 'dari', 'bisa', 'akan', 'minta', 'sistem'].includes(t));
+        // Keyword token match with stopword filtering
+        const stopWords = ['dengan', 'untuk', 'yang', 'pada', 'dari', 'bisa', 'akan', 'minta', 'sistem', 'hari', 'pagi', 'malam', 'siang', 'sore', 'rumah', 'nomor', 'nomornya', 'ada', 'itu', 'ini', 'dan', 'atau', 'saya', 'kami', 'kita', 'di', 'ke'];
+        const queryTokens = queryLower.split(/\s+/).map(t => t.replace(/[^a-z0-9]/g, '')).filter(t => t.length >= 3 && !stopWords.includes(t));
         const tokenTitleMatchCount = queryTokens.filter(token => doc.title.toLowerCase().includes(token)).length;
         const tokenTagMatchCount = queryTokens.filter(token => doc.tags.some(t => t.toLowerCase().includes(token))).length;
         const tokenContentMatchCount = queryTokens.filter(token => doc.content.toLowerCase().includes(token)).length;
@@ -215,8 +217,9 @@ export class RagRetrieverService {
           score += 80;
         }
 
-        // Exact version requested bonus
-        if (doc.version && queryLower.includes(doc.version.toLowerCase())) {
+        // Exact or flexible version requested bonus
+        const cleanVer = doc.version ? doc.version.toLowerCase().replace('v', '') : '';
+        if (doc.version && (queryLower.includes(doc.version.toLowerCase()) || queryLower.includes(`versi ${cleanVer}`) || (cleanVer && queryLower.includes(cleanVer) && queryLower.includes('versi')))) {
           score += 100;
         }
         if (doc.knowledgeId && queryLower.includes(doc.knowledgeId.toLowerCase())) {
@@ -264,15 +267,94 @@ export class RagRetrieverService {
       };
     }
 
-    let targetDoc = candidateDocs[0];
+    const topCandidate = candidateDocs[0];
+
+    // Check scope authorization on the top candidate if it's internal/restricted
+    if (topCandidate.visibility === 'INTERNAL' && !['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(input.role)) {
+      writeAuditLog({
+        action: AUDIT_EVENTS.AI_RAG_DENIED,
+        module: 'AI_RAG',
+        targetType: 'RAG_QUERY',
+        targetId: correlationId,
+        userId: input.userId,
+        userName: input.userName,
+        role: input.role,
+        status: 'FAILED',
+        severity: 'WARNING',
+        details: `[RAG SCOPE DENIED] User role ${input.role} attempted to access internal document ${topCandidate.knowledgeId}.`,
+        correlationId
+      });
+
+      return {
+        query: input.query,
+        queryType,
+        requiresRetrieval: true,
+        found: false,
+        confidence: 'NO_SOURCE',
+        retrievedDocuments: [],
+        relevantChunks: [],
+        sourceCitation: '',
+        contextPrompt: this.buildPromptContext([], 'NO_SOURCE', input.query),
+        deniedReason: `Akses ditolak: Dokumen memerlukan wewenang khusus (Scope: ${topCandidate.visibility}). Role ${input.role} tidak diizinkan.`,
+        correlationId,
+        auditLogged: true,
+        synthesizedAnswer: `Maaf, dokumen resmi untuk topik tersebut hanya dapat diakses oleh Pengurus RT atau Ketua RT (Hak Akses Terproteksi).`
+      };
+    }
+
+    if (topCandidate.visibility === 'RESTRICTED' && !['KETUA_RT', 'ADMIN'].includes(input.role)) {
+      writeAuditLog({
+        action: AUDIT_EVENTS.AI_RAG_DENIED,
+        module: 'AI_RAG',
+        targetType: 'RAG_QUERY',
+        targetId: correlationId,
+        userId: input.userId,
+        userName: input.userName,
+        role: input.role,
+        status: 'FAILED',
+        severity: 'WARNING',
+        details: `[RAG SCOPE DENIED] User role ${input.role} attempted to access restricted document ${topCandidate.knowledgeId}.`,
+        correlationId
+      });
+
+      return {
+        query: input.query,
+        queryType,
+        requiresRetrieval: true,
+        found: false,
+        confidence: 'NO_SOURCE',
+        retrievedDocuments: [],
+        relevantChunks: [],
+        sourceCitation: '',
+        contextPrompt: this.buildPromptContext([], 'NO_SOURCE', input.query),
+        deniedReason: `Akses ditolak: Dokumen memerlukan wewenang khusus (Scope: ${topCandidate.visibility}). Role ${input.role} tidak diizinkan.`,
+        correlationId,
+        auditLogged: true,
+        synthesizedAnswer: `Maaf, dokumen resmi untuk topik tersebut hanya dapat diakses oleh Ketua RT atau Administrator (Hak Akses Terproteksi).`
+      };
+    }
+
+    let targetDoc = topCandidate;
 
     // 2. Strict Document Status Guard & Effective Date Filter on Top Match
     if (targetDoc.status !== 'ACTIVE' || targetDoc.effectiveFrom > currentDate || (targetDoc.effectiveUntil && targetDoc.effectiveUntil < currentDate)) {
-      // Check if there is an updated active version in candidateDocs
-      const activeVersion = candidateDocs.find(d => d.status === 'ACTIVE' && d.effectiveFrom <= currentDate && (!d.effectiveUntil || d.effectiveUntil >= currentDate));
-      if (activeVersion) {
-        targetDoc = activeVersion;
-      } else {
+      // If the query specifically asked for a draft or unreleased document, don't silently fallback to active
+      const explicitlyRequestedNonActive = queryLower.includes('draf') || queryLower.includes('draft') || queryLower.includes('belum berlaku');
+
+      if (!explicitlyRequestedNonActive) {
+        // Check if there is an active version in allDocs for the same category/topic
+        const activeVersion = allDocs.find(d => 
+          d.category === targetDoc.category &&
+          d.status === 'ACTIVE' && 
+          d.effectiveFrom <= currentDate && 
+          (!d.effectiveUntil || d.effectiveUntil >= currentDate)
+        );
+        if (activeVersion) {
+          targetDoc = activeVersion;
+        }
+      }
+
+      if (targetDoc.status !== 'ACTIVE' || targetDoc.effectiveFrom > currentDate || (targetDoc.effectiveUntil && targetDoc.effectiveUntil < currentDate)) {
         writeAuditLog({
           action: AUDIT_EVENTS.AI_RAG_NO_SOURCE,
           module: 'AI_RAG',
@@ -361,12 +443,16 @@ export class RagRetrieverService {
         }];
 
     // Determine Confidence
-    const titleMatch = topDoc.title.toLowerCase().includes(queryLower);
-    const tagMatch = topDoc.tags.some(t => queryLower.includes(t.toLowerCase()));
+    const stopWords = ['dengan', 'untuk', 'yang', 'pada', 'dari', 'bisa', 'akan', 'minta', 'sistem', 'hari', 'pagi', 'malam', 'siang', 'sore', 'rumah', 'nomor', 'nomornya', 'ada', 'itu', 'ini', 'dan', 'atau', 'saya', 'kami', 'kita', 'di', 'ke'];
+    const queryTokens = queryLower.split(/\s+/).map(t => t.replace(/[^a-z0-9]/g, '')).filter(t => t.length >= 3 && !stopWords.includes(t));
+    const titleMatch = topDoc.title.toLowerCase().includes(queryLower) || (queryTokens.length > 0 && queryTokens.some(t => topDoc.title.toLowerCase().includes(t)));
+    const tagMatch = topDoc.tags.some(t => queryLower.includes(t.toLowerCase()) || (queryTokens.length > 0 && queryTokens.some(tok => t.toLowerCase().includes(tok))));
+    const contentMatch = (queryTokens.length > 0 && queryTokens.some(t => topDoc.content.toLowerCase().includes(t)));
+    
     let confidence: RagConfidence = 'MEDIUM_CONFIDENCE';
     if (titleMatch || tagMatch) {
       confidence = 'HIGH_CONFIDENCE';
-    } else if (topDoc.content.toLowerCase().includes(queryLower)) {
+    } else if (contentMatch) {
       confidence = 'MEDIUM_CONFIDENCE';
     } else {
       confidence = 'LOW_CONFIDENCE';

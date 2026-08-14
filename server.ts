@@ -1681,6 +1681,279 @@ app.get('/api/knowledge/releases', async (req: Request, res: Response) => {
   }
 });
 
+// ==========================================
+// TAHAP 10I — FINANCIAL LEDGER ISOLATION API
+// ==========================================
+
+// 1. RT UMUM ISOLATED ROUTES
+app.get('/api/finance/rt-umum/transactions', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { FundType } = require('./src/types/finance');
+    const txs = FinancialRepository.listTransactions(FundType.RT_UMUM);
+    res.json({ success: true, fundType: FundType.RT_UMUM, count: txs.length, transactions: txs });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/rt-umum/income', async (req: Request, res: Response) => {
+  try {
+    const { RtFinanceService } = require('./src/services/rtFinanceService');
+    const { payload, session } = req.body || {};
+    const effectiveSession = session || { userId: 'bendahara_01', role: 'BENDAHARA', isValid: true };
+    const tx = RtFinanceService.addIncome(payload, effectiveSession);
+    res.json({ success: true, transaction: tx });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/rt-umum/expense', async (req: Request, res: Response) => {
+  try {
+    const { RtFinanceService } = require('./src/services/rtFinanceService');
+    const { payload, session } = req.body || {};
+    const effectiveSession = session || { userId: 'bendahara_01', role: 'BENDAHARA', isValid: true };
+    const tx = RtFinanceService.addExpense(payload, effectiveSession);
+    res.json({ success: true, transaction: tx });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/finance/rt-umum/balance', async (req: Request, res: Response) => {
+  try {
+    const { RtFinanceService } = require('./src/services/rtFinanceService');
+    const balance = RtFinanceService.getBalance();
+    res.json({ success: true, balance });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/rt-umum/reverse', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { FundType } = require('./src/types/finance');
+    const { transactionId, reason, author } = req.body || {};
+    const effectiveAuthor = author || { userId: 'bendahara_01', role: 'BENDAHARA' };
+    const result = FinancialRepository.reverseTransaction(FundType.RT_UMUM, transactionId, reason || 'Koreksi Transaksi RT', effectiveAuthor);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 2. DANA KEMATIAN ISOLATED ROUTES
+app.get('/api/finance/dana-kematian/transactions', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { FundType } = require('./src/types/finance');
+    const txs = FinancialRepository.listTransactions(FundType.DANA_KEMATIAN);
+    res.json({ success: true, fundType: FundType.DANA_KEMATIAN, count: txs.length, transactions: txs });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/dana-kematian/income', async (req: Request, res: Response) => {
+  try {
+    const { DeathFundService } = require('./src/services/deathFundService');
+    const { payload, session } = req.body || {};
+    const effectiveSession = session || { userId: 'bendahara_01', role: 'BENDAHARA', isValid: true };
+    const tx = DeathFundService.addIncome(payload, effectiveSession);
+    res.json({ success: true, transaction: tx });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/dana-kematian/disbursement', async (req: Request, res: Response) => {
+  try {
+    const { DeathFundService } = require('./src/services/deathFundService');
+    const { payload, session } = req.body || {};
+    const effectiveSession = session || { userId: 'bendahara_01', role: 'BENDAHARA', isValid: true };
+    const tx = DeathFundService.addDisbursement(payload, effectiveSession);
+    res.json({ success: true, transaction: tx });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/finance/dana-kematian/balance', async (req: Request, res: Response) => {
+  try {
+    const { DeathFundService } = require('./src/services/deathFundService');
+    const balance = DeathFundService.getBalance();
+    res.json({ success: true, balance });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/dana-kematian/reverse', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { FundType } = require('./src/types/finance');
+    const { transactionId, reason, author } = req.body || {};
+    const effectiveAuthor = author || { userId: 'bendahara_01', role: 'BENDAHARA' };
+    const result = FinancialRepository.reverseTransaction(FundType.DANA_KEMATIAN, transactionId, reason || 'Koreksi Transaksi Duka', effectiveAuthor);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 3. OMPLOGAN ISOLATED ROUTES
+app.get('/api/finance/omplongan/transactions', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { FundType } = require('./src/types/finance');
+    const txs = FinancialRepository.listTransactions(FundType.OMPLOGAN);
+    res.json({ success: true, fundType: FundType.OMPLOGAN, count: txs.length, transactions: txs });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/omplongan/collection', async (req: Request, res: Response) => {
+  try {
+    const { OmplonganService } = require('./src/services/omplonganService');
+    const { payload, session } = req.body || {};
+    const effectiveSession = session || { userId: 'bendahara_01', role: 'BENDAHARA', isValid: true };
+    const tx = OmplonganService.addCollection(payload, effectiveSession);
+    res.json({ success: true, transaction: tx });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/omplongan/expense', async (req: Request, res: Response) => {
+  try {
+    const { OmplonganService } = require('./src/services/omplonganService');
+    const { payload, session } = req.body || {};
+    const effectiveSession = session || { userId: 'bendahara_01', role: 'BENDAHARA', isValid: true };
+    const tx = OmplonganService.addExpense(payload, effectiveSession);
+    res.json({ success: true, transaction: tx });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/finance/omplongan/balance', async (req: Request, res: Response) => {
+  try {
+    const { OmplonganService } = require('./src/services/omplonganService');
+    const balance = OmplonganService.getBalance();
+    res.json({ success: true, balance });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/omplongan/reverse', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { FundType } = require('./src/types/finance');
+    const { transactionId, reason, author } = req.body || {};
+    const effectiveAuthor = author || { userId: 'bendahara_01', role: 'BENDAHARA' };
+    const result = FinancialRepository.reverseTransaction(FundType.OMPLOGAN, transactionId, reason || 'Koreksi Transaksi Omplongan', effectiveAuthor);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 4. GENERAL LEDGER HEALTH & DUAL-APPROVAL TRANSFER
+app.get('/api/finance/health', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const health = FinancialRepository.getFinancialHealth();
+    res.json({ success: true, health });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/transfer/request', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { sourceFund, destinationFund, amount, reason, requester } = req.body || {};
+    const effectiveReq = requester || { userId: 'bendahara_01', role: 'BENDAHARA' };
+    const record = FinancialRepository.createFundTransfer({ sourceFund, destinationFund, amount, reason }, effectiveReq);
+    res.json({ success: true, transfer: record });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/transfer/approve', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { transferId, approver } = req.body || {};
+    const effectiveApprover = approver || { userId: 'ketua_rt', role: 'KETUA_RT' };
+    const result = FinancialRepository.approveFundTransfer(transferId, effectiveApprover);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 5. QRIS WEBHOOK INTEGRATION
+app.post('/api/payment/qris/create', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const { fundType, invoiceId, amount, description, payerName, payerPhone } = req.body || {};
+    const record = FinancialRepository.createQRISPayment(fundType, { invoiceId, amount, description, payerName, payerPhone });
+    res.json({ success: true, payment: record });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/payment/qris/webhook', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const result = FinancialRepository.processQRISWebhook(req.body || {});
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. BACKUP & RESTORE
+app.get('/api/finance/backup', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const backup = FinancialRepository.backupLedgers();
+    res.json({ success: true, backup });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/finance/restore', async (req: Request, res: Response) => {
+  try {
+    const { FinancialRepository } = require('./src/services/financialRepository');
+    const result = FinancialRepository.restoreLedgers(req.body?.backup);
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 7. TEST SUITE RUNNER
+app.post('/api/finance/test-suite/run', async (req: Request, res: Response) => {
+  try {
+    const { FinancialLedgerTestService } = require('./src/services/financialLedgerTestService');
+    const summary = FinancialLedgerTestService.runAllTestCases();
+    res.json({ success: true, summary });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

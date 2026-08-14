@@ -10,11 +10,11 @@ export class SecurityAlertService {
    */
   static getAlerts(): SecurityAlert[] {
     try {
+      if (typeof localStorage === 'undefined') return this.getSeedAlerts();
       const raw = localStorage.getItem(STORAGE_SECURITY_ALERTS_KEY);
       if (!raw) return this.getSeedAlerts();
       return JSON.parse(raw);
     } catch (e) {
-      console.error('Failed to parse security alerts:', e);
       return this.getSeedAlerts();
     }
   }
@@ -65,9 +65,11 @@ export class SecurityAlertService {
 
     const updated = [newAlert, ...alerts];
     try {
-      localStorage.setItem(STORAGE_SECURITY_ALERTS_KEY, JSON.stringify(updated.slice(0, 100)));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_SECURITY_ALERTS_KEY, JSON.stringify(updated.slice(0, 100)));
+      }
     } catch (e) {
-      console.error('Failed to save security alert:', e);
+      // safe fallback
     }
 
     return newAlert;

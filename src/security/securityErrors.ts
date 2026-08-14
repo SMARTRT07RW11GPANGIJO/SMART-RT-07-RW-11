@@ -12,7 +12,8 @@ export type SecurityDenialCode =
   | 'OWNERSHIP_REQUIRED'
   | 'CONFIRMATION_REQUIRED'
   | 'TOOL_NOT_ALLOWED'
-  | 'DATA_NOT_FOUND';
+  | 'DATA_NOT_FOUND'
+  | 'SEGREGATION_OF_DUTIES_VIOLATION';
 
 export interface SecurityErrorDetail {
   code: SecurityDenialCode;
@@ -22,6 +23,12 @@ export interface SecurityErrorDetail {
 }
 
 export const SECURITY_ERROR_MAP: Record<SecurityDenialCode, SecurityErrorDetail> = {
+  SEGREGATION_OF_DUTIES_VIOLATION: {
+    code: 'SEGREGATION_OF_DUTIES_VIOLATION',
+    internalReason: 'Action violates segregation of duties policy (e.g. self-verification of deposits).',
+    userFacingMessage: 'Pelanggaran Segregation of Duties: Petugas tidak diperbolehkan memverifikasi transaksi atau setorannya sendiri.',
+    statusCode: 403
+  },
   AUTH_REQUIRED: {
     code: 'AUTH_REQUIRED',
     internalReason: 'Authentication token or session context is missing.',

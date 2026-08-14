@@ -224,6 +224,45 @@ export class WhatsAppService {
       log: logEntry
     };
   }
+
+  // Direct custom message sender (e.g. for Omplongan receipts or broadcasts)
+  public async sendDirectCustomMessage(
+    recipientPhone: string,
+    messageText: string
+  ): Promise<{ success: boolean; message: string; log?: WALogEntry }> {
+    const val = this.validate(recipientPhone);
+    if (!val.valid) {
+      return { success: false, message: `Nomor WA tidak valid: ${val.reason}` };
+    }
+
+    const sendResult = await this.sendWhatsApp(
+      recipientPhone,
+      messageText,
+      'PENGUMUMAN_IMPORTANT'
+    );
+
+    const logEntry: WALogEntry = {
+      id: `WALOG-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      recipientPhone: formatPhoneInternational(recipientPhone),
+      event: 'PENGUMUMAN_IMPORTANT',
+      message: messageText,
+      status: sendResult.success ? 'SUCCESS' : 'FAILED',
+      attempts: sendResult.attempts,
+      provider: this.providerName,
+      errorMessage: sendResult.error
+    };
+
+    saveWALog(logEntry);
+
+    return {
+      success: sendResult.success,
+      message: sendResult.success
+        ? `Pesan WA berhasil dikirim ke ${formatPhoneInternational(recipientPhone)}!`
+        : `Gagal mengirim WA: ${sendResult.error || 'Terjadi kesalahan'}`,
+      log: logEntry
+    };
+  }
 }
 
 export const waServiceInstance = new WhatsAppService();
