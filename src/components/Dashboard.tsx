@@ -71,6 +71,8 @@ import { BackendCodeModal } from './BackendCodeModal';
 import { testGasConnection, getGasWebappUrl, setGasWebappUrl } from '../services/apiService';
 import { waServiceInstance } from '../services/whatsappService';
 import { createDigitalDocumentFromSurat } from '../services/documentService';
+import { WargaDashboardView } from './warga/WargaDashboardView';
+import { AuthoritativeSessionContext } from '../security/authorization';
 
 interface DashboardProps {
   currentRole: UserRole;
@@ -100,6 +102,7 @@ interface DashboardProps {
   openTataTertibModal?: () => void;
   openOmplonganModal?: () => void;
   openGoogleSheetsModal?: () => void;
+  openDeathFundModal?: () => void;
   activeSubTab: string;
   setActiveSubTab: (tab: any) => void;
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
@@ -133,6 +136,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   openTataTertibModal,
   openOmplonganModal,
   openGoogleSheetsModal,
+  openDeathFundModal,
   activeSubTab,
   setActiveSubTab,
   addToast
@@ -325,6 +329,66 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return `${nik.slice(0, 6)}******${nik.slice(-2)}`;
   };
 
+  // Dedicated Mobile-First Responsive Dashboard for WARGA Role or Preview Mode
+  if (currentRole === 'WARGA' || activeSubTab === 'warga-view') {
+    const authContext: AuthoritativeSessionContext = {
+      sessionId: `SES-WARGA-${Date.now()}`,
+      userId: 'WRG-001',
+      role: 'WARGA',
+      isValid: true
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Preview Mode Notification for Pengurus */}
+        {currentRole !== 'WARGA' && (
+          <div className="bg-amber-500 text-white px-4 py-2.5 text-xs font-bold flex items-center justify-between shadow-md max-w-5xl mx-auto rounded-2xl mt-4">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              <span>Simulasi Pratinjau: Tampilan Dashboard Warga v2.0</span>
+            </div>
+            <button
+              onClick={() => setActiveSubTab('overview')}
+              className="bg-white text-amber-900 px-3 py-1 rounded-xl text-[11px] font-bold hover:bg-slate-100 transition-all shadow-xs"
+            >
+              Kembali ke Panel Pengurus
+            </button>
+          </div>
+        )}
+
+        <WargaDashboardView
+          authContext={authContext}
+          onNavigate={(tab) => {
+            if (tab === 'surat') {
+              if (openLetterModal) openLetterModal();
+              else setActiveSubTab('surat');
+            } else if (tab === 'pengaduan') {
+              if (openComplaintModal) openComplaintModal();
+              else setActiveSubTab('pengaduan');
+            } else if (tab === 'iuran') {
+              if (openFinanceModal) openFinanceModal();
+              else setActiveSubTab('keuangan');
+            } else if (tab === 'tata-tertib') {
+              if (openTataTertibModal) openTataTertibModal();
+            } else if (tab === 'dana-kematian') {
+              if (openDeathFundModal) openDeathFundModal();
+            } else if (tab === 'omplongan') {
+              if (openOmplonganModal) openOmplonganModal();
+            } else if (tab === 'ai-assistant') {
+              setActiveSubTab('ai-assistant');
+            } else if (tab === 'pengumuman') {
+              setActiveSubTab('pengumuman');
+            } else if (tab === 'agenda') {
+              setActiveSubTab('agenda');
+            }
+          }}
+          onOpenLetterModal={openLetterModal}
+          onOpenComplaintModal={openComplaintModal}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
@@ -454,6 +518,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
           )}
 
+          {openDeathFundModal && (
+            <button
+              onClick={openDeathFundModal}
+              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-gradient-to-r from-teal-800 to-emerald-900 text-white shadow-sm hover:from-teal-700 hover:to-emerald-800 border border-teal-500/40"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm">🕊️</span>
+                <span>Dana Kematian RT 07</span>
+              </div>
+              <span className="bg-teal-950/80 border border-teal-300/40 text-[9px] px-1.5 py-0.5 rounded font-black text-teal-200">
+                PROD
+              </span>
+            </button>
+          )}
+
           {openGoogleSheetsModal && (
             <button
               onClick={openGoogleSheetsModal}
@@ -552,6 +631,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
           >
             <UserCheck className="w-4 h-4 text-emerald-600" />
             Profil Saya & KK Digital
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('warga-view')}
+            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-50 text-emerald-900 border border-emerald-300 hover:bg-emerald-100 shadow-xs`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Eye className="w-4 h-4 text-[#2E7D52]" />
+              <span>📱 Tampilan Warga v2.0</span>
+            </div>
+            <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+              LIVE
+            </span>
           </button>
 
           <button

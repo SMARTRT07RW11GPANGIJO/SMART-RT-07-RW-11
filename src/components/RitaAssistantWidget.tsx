@@ -14,6 +14,7 @@ interface RitaAssistantWidgetProps {
   openLetterModal: () => void;
   openComplaintModal: () => void;
   openArchiveModal: () => void;
+  openTataTertibModal?: () => void;
   onPublishAnnouncement?: (newAnn: Pengumuman) => void;
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
 }
@@ -29,6 +30,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
   openLetterModal,
   openComplaintModal,
   openArchiveModal,
+  openTataTertibModal,
   onPublishAnnouncement,
   addToast
 }) => {
@@ -99,6 +101,9 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
       setIsOpen(false);
     } else if (action === 'open_complaint_modal') {
       openComplaintModal();
+      setIsOpen(false);
+    } else if (action === 'open_tata_tertib') {
+      if (openTataTertibModal) openTataTertibModal();
       setIsOpen(false);
     } else if (action === 'open_archive_modal') {
       openArchiveModal();

@@ -3,6 +3,7 @@ import { hasPermission, maskNik, maskNoHp } from './securityService';
 import { sanitizeDataForAI, logAIAuditEntry } from './aiAuthorizationService';
 import { AIKnowledgeManagementService } from './aiKnowledgeManagementService';
 import { RagRetrieverService } from './ragRetrieverService';
+import { TataTertibService } from './tataTertibService';
 
 export interface RitaMessage {
   id: string;
@@ -333,24 +334,29 @@ export async function processRitaChatQuery(
     }
 
     try {
-      // Import TataTertibService dynamically or use stored active articles
-      const { TataTertibService } = require('./tataTertibService');
-      const activeArticles = TataTertibService.getActiveArticles();
+      const activeRules = TataTertibService.getActiveRulesForRAG();
 
-      const matchedArticle = activeArticles.find((art: any) => {
+      const matchedRule = activeRules.find((rule: any) => {
         const q = queryLower;
         return (
-          art.title.toLowerCase().includes(q) ||
-          art.summary.toLowerCase().includes(q) ||
-          art.keywords.some((k: string) => k.toLowerCase().includes(q))
+          rule.title.toLowerCase().includes(q) ||
+          rule.summary.toLowerCase().includes(q) ||
+          rule.category.toLowerCase().includes(q) ||
+          (rule.content && rule.content.toLowerCase().includes(q))
         );
-      }) || activeArticles[0];
+      }) || activeRules[0];
 
-      if (matchedArticle) {
+      if (matchedRule) {
+        let responseText = `📜 *${matchedRule.title} (Versi ${matchedRule.version})*\n\n_${matchedRule.summary}_\n\n${matchedRule.content}`;
+        if (matchedRule.sanction) {
+          responseText += `\n\n⚖️ *Ketentuan Sanksi:* ${matchedRule.sanction}`;
+        }
+        responseText += `\n\n_Sumber: ${matchedRule.source} (Berlaku Efektif: ${matchedRule.effectiveDate})_`;
+
         return {
           id: `RITA-MSG-${Date.now()}`,
           sender: 'rita',
-          text: `📜 *${matchedArticle.title} (Versi ${matchedArticle.version})*\n\n_${matchedArticle.summary}_\n\n${matchedArticle.content}\n\n_Sumber: Tata Tertib Warga RT 07 RW 11 GPA Ngijo Versi ${matchedArticle.version} (Berlaku Efektif: ${matchedArticle.effectiveDate})_`,
+          text: responseText,
           timestamp,
           quickActions: [
             { label: 'Buka Tata Tertib', action: 'open_tata_tertib' },

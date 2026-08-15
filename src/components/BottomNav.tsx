@@ -4,12 +4,14 @@ import {
   Users, 
   FileText, 
   Wallet, 
-  AlertTriangle,
-  Settings,
-  User,
-  Home,
-  Bot
+  AlertTriangle, 
+  Settings, 
+  User, 
+  Home, 
+  Bot,
+  Bell
 } from 'lucide-react';
+import { UserRole } from '../types/rt';
 
 interface BottomNavProps {
   currentTab: string;
@@ -19,6 +21,7 @@ interface BottomNavProps {
   openLetterModal: () => void;
   pendingSuratCount: number;
   activeAduanCount: number;
+  currentRole?: UserRole;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -28,13 +31,74 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   setActiveSubTab,
   openLetterModal,
   pendingSuratCount,
-  activeAduanCount
+  activeAduanCount,
+  currentRole = 'PUBLIC'
 }) => {
   const handleNav = (subTab: string) => {
     setTab('dashboard');
     setActiveSubTab(subTab);
   };
 
+  // Dedicated Mobile Bottom Bar for Warga
+  if (currentRole === 'WARGA') {
+    return (
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0A2338]/95 backdrop-blur-md border-t border-slate-700/80 z-40 px-2 py-1.5 shadow-2xl">
+        <div className="flex items-center justify-around">
+          
+          <button
+            onClick={() => setTab('dashboard')}
+            className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
+              currentTab === 'dashboard'
+                ? 'text-[#D4A72C] font-bold scale-105'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Home</span>
+          </button>
+
+          <button
+            onClick={() => openLetterModal()}
+            className="flex flex-col items-center py-1 px-2 rounded-xl text-sky-400 hover:text-sky-300 transition-all"
+          >
+            <FileText className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Surat</span>
+          </button>
+
+          <button
+            onClick={() => handleNav('iuran')}
+            className="flex flex-col items-center py-1 px-2 rounded-xl text-[#2E7D52] hover:text-emerald-300 transition-all"
+          >
+            <Wallet className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Iuran</span>
+          </button>
+
+          <button
+            onClick={() => setTab('ai-chat')}
+            className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all ${
+              currentTab === 'ai-chat'
+                ? 'text-[#D4A72C] font-bold scale-105'
+                : 'text-[#E9D8B4] hover:text-white'
+            }`}
+          >
+            <Bot className="w-5 h-5 text-[#D4A72C]" />
+            <span className="text-[10px] mt-0.5">Tanya AI</span>
+          </button>
+
+          <button
+            onClick={() => handleNav('pengaduan')}
+            className="relative flex flex-col items-center py-1 px-2 rounded-xl text-rose-400 hover:text-rose-300 transition-all"
+          >
+            <AlertTriangle className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">Lapor</span>
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
+  // Default Bottom Bar for Pengurus / Admin / Public
   return (
     <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#0A2338]/95 backdrop-blur-md border-t border-slate-700/80 z-40 px-2 py-1.5 shadow-2xl">
       <div className="flex items-center justify-around">

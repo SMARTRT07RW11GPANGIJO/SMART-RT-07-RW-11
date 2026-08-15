@@ -232,13 +232,30 @@ export type AuditEventTypeDK =
   | 'DK_RESTORE_PERFORMED'
   | 'DK_ACCESS_DENIED';
 
+export type TagihanIuranDK = IuranTagihanDK;
+export type RekonsiliasiDK = RekonsiliasiDKRecord;
+export type DeathFundTabType = 
+  | 'DASHBOARD' 
+  | 'PESERTA' 
+  | 'IURAN' 
+  | 'PEMASUKAN' 
+  | 'PENGELUARAN' 
+  | 'KEJADIAN' 
+  | 'SANTUNAN' 
+  | 'TRANSAKSI' 
+  | 'LAPORAN' 
+  | 'REKONSILIASI';
+
 export interface AuditLogDK {
   id: string;
-  eventType: AuditEventTypeDK;
+  eventType?: AuditEventTypeDK;
+  action?: string;
+  actor?: string;
   details: string;
-  userId: string;
+  userId?: string;
   role: string;
   timestamp: string;
+  entityType?: string;
   metadata?: Record<string, any>;
 }
 

@@ -32,6 +32,7 @@ import { FinanceManagementModal } from './components/FinanceManagementModal';
 import { TataTertibModal } from './components/TataTertibModal';
 import { OmplonganManagementModal } from './components/OmplonganManagementModal';
 import { GoogleSheetsSyncModal } from './components/GoogleSheetsSyncModal';
+import { DeathFundModal } from './components/deathFund/DeathFundModal';
 import { AdminBackupVerificationDashboard } from './components/AdminBackupVerificationDashboard';
 import { AdminDisasterRecoveryDashboard } from './components/AdminDisasterRecoveryDashboard';
 import { AdminSecurityOperationsDashboard } from './components/AdminSecurityOperationsDashboard';
@@ -107,6 +108,7 @@ export default function App() {
   const [tataTertibModalOpen, setTataTertibModalOpen] = useState(false);
   const [omplonganModalOpen, setOmplonganModalOpen] = useState(false);
   const [googleSheetsModalOpen, setGoogleSheetsModalOpen] = useState(false);
+  const [deathFundModalOpen, setDeathFundModalOpen] = useState(false);
 
   const handleRestoreState = (restoredData: any) => {
     if (restoredData.wargaList) setWargaList(restoredData.wargaList);
@@ -241,6 +243,7 @@ export default function App() {
         openTataTertibModal={() => setTataTertibModalOpen(true)}
         openOmplonganModal={() => setOmplonganModalOpen(true)}
         openGoogleSheetsModal={() => setGoogleSheetsModalOpen(true)}
+        openDeathFundModal={() => setDeathFundModalOpen(true)}
       />
 
       {/* Main App Body */}
@@ -288,14 +291,23 @@ export default function App() {
             openTataTertibModal={() => setTataTertibModalOpen(true)}
             openOmplonganModal={() => setOmplonganModalOpen(true)}
             openGoogleSheetsModal={() => setGoogleSheetsModalOpen(true)}
+            openDeathFundModal={() => setDeathFundModalOpen(true)}
             activeSubTab={activeSubTab}
             setActiveSubTab={setActiveSubTab}
             addToast={addToast}
           />
         )}
 
-        {currentTab === 'verify' && (
-          <DocumentVerificationView suratList={suratList} digitalDocs={digitalDocs} />
+        {(currentTab === 'verify' || currentTab === 'verifikasi' || currentTab === 'surat-verifikasi') && (
+          <DocumentVerificationView
+            suratList={suratList}
+            digitalDocs={digitalDocs}
+            currentRole={currentRole}
+            onRefreshList={() => {
+              setSuratList(SuratService.getStoredSuratList());
+            }}
+            onOpenLetterModal={() => setLetterModalOpen(true)}
+          />
         )}
 
         {currentTab === 'ai-chat' && (
@@ -389,6 +401,7 @@ export default function App() {
         openLetterModal={() => setLetterModalOpen(true)}
         pendingSuratCount={pendingSuratCount}
         activeAduanCount={activeAduanCount}
+        currentRole={currentRole}
       />
 
       {/* Toast Notifications Container */}
@@ -535,6 +548,14 @@ export default function App() {
         addToast={addToast}
       />
 
+      {/* MODUL DANA KEMATIAN v1.0 — PRODUCTION READY */}
+      <DeathFundModal
+        isOpen={deathFundModalOpen}
+        onClose={() => setDeathFundModalOpen(false)}
+        currentRole={currentRole}
+        wargaList={wargaList}
+      />
+
       {/* Tahap 8 AI Assistant RITA Floating Widget */}
       <RitaAssistantWidget
         currentRole={currentRole}
@@ -546,6 +567,7 @@ export default function App() {
         agendaList={agendaList}
         openLetterModal={() => setLetterModalOpen(true)}
         openComplaintModal={() => setComplaintModalOpen(true)}
+        openTataTertibModal={() => setTataTertibModalOpen(true)}
         openArchiveModal={() => {
           refreshDigitalDocs();
           setArchiveModalOpen(true);

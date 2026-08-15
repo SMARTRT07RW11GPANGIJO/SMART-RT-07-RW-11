@@ -323,7 +323,7 @@ export class SuratService {
   }
 
   /**
-   * 2. VERIFY SURAT (Pengurus / Admin)
+   * 2. VERIFY SURAT (Pengurus / Sekretaris / Ketua RT / Admin)
    */
   static async verifySurat(
     suratId: string,
@@ -348,6 +348,26 @@ export class SuratService {
 
     const currentSurat = list[suratIndex];
 
+    // State Transition & Validation Rules
+    if (currentSurat.status === 'SELESAI') {
+      return {
+        success: false,
+        message: 'Pengajuan surat ini sudah SELESAI dan diterbitkan, tidak dapat diverifikasi ulang.',
+        backendConnected: false,
+        requestId
+      };
+    }
+
+    if (action === 'VERIFY' && currentSurat.status === 'DIVERIFIKASI') {
+      return {
+        success: true,
+        message: 'Surat ini sudah dalam status DIVERIFIKASI dan menunggu persetujuan Ketua RT.',
+        surat: currentSurat,
+        backendConnected: true,
+        requestId
+      };
+    }
+
     // Concurrency / State Lock Check
     if (activeTransactions.has(suratId)) {
       return { success: false, message: `Surat ${suratId} sedang dalam proses verifikasi oleh pengurus lain.`, backendConnected: false, requestId };
@@ -363,7 +383,7 @@ export class SuratService {
       const updatedSurat: SuratPengantar = {
         ...currentSurat,
         status: targetStatus === 'VERIFIED' ? 'DIVERIFIKASI' : targetStatus === 'REJECTED' ? 'DITOLAK' : 'DIAJUKAN',
-        catatan_admin: catatanAdmin || (action === 'VERIFY' ? 'Diverifikasi oleh Sekretaris RT' : 'Diperlukan revisi berkas')
+        catatan_admin: catatanAdmin || (action === 'VERIFY' ? `Diverifikasi oleh ${session.role} (${session.userId})` : 'Diperlukan revisi berkas')
       };
 
       list[suratIndex] = updatedSurat;
@@ -379,7 +399,7 @@ export class SuratService {
         toolName: 'verifySurat',
         authorization: 'ALLOWED',
         status: 'SUCCESS',
-        details: { suratId, action, catatanAdmin }
+        details: { suratId, action, catatanAdmin, previousStatus: currentSurat.status, newStatus: updatedSurat.status }
       });
 
       // Sync GAS
@@ -391,13 +411,31 @@ export class SuratService {
         verifier: { userId: session.userId, role: session.role }
       });
 
+      // WhatsApp Notification
+      let whatsappSent = false;
+      if (action === 'VERIFY') {
+        try {
+          const targetPhone = '081234567890';
+          const waRes = await waServiceInstance.sendNotification('SURAT_VERIFIED', targetPhone, {
+            recipientPhone: targetPhone,
+            recipientName: updatedSurat.nama_pemohon,
+            idRecord: updatedSurat.nomor_surat || updatedSurat.id_surat,
+            jenisLayanan: updatedSurat.jenis_surat
+          });
+          whatsappSent = waRes.success;
+        } catch (waErr) {
+          console.warn('[SuratService] WhatsApp notification on verify failed, but verification succeeded:', waErr);
+        }
+      }
+
       return {
         success: true,
         message: gasResult.success
-          ? `Surat ${suratId} berhasil diverifikasi dan dikirim ke Ketua RT.`
+          ? `Surat ${suratId} berhasil diverifikasi dan dikirim ke Ketua RT untuk ditandatangani.`
           : `Surat ${suratId} diverifikasi lokal. Backend belum terhubung.`,
         surat: updatedSurat,
         backendConnected: gasResult.success,
+        whatsappSent,
         requestId
       };
     } finally {

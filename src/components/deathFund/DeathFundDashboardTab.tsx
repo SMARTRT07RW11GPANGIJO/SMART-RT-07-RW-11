@@ -18,24 +18,42 @@ import {
 } from 'lucide-react';
 
 interface DeathFundDashboardTabProps {
-  stats: DashboardStatsDK;
+  stats?: DashboardStatsDK;
+  summary?: DashboardStatsDK;
   onNavigateTab: (tab: any) => void;
-  openNewPemasukan: () => void;
-  openNewPengeluaran: () => void;
-  openReportKejadian: () => void;
-  openGenerateIuran: () => void;
-  recentTransactions: any[];
+  openNewPemasukan?: () => void;
+  openNewPengeluaran?: () => void;
+  openReportKejadian?: () => void;
+  openGenerateIuran?: () => void;
+  recentTransactions?: any[];
+  currentRole?: string;
 }
 
 export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
   stats,
+  summary,
   onNavigateTab,
   openNewPemasukan,
   openNewPengeluaran,
   openReportKejadian,
   openGenerateIuran,
-  recentTransactions
+  recentTransactions = []
 }) => {
+  const activeStats: DashboardStatsDK = stats || summary || {
+    saldoTotal: 0,
+    totalPemasukan: 0,
+    totalPengeluaran: 0,
+    totalPesertaKK: 0,
+    totalPesertaAktif: 0,
+    iuranBulanIniTerkumpul: 0,
+    iuranBulanIniTarget: 0,
+    jumlahSudahBayarBulanIni: 0,
+    jumlahBelumBayarBulanIni: 0,
+    totalSantunanTersalurkan: 0,
+    jumlahKejadianTahunIni: 0
+  };
+
+  const safeTransactions = Array.isArray(recentTransactions) ? recentTransactions : [];
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -95,7 +113,7 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-slate-800">
-              {formatRupiah(stats.saldoTotal)}
+              {formatRupiah(activeStats.saldoTotal || 0)}
             </div>
             <div className="text-xs text-teal-600 font-semibold mt-1 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" /> Saldo Real-Time Ledger Terisolasi
@@ -113,7 +131,7 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-emerald-600">
-              {formatRupiah(stats.totalPemasukan)}
+              {formatRupiah(activeStats.totalPemasukan || 0)}
             </div>
             <div className="text-xs text-slate-500 mt-1">
               Iuran peserta, donasi & bantuan
@@ -131,10 +149,10 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-rose-600">
-              {formatRupiah(stats.totalPengeluaran)}
+              {formatRupiah(activeStats.totalPengeluaran || 0)}
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Santunan ({formatRupiah(stats.totalSantunanTersalurkan)}) & duka
+              Santunan ({formatRupiah(activeStats.totalSantunanTersalurkan || 0)}) & duka
             </div>
           </div>
         </div>
@@ -149,10 +167,10 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
           </div>
           <div className="mt-3">
             <div className="text-2xl font-extrabold text-slate-800">
-              {stats.totalPesertaAktif} <span className="text-sm font-medium text-slate-500">/ {stats.totalPesertaKK} KK</span>
+              {activeStats.totalPesertaAktif || 0} <span className="text-sm font-medium text-slate-500">/ {activeStats.totalPesertaKK || 0} KK</span>
             </div>
             <div className="text-xs text-blue-600 font-semibold mt-1">
-              {stats.totalPesertaAktif} KK Status Aktif
+              {activeStats.totalPesertaAktif || 0} KK Status Aktif
             </div>
           </div>
         </div>
@@ -167,38 +185,40 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
               <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-teal-600" /> Iuran Bulan Berjalan (Agustus 2026)
               </h3>
-              <button
-                onClick={openGenerateIuran}
-                className="text-xs text-teal-600 font-bold hover:underline"
-              >
-                + Generate Tagihan
-              </button>
+              {openGenerateIuran && (
+                <button
+                  onClick={openGenerateIuran}
+                  className="text-xs text-teal-600 font-bold hover:underline"
+                >
+                  + Generate Tagihan
+                </button>
+              )}
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-600">Realisasi Terkumpul:</span>
-                <span className="font-bold text-emerald-600">{formatRupiah(stats.iuranBulanIniTerkumpul)}</span>
+                <span className="font-bold text-emerald-600">{formatRupiah(activeStats.iuranBulanIniTerkumpul || 0)}</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                 <div 
                   className="bg-emerald-500 h-2.5 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (stats.iuranBulanIniTerkumpul / (stats.iuranBulanIniTarget || 1)) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((activeStats.iuranBulanIniTerkumpul || 0) / (activeStats.iuranBulanIniTarget || 1)) * 100)}%` }}
                 />
               </div>
               <div className="grid grid-cols-2 gap-2 pt-2 text-center text-xs">
                 <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
-                  <div className="font-bold text-emerald-700 text-lg">{stats.jumlahSudahBayarBulanIni} KK</div>
+                  <div className="font-bold text-emerald-700 text-lg">{activeStats.jumlahSudahBayarBulanIni || 0} KK</div>
                   <div className="text-slate-500">Sudah Lunas</div>
                 </div>
                 <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100">
-                  <div className="font-bold text-amber-700 text-lg">{stats.jumlahBelumBayarBulanIni} KK</div>
+                  <div className="font-bold text-amber-700 text-lg">{activeStats.jumlahBelumBayarBulanIni || 0} KK</div>
                   <div className="text-slate-500">Belum Bayar</div>
                 </div>
               </div>
             </div>
           </div>
           <button
-            onClick={() => onNavigateTab('iuran')}
+            onClick={() => onNavigateTab('IURAN')}
             className="w-full mt-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
           >
             Kelola Iuran & Tagihan →
@@ -215,8 +235,8 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
             </div>
             <div className="space-y-3">
               <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-rose-900 text-xs">
-                <div className="font-bold">Kejadian Tahun 2026: {stats.jumlahKejadianTahunIni} Kasus</div>
-                <div className="mt-1 text-slate-600">Total Santunan Disalurkan: <strong>{formatRupiah(stats.totalSantunanTersalurkan)}</strong></div>
+                <div className="font-bold">Kejadian Tahun 2026: {activeStats.jumlahKejadianTahunIni || 0} Kasus</div>
+                <div className="mt-1 text-slate-600">Total Santunan Disalurkan: <strong>{formatRupiah(activeStats.totalSantunanTersalurkan || 0)}</strong></div>
               </div>
               <div className="text-xs text-slate-500 space-y-1">
                 <div>• Standar santunan warga aktif: <strong>Rp 2.000.000</strong></div>
@@ -227,13 +247,13 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-2 mt-4">
             <button
-              onClick={() => onNavigateTab('kejadian')}
+              onClick={() => onNavigateTab('KEJADIAN')}
               className="py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
             >
               🕯️ Kejadian Kematian
             </button>
             <button
-              onClick={() => onNavigateTab('santunan')}
+              onClick={() => onNavigateTab('SANTUNAN')}
               className="py-2 text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-xl transition-all"
             >
               🤝 Kelola Santunan
@@ -258,13 +278,13 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-2 mt-4">
             <button
-              onClick={() => onNavigateTab('rekonsiliasi')}
+              onClick={() => onNavigateTab('REKONSILIASI')}
               className="py-2 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 transition-all"
             >
               🔄 Rekonsiliasi
             </button>
             <button
-              onClick={() => onNavigateTab('laporan')}
+              onClick={() => onNavigateTab('LAPORAN')}
               className="py-2 text-xs font-bold text-teal-700 bg-teal-600 text-white hover:bg-teal-500 rounded-xl transition-all"
             >
               📊 Cetak Laporan
@@ -281,14 +301,14 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
             <p className="text-xs text-slate-500">Transaksional terbaru kas dana kematian RT 07 RW 11</p>
           </div>
           <button
-            onClick={() => onNavigateTab('transaksi')}
+            onClick={() => onNavigateTab('TRANSAKSI')}
             className="text-xs font-bold text-teal-600 hover:text-teal-700 hover:underline"
           >
-            Lihat Semua Transaksi ({recentTransactions.length}) →
+            Lihat Semua Transaksi ({safeTransactions.length}) →
           </button>
         </div>
 
-        {recentTransactions.length === 0 ? (
+        {safeTransactions.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-xs">
             Belum ada transaksi Dana Kematian.
           </div>
@@ -307,7 +327,7 @@ export const DeathFundDashboardTab: React.FC<DeathFundDashboardTabProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {recentTransactions.slice(0, 5).map((tx, idx) => {
+                {safeTransactions.slice(0, 5).map((tx, idx) => {
                   const isIncome = tx.transactionType === 'INCOME' || tx.type === 'PEMASUKAN';
                   return (
                     <tr key={tx.transactionId || tx.id || idx} className="hover:bg-slate-50/80">
