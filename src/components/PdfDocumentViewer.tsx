@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Printer, ShieldCheck, Download, AlertTriangle, CheckCircle2, FileText, Ban, ExternalLink } from 'lucide-react';
 import { DigitalDocument } from '../types/rt';
 import { renderDocumentHTML, printOrSavePDF, openDocumentInNewTab, generateQRCodeDataUrl } from '../services/pdfGeneratorService';
+import { OfficialKopSurat } from './OfficialKopSurat';
 
 interface PdfDocumentViewerProps {
   isOpen: boolean;
@@ -128,27 +129,7 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
             )}
 
             {/* Kop Surat */}
-            <div className="text-center border-b-4 border-double border-[#123B5D] pb-4 mb-6 relative flex items-center justify-center gap-4 sm:gap-6">
-              <img
-                src="/logo-kabupaten-malang.png"
-                alt="Logo Kabupaten Malang"
-                className="w-20 h-24 sm:w-24 sm:h-28 object-contain shrink-0"
-              />
-              <div className="text-center">
-                <div className="text-base sm:text-xl font-bold text-[#123B5D] uppercase tracking-wider font-sans leading-tight">
-                  RUKUN TETANGGA 07 RUKUN WARGA 11
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-[#2E7D52] uppercase font-sans leading-tight mt-0.5">
-                  PERUMAHAN GPA NGIJO
-                </div>
-                <div className="text-xs sm:text-base font-semibold text-slate-800 uppercase font-sans leading-tight mt-0.5">
-                  KECAMATAN KARANGPLOSO • KABUPATEN MALANG
-                </div>
-                <div className="text-xs sm:text-sm text-slate-600 italic font-sans mt-1">
-                  Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152
-                </div>
-              </div>
-            </div>
+            <OfficialKopSurat theme="navy" />
 
             {/* Document Title */}
             <div className="text-center my-6">

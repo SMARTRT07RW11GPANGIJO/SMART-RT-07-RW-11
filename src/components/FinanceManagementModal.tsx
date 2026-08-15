@@ -22,6 +22,8 @@ import {
   maskRecipientName
 } from '../services/financeService';
 import { AuthoritativeSessionContext } from '../security/authorization';
+import { OfficialKopSurat } from './OfficialKopSurat';
+import { DOCUMENT_BRANDING } from '../config/documentBranding';
 import {
   Wallet,
   HeartHandshake,
@@ -1131,19 +1133,7 @@ export const FinanceManagementModal: React.FC<FinanceManagementModalProps> = ({
               <div id="finance-report-print-area" className="bg-white text-slate-900 p-8 rounded-xl shadow-lg border border-slate-200 space-y-6 print:shadow-none print:border-none print:p-0">
                 
                 {/* Official Kop Surat / Kop Laporan RT */}
-                <div className="border-b-4 border-double border-slate-900 pb-4 flex items-center gap-6">
-                  <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/e/ec/Lambang_Kabupaten_Malang.png"
-                    alt="Logo Kabupaten Malang"
-                    className="w-20 h-24 object-contain"
-                  />
-                  <div className="text-center flex-1">
-                    <h1 className="text-lg font-black tracking-widest text-slate-900 uppercase">RUKUN TETANGGA 07 RUKUN WARGA 11</h1>
-                    <h2 className="text-md font-bold text-slate-800 uppercase">PERUMAHAN GPA NGIJO KECAMATAN KARANGPLOSO</h2>
-                    <p className="text-xs font-medium text-slate-700">KABUPATEN MALANG, JAWA TIMUR 65152</p>
-                    <p className="text-[10px] text-slate-500 italic mt-0.5">Email: rt07rw11.gpa@gmail.com • Website: smart-rt07.desa.id</p>
-                  </div>
-                </div>
+                <OfficialKopSurat theme="slate" />
 
                 {/* Report Title & Header */}
                 <div className="text-center space-y-1">

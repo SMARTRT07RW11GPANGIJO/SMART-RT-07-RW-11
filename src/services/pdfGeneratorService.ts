@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import { DigitalDocument } from '../types/rt';
+import { DOCUMENT_BRANDING } from '../config/documentBranding';
 
 // Generate QR Code as Data URL
 export const generateQRCodeDataUrl = async (text: string): Promise<string> => {
@@ -23,20 +24,20 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
   const qrUrl = doc.qrVerificationUrl || `${window.location.origin}/verify/${doc.documentId}`;
   const qrDataUrl = await generateQRCodeDataUrl(qrUrl);
 
-  let logoDataUrl = '/logo-kabupaten-malang.png';
+  let logoDataUrl = DOCUMENT_BRANDING.logoKabupaten;
   try {
-    const resp = await fetch('/logo-kabupaten-malang.png');
+    const resp = await fetch(DOCUMENT_BRANDING.logoKabupaten);
     if (resp.ok) {
       const blob = await resp.blob();
       logoDataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve('/logo-kabupaten-malang.png');
+        reader.onerror = () => resolve(DOCUMENT_BRANDING.logoKabupaten);
         reader.readAsDataURL(blob);
       });
     }
   } catch {
-    logoDataUrl = '/logo-kabupaten-malang.png';
+    logoDataUrl = DOCUMENT_BRANDING.logoKabupaten;
   }
 
   const formattedDate = new Date(doc.tanggalSurat).toLocaleDateString('id-ID', {
@@ -218,12 +219,12 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
     ${doc.status === 'REVOKED' ? '<div class="watermark-status">DOKUMEN DICABUT</div>' : ''}
     
     <div class="kop-header">
-      <img src="${logoDataUrl}" alt="Logo Kabupaten Malang" class="kop-logo" />
+      <img src="${logoDataUrl}" alt="${DOCUMENT_BRANDING.logoAlt}" class="kop-logo" />
       <div class="kop-text-block">
-        <div class="kop-title">RUKUN TETANGGA 07 RUKUN WARGA 11</div>
-        <div class="kop-subtitle">PERUMAHAN GPA NGIJO</div>
-        <div class="kop-district">KECAMATAN KARANGPLOSO • KABUPATEN MALANG</div>
-        <div class="kop-address">Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152</div>
+        <div class="kop-title">${DOCUMENT_BRANDING.organizationName}</div>
+        <div class="kop-subtitle">${DOCUMENT_BRANDING.housingName}</div>
+        <div class="kop-district">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
+        <div class="kop-address">${DOCUMENT_BRANDING.fullAddress}</div>
       </div>
     </div>
 

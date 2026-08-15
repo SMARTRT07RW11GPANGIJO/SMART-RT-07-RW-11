@@ -4,6 +4,8 @@ import { X, Printer, Download, CheckCircle, ShieldCheck, Copy, Check, FileCheck,
 import { generateQRCodeDataUrl, printOrSavePDF, openDocumentInNewTab } from '../services/pdfGeneratorService';
 import { SuratService } from '../services/suratService';
 import { AuthoritativeSessionContext } from '../security/authorization';
+import { OfficialKopSurat } from './OfficialKopSurat';
+import { DOCUMENT_BRANDING } from '../config/documentBranding';
 
 interface LetterModalProps {
   isOpen: boolean;
@@ -455,27 +457,7 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
             <div className="document-print-area max-w-2xl mx-auto bg-white p-8 sm:p-12 rounded-xl shadow-md border border-slate-300 text-slate-900 font-serif leading-relaxed text-sm relative">
               
               {/* Kop Surat Resmi RT */}
-              <div className="border-b-4 border-double border-slate-900 pb-4 mb-6 text-center relative flex items-center justify-center gap-4 sm:gap-6">
-                <img
-                  src="/logo-kabupaten-malang.png"
-                  alt="Logo Kabupaten Malang"
-                  className="w-[85px] h-[102px] object-contain shrink-0"
-                />
-                <div className="text-center">
-                  <h2 className="font-bold text-base sm:text-xl tracking-wider text-slate-900 uppercase leading-tight">
-                    RUKUN TETANGGA 07 RUKUN WARGA 11
-                  </h2>
-                  <h3 className="font-bold text-sm sm:text-lg tracking-wide text-[#2E7D52] uppercase leading-tight mt-0.5">
-                    PERUMAHAN GPA NGIJO
-                  </h3>
-                  <p className="text-xs sm:text-base font-semibold text-slate-800 uppercase leading-tight mt-0.5">
-                    KECAMATAN KARANGPLOSO • KABUPATEN MALANG
-                  </p>
-                  <p className="text-xs sm:text-sm text-slate-600 font-sans italic mt-1">
-                    Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152
-                  </p>
-                </div>
-              </div>
+              <OfficialKopSurat theme="slate" />
 
               {/* Status Ribbon (Screen Only) */}
               <div className="no-print absolute top-4 right-4">
