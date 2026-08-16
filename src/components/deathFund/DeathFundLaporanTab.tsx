@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { PesertaDanaKematian, TagihanIuranDK, PemasukanDK, PengeluaranDK, KejadianKematianDK, SantunanDK } from '../../types/deathFund';
 import { formatRupiah } from '../../types/finance';
+import { OfficialKopSurat } from '../OfficialKopSurat';
+import { DOCUMENT_BRANDING, getLetterPlace, getChairmanName } from '../../config/documentBranding';
 import { 
   Printer, 
   Download, 
@@ -97,20 +99,14 @@ export const DeathFundLaporanTab: React.FC<DeathFundLaporanTabProps> = ({
 
       {/* PRINTABLE REPORT CONTAINER */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6 print:border-none print:shadow-none print:p-0">
-        {/* Kop Surat */}
-        <div className="border-b-2 border-slate-900 pb-4 text-center">
-          <div className="text-xs font-bold tracking-widest text-slate-500 uppercase">
-            RUKUN TETANGGA 07 RUKUN WARGA 11
-          </div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight mt-0.5">
-            GRIYA PERMATA ALAM (GPA) NGIJO - KARANGPLOSO
-          </h2>
-          <p className="text-xs text-slate-600 mt-0.5">
-            Sekretariat: Balai RT 07 RW 11 GPA Ngijo, Karangploso, Malang, Jawa Timur
-          </p>
-          <div className="inline-block mt-2 px-3 py-1 bg-slate-900 text-white font-bold text-xs rounded-full uppercase tracking-wider">
+        {/* Official Kop Surat */}
+        <OfficialKopSurat theme="slate" />
+
+        <div className="text-center">
+          <div className="inline-block px-3 py-1 bg-slate-900 text-white font-bold text-xs rounded-full uppercase tracking-wider">
             LAPORAN KEUANGAN DAN PERTANGGUNGJAWABAN DANA KEMATIAN
           </div>
+          <p className="text-xs font-semibold text-slate-600 mt-1">PERIODE: TAHUN 2026</p>
         </div>
 
         {/* Info Ringkasan Eksekutif */}
@@ -229,17 +225,17 @@ export const DeathFundLaporanTab: React.FC<DeathFundLaporanTabProps> = ({
         </div>
 
         {/* Tanda Tangan Pengurus */}
-        <div className="pt-8 grid grid-cols-3 text-center text-xs gap-4">
+        <div className="pt-8 grid grid-cols-3 text-center text-xs gap-4 text-slate-900">
           <div>
             <p className="text-slate-500">Mengetahui,</p>
-            <p className="font-bold text-slate-800 mt-0.5">Ketua RT 07 RW 11 GPA</p>
+            <p className="font-bold text-slate-800 mt-0.5">{DOCUMENT_BRANDING.chairmanTitle}</p>
             <div className="h-16 flex items-center justify-center">
               <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                 [Tervalidasi Digital]
               </span>
             </div>
-            <p className="font-bold text-slate-900 underline">Bpk. Agus Santoso</p>
-            <p className="text-[10px] text-slate-400">Ketua RT 07</p>
+            <p className="font-bold text-slate-900 underline">{getChairmanName()}</p>
+            <p className="text-[10px] text-slate-400">{DOCUMENT_BRANDING.chairmanTitle}</p>
           </div>
 
           <div>
@@ -255,7 +251,7 @@ export const DeathFundLaporanTab: React.FC<DeathFundLaporanTabProps> = ({
           </div>
 
           <div>
-            <p className="text-slate-500">Disusun oleh,</p>
+            <p className="text-slate-500">{getLetterPlace()}, 15 Agustus 2026</p>
             <p className="font-bold text-slate-800 mt-0.5">Bendahara Dana Kematian</p>
             <div className="h-16 flex items-center justify-center">
               <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded border border-teal-200">

@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
 import { DigitalDocument } from '../types/rt';
-import { DOCUMENT_BRANDING } from '../config/documentBranding';
+import { DOCUMENT_BRANDING, getLetterPlace, assertDocumentOfficialIntegrity } from '../config/documentBranding';
 
 // Generate QR Code as Data URL
 export const generateQRCodeDataUrl = async (text: string): Promise<string> => {
@@ -21,6 +21,13 @@ export const generateQRCodeDataUrl = async (text: string): Promise<string> => {
 
 // Generate HTML Content for A4 Document Print / PDF Export
 export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> => {
+  // Enforce validation on place and signer
+  assertDocumentOfficialIntegrity(
+    DOCUMENT_BRANDING.letterPlace,
+    doc.namaKetua || DOCUMENT_BRANDING.chairmanName,
+    doc.jabatanKetua || DOCUMENT_BRANDING.chairmanTitle
+  );
+
   const qrUrl = doc.qrVerificationUrl || `${window.location.origin}/verify/${doc.documentId}`;
   const qrDataUrl = await generateQRCodeDataUrl(qrUrl);
 
@@ -45,6 +52,10 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
     month: 'long',
     year: 'numeric'
   });
+
+  const letterPlace = getLetterPlace();
+  const chairmanName = doc.namaKetua || DOCUMENT_BRANDING.chairmanName;
+  const chairmanTitle = doc.jabatanKetua || DOCUMENT_BRANDING.chairmanTitle;
 
   return `
   <!DOCTYPE html>
@@ -165,13 +176,40 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
         align-items: flex-end;
       }
       .signature-box {
-        text-align: center;
+        text-align: left;
         width: 250px;
       }
-      .signature-img {
-        height: 70px;
-        margin: 10px auto;
-        display: block;
+      .signature-location {
+        text-align: left;
+        margin: 0;
+        font-size: 11pt;
+      }
+      .signature-title {
+        text-align: left;
+        margin: 2px 0 0 0;
+        font-weight: bold;
+        font-size: 11pt;
+      }
+      .digital-signature {
+        text-align: left;
+        min-height: 50px;
+        margin: 8px 0;
+        border: 1px dashed #2E7D52;
+        border-radius: 6px;
+        background: #f0fdf4;
+        padding: 6px 8px;
+      }
+      .signature-name {
+        text-align: left;
+        margin: 0;
+        font-weight: bold;
+        text-decoration: underline;
+        font-size: 12pt;
+      }
+      .signature-position {
+        text-align: left;
+        margin: 2px 0 0 0;
+        font-size: 11pt;
       }
       .qr-box {
         border: 1px solid #123B5D;
@@ -223,7 +261,9 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
       <div class="kop-text-block">
         <div class="kop-title">${DOCUMENT_BRANDING.organizationName}</div>
         <div class="kop-subtitle">${DOCUMENT_BRANDING.housingName}</div>
-        <div class="kop-district">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
+        <div class="kop-district">${DOCUMENT_BRANDING.district}</div>
+        <div class="kop-district">${DOCUMENT_BRANDING.regency}</div>
+        <div class="kop-district">${DOCUMENT_BRANDING.province}</div>
         <div class="kop-address">${DOCUMENT_BRANDING.fullAddress}</div>
       </div>
     </div>
@@ -267,23 +307,28 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
     <div class="signature-section">
       <div class="qr-box">
         <img src="${qrDataUrl}" alt="QR Verification" />
-        <p>SCAN UNTUK VERIFIKASI DOKUMEN DIGITAL</p>
-        <p style="font-size:7pt; color:#666; font-weight:normal; margin-top:2px;">ID: ${doc.documentId}</p>
+        <p>SCAN UNTUK VERIFIKASI<br/>DOKUMEN RESMI</p>
+        <p style="font-size:7pt; color:#666; font-weight:normal; margin-top:2px; font-family:monospace;">ID: ${doc.documentId}</p>
       </div>
 
       <div class="signature-box">
-        <p style="margin:0;">Karangploso, ${formattedDate}</p>
-        <p style="margin:2px 0 0 0; font-weight:bold;">Ketua RT 07 RW 11 Perum GPA Ngijo</p>
+        <div class="signature-location">${letterPlace}, ${formattedDate}</div>
+        <div class="signature-title">${DOCUMENT_BRANDING.chairmanOrganization}</div>
         
-        <div style="height:70px; margin:10px 0; display:flex; align-items:center; justify-center; border:1px dashed #2E7D52; border-radius:8px; background:#f0fdf4; padding:4px;">
-          <div style="font-size:8pt; color:#2E7D52; font-weight:bold;">
-            ✓ DIGITAL SIGNATURE<br/>
-            <span style="font-size:7pt; color:#444;">HASH: ${doc.verificationToken}</span>
+        <div class="digital-signature">
+          <div style="font-size:8.5pt; color:#2E7D52; font-weight:bold; text-align:left;">
+            [ DIGITAL SIGNATURE VALID ]
+          </div>
+          <div style="font-size:7.5pt; color:#333; word-break:break-all; text-align:left; font-family:monospace; margin-top:2px;">
+            HASH: ${doc.verificationToken}
+          </div>
+          <div style="font-size:6.5pt; color:#666; text-align:left; margin-top:3px;">
+            DOKUMEN DITANDATANGANI SECARA ELEKTRONIK
           </div>
         </div>
 
-        <p style="margin:0; font-weight:bold; text-decoration:underline;">${doc.namaKetua}</p>
-        <p style="margin:2px 0 0 0; font-size:10pt;">${doc.jabatanKetua}</p>
+        <div class="signature-name">${chairmanName}</div>
+        <div class="signature-position">${chairmanTitle}</div>
       </div>
     </div>
 

@@ -133,7 +133,7 @@ export class RtFinanceService {
       documentId: `DOC-RT-UMUM-${Date.now()}`,
       driveFileUrl: `/documents/KEUANGAN_RT_UMUM_${year}.pdf`,
       version: 'FINANCE_REPORT_RT_UMUM_v2.0',
-      approvedByKetuaRT: 'Sutrisno, S.T.',
+      approvedByKetuaRT: 'Eko Sucahyono',
       approvedByBendahara: 'Ahmad Ridwan, S.E.'
     };
   }

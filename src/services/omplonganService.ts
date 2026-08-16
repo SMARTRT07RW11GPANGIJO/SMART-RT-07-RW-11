@@ -134,7 +134,7 @@ export class OmplonganService {
       documentId: `DOC-OMP-${Date.now()}`,
       driveFileUrl: `/documents/KEUANGAN_OMPLOGAN_${year}.pdf`,
       version: 'FINANCE_REPORT_OMPLOGAN_v2.0',
-      approvedByKetuaRT: 'Sutrisno, S.T.',
+      approvedByKetuaRT: 'Eko Sucahyono',
       approvedByBendahara: 'Ahmad Ridwan, S.E.'
     };
   }

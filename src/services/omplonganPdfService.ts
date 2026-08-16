@@ -18,6 +18,7 @@ import {
   OmplonganRekapPetugas
 } from '../types/omplongan';
 import { formatRupiah } from '../types/finance';
+import { DOCUMENT_BRANDING, getLetterPlace, getChairmanName, getChairmanTitle } from '../config/documentBranding';
 
 export interface ReportPayload {
   type: OmplonganReportType;
@@ -214,25 +215,31 @@ export class OmplonganPdfService {
         </style>
       </head>
       <body>
-        <div class="header-box">
-          <h1 class="header-title">RUKUN TETANGGA 07 RUKUN WARGA 11</h1>
-          <div class="header-subtitle">PERUM GRIYA PERMATA ALAM (GPA) NGIJO</div>
-          <div class="header-address">Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152</div>
-          <div class="doc-badge">🇮🇩 ${payload.kegiatan.namaKegiatan.toUpperCase()} (TAHUN ${payload.kegiatan.tahun})</div>
+        <div class="header-box" style="display: flex; align-items: center; justify-content: center; gap: 16px; border-bottom: 3px double #0f172a; padding-bottom: 12px; margin-bottom: 20px;">
+          <img src="${DOCUMENT_BRANDING.logoKabupaten}" alt="${DOCUMENT_BRANDING.logoAlt}" style="width: 70px; height: 84px; object-fit: contain; flex-shrink: 0;" />
+          <div style="text-align: center; flex: 1;">
+            <h1 class="header-title">${DOCUMENT_BRANDING.organizationName}</h1>
+            <div class="header-subtitle">${DOCUMENT_BRANDING.housingName}</div>
+            <div class="header-address" style="font-weight: 600;">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency} • ${DOCUMENT_BRANDING.province}</div>
+            <div class="header-address">${DOCUMENT_BRANDING.fullAddress}</div>
+            <div class="doc-badge">🇮🇩 ${payload.kegiatan.namaKegiatan.toUpperCase()} (TAHUN ${payload.kegiatan.tahun})</div>
+          </div>
         </div>
 
         ${contentBody}
 
-        <div class="footer-sign">
-          <div class="sign-box">
+        <div class="footer-sign" style="display: flex; justify-content: space-between; margin-top: 40px; page-break-inside: avoid;">
+          <div class="sign-box" style="text-align: left; width: 250px;">
             <div>Mengetahui,</div>
-            <div class="sign-role">Ketua RT 07 RW 11 GPA Ngijo</div>
-            <div class="sign-name">Bambang Sugianto, S.T.</div>
+            <div class="sign-role" style="font-weight: bold; margin-top: 2px;">${DOCUMENT_BRANDING.chairmanOrganization}</div>
+            <div class="sign-name" style="font-weight: bold; text-decoration: underline; margin-top: 50px;">${getChairmanName()}</div>
+            <div class="sign-role">${getChairmanTitle()}</div>
           </div>
-          <div class="sign-box">
-            <div>Ngijo, ${printDate}</div>
-            <div class="sign-role">Bendahara / Panitia Agustusan</div>
-            <div class="sign-name">Siti Rahmawati, S.Pd.</div>
+          <div class="sign-box" style="text-align: left; width: 250px;">
+            <div>${getLetterPlace()}, ${printDate}</div>
+            <div class="sign-role" style="font-weight: bold; margin-top: 2px;">Bendahara / Panitia Agustusan</div>
+            <div class="sign-name" style="font-weight: bold; text-decoration: underline; margin-top: 50px;">Siti Rahmawati, S.Pd.</div>
+            <div class="sign-role">Bendahara Panitia</div>
           </div>
         </div>
 

@@ -50,7 +50,7 @@ export class AutomationEngine {
             status: 'VALID',
             hash_verifikasi: verificationToken,
             qr_code_url: verificationUrl,
-            penandatangan: 'Sutrisno, M.P. (Ketua RT 07)',
+            penandatangan: 'Eko Sucahyono (Ketua RT 07)',
             file_url: `/api/documents/pdf/${recordId}`
           });
           workflowStepsExecuted.push(`Saved Digital Document Record: ${digitalDoc.documentId}`);

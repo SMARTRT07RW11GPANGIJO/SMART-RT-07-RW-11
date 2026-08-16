@@ -365,7 +365,7 @@ export const INITIAL_AGENDA: AgendaKegiatan[] = [
     jam: '19:30 - 21:30 WIB',
     lokasi: 'Balai Warga / Pos Kamling RT 07',
     deskripsi: 'Pembahasan Laporan Keuangan Bulan Juli-Agustus dan Pembentukan Panitia Jalan Sehat.',
-    penanggung_jawab: 'Ketua RT 07 (Bpk. Bambang Sugianto)',
+    penanggung_jawab: 'Ketua RT 07 (Bpk. Eko Sucahyono)',
     kategori: 'Rapat RT'
   },
   {
@@ -383,7 +383,7 @@ export const INITIAL_AGENDA: AgendaKegiatan[] = [
 export const INITIAL_PENGURUS: Pengurus[] = [
   {
     id_pengurus: 'PGR-01',
-    nama: 'Bambang Sugianto, S.T.',
+    nama: 'Eko Sucahyono',
     jabatan: 'Ketua RT 07',
     no_hp: '081234567890',
     email: 'rt07rw11.gpa@gmail.com',
@@ -437,7 +437,7 @@ export const INITIAL_AUDIT_LOG: AuditLog[] = [
   {
     id_log: 'LOG-001',
     timestamp: '2026-08-08 09:15:00',
-    user: 'Ketua RT (Bambang Sugianto)',
+    user: 'Ketua RT (Eko Sucahyono)',
     action: 'APPROVE_SURAT',
     module: 'Administrasi Surat',
     record_id: 'SRT-2026-0001',

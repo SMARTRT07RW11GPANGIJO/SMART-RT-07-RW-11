@@ -1381,10 +1381,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-4">
                 <div className="flex items-center gap-4 border-b border-slate-200 pb-4">
                   <div className="w-16 h-16 rounded-2xl bg-[#123B5D] text-[#D4A72C] font-black text-2xl flex items-center justify-center shadow">
-                    BS
+                    ES
                   </div>
                   <div>
-                    <h4 className="font-bold text-base text-[#123B5D]">Bambang Sugianto, S.T.</h4>
+                    <h4 className="font-bold text-base text-[#123B5D]">Eko Sucahyono</h4>
                     <p className="text-xs text-slate-600">Ketua RT 07 • Perum GPA Ngijo Blok C-07</p>
                     <span className="inline-block mt-1 bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                       Status Warga: Tetap (Terverifikasi)

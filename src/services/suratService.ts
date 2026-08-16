@@ -15,6 +15,7 @@ import { syncDataWithGAS } from './apiService';
 import { createDigitalDocumentFromSurat, getStoredDigitalDocuments, maskNIK, saveDigitalDocumentStore } from './documentService';
 import { AuditLogger } from './auditLoggerService';
 import { waServiceInstance } from './whatsappService';
+import { DOCUMENT_BRANDING, getChairmanName, getChairmanTitle, getLetterPlace, assertDocumentOfficialIntegrity } from '../config/documentBranding';
 
 // ============================================================================
 // TYPES & STATE MACHINE DEFINITIONS
@@ -503,10 +504,17 @@ export class SuratService {
         catatan_admin: catatanKetua || 'Disetujui dan ditandatangani secara digital oleh Ketua RT 07 RW 11'
       };
 
+      // Enforce validation before generation
+      assertDocumentOfficialIntegrity(
+        getLetterPlace(),
+        getChairmanName(),
+        getChairmanTitle()
+      );
+
       // STEP B: GENERATE DIGITAL DOCUMENT RECORD & VERIFICATION QR TOKEN
       const digitalDoc = createDigitalDocumentFromSurat(
         approvedSurat,
-        `Ketua RT 07 (${session.userId === 'ketua_rt' ? 'Sutrisno, S.T.' : 'Bambang Sugianto, S.T.'})`
+        `Ketua RT 07 (${getChairmanName()})`
       );
 
       // STEP C: SAVE DRIVE METADATA FILENAME

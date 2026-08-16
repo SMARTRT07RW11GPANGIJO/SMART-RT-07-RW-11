@@ -71,7 +71,7 @@ const DEFAULT_CONFIG: ConfigDanaKematian = {
 function generateSeedPeserta(): PesertaDanaKematian[] {
   const blokList = ['A', 'B', 'C', 'D', 'E'];
   const names = [
-    'Sutrisno, S.T.', 'Ahmad Ridwan, S.E.', 'Bambang Sudibyo', 'Dr. Ir. Hendro Wibowo',
+    'Eko Sucahyono', 'Ahmad Ridwan, S.E.', 'Bambang Sudibyo', 'Dr. Ir. Hendro Wibowo',
     'Djoko Santoso', 'Agus Suprianto', 'H. Mochamad Sholeh', 'Drs. Wahyu Hidayat',
     'Tri Prasetyo Utomo', 'Eko Purnomo, M.Pd.', 'Hadi Siswanto', 'Sigit Purnomo',
     'Rahmat Hidayatullah', 'Kusworo, S.Kom.', 'H. Abdul Rasyid', 'Dedy Kurniawan',
@@ -214,7 +214,7 @@ function generateSeedSantunan(): SantunanDK[] {
       nominal: 1000000,
       keterangan: 'Santunan resmi dari Dana Kematian RT 07 RW 11 GPA Ngijo',
       status: 'DIBAYARKAN',
-      disetujuiOleh: 'Sutrisno, S.T. (Ketua RT)',
+      disetujuiOleh: 'Eko Sucahyono (Ketua RT)',
       disetujuiPada: '2026-08-03T14:00:00.000Z',
       dibayarkanOleh: 'Ahmad Ridwan, S.E. (Bendahara)',
       dibayarkanPada: '2026-08-04T13:00:00.000Z',
@@ -975,7 +975,7 @@ export class DeathFundService {
     const updated: SantunanDK = {
       ...list[index],
       status: 'DISETUJUI',
-      disetujuiOleh: session.userId === 'ketua_rt' ? 'Sutrisno, S.T. (Ketua RT)' : session.userId,
+      disetujuiOleh: session.userId === 'ketua_rt' ? 'Eko Sucahyono (Ketua RT)' : session.userId,
       disetujuiPada: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1152,7 +1152,7 @@ export class DeathFundService {
       documentId: `DOC-DK-${Date.now()}`,
       driveFileUrl: `/documents/KEUANGAN_DANA_KEMATIAN_${year}.pdf`,
       version: 'DANA_KEMATIAN_REPORT_v1.0',
-      approvedByKetuaRT: 'Sutrisno, S.T.',
+      approvedByKetuaRT: 'Eko Sucahyono',
       approvedByBendahara: 'Ahmad Ridwan, S.E.'
     };
 

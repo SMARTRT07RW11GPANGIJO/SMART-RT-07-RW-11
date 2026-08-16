@@ -1194,7 +1194,7 @@ export const FinanceManagementModal: React.FC<FinanceManagementModalProps> = ({
                     <p>Mengetahui,</p>
                     <p className="font-bold mt-0.5">Ketua RT 07 RW 11</p>
                     <div className="h-16 flex items-end justify-center">
-                      <p className="font-bold underline text-slate-900">Sutrisno, S.T.</p>
+                      <p className="font-bold underline text-slate-900">Eko Sucahyono</p>
                     </div>
                   </div>
                   <div>

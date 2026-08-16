@@ -3,6 +3,7 @@ import { X, Printer, ShieldCheck, Download, AlertTriangle, CheckCircle2, FileTex
 import { DigitalDocument } from '../types/rt';
 import { renderDocumentHTML, printOrSavePDF, openDocumentInNewTab, generateQRCodeDataUrl } from '../services/pdfGeneratorService';
 import { OfficialKopSurat } from './OfficialKopSurat';
+import { DOCUMENT_BRANDING, getLetterPlace } from '../config/documentBranding';
 
 interface PdfDocumentViewerProps {
   isOpen: boolean;
@@ -187,28 +188,39 @@ export const PdfDocumentViewer: React.FC<PdfDocumentViewerProps> = ({
               {/* QR Verification Card */}
               <div className="border border-[#123B5D] rounded-2xl p-3 bg-slate-50 text-center w-48 shadow-sm">
                 {qrDataUrl && <img src={qrDataUrl} alt="QR Code" className="w-32 h-32 mx-auto rounded-lg" />}
-                <p className="text-[10px] font-bold text-[#123B5D] uppercase mt-2 font-sans">
-                  SCAN VERIFIKASI DOKUMEN
+                <p className="text-[10px] font-bold text-[#123B5D] uppercase mt-2 font-sans leading-tight">
+                  SCAN UNTUK VERIFIKASI<br/>DOKUMEN RESMI
                 </p>
-                <p className="text-[9px] font-mono text-slate-500">ID: {doc.documentId}</p>
+                <p className="text-[9px] font-mono text-slate-500 mt-1">ID: {doc.documentId}</p>
               </div>
 
-              {/* Signature Block */}
-              <div className="text-center sm:text-right font-sans min-w-[220px]">
-                <p className="text-xs text-slate-700">Karangploso, {new Date(doc.tanggalSurat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                <p className="text-xs font-bold text-slate-900 mt-0.5">Ketua RT 07 RW 11 Perum GPA Ngijo</p>
-
-                <div className="my-3 py-2 px-3 border border-dashed border-[#2E7D52] bg-emerald-50 rounded-xl text-center">
-                  <span className="text-[10px] font-bold text-[#2E7D52] flex items-center justify-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> DIGITAL SIGNATURE VALID
-                  </span>
-                  <span className="text-[9px] font-mono text-slate-500 block truncate mt-0.5">
-                    {doc.verificationToken}
-                  </span>
+              {/* Signature Block (Right positioned, all text left-aligned) */}
+              <div className="signature-block text-left font-sans min-w-[240px] space-y-1 sm:ml-auto">
+                <div className="signature-location text-left text-xs text-slate-700">
+                  {getLetterPlace()}, {new Date(doc.tanggalSurat).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+                <div className="signature-title text-left text-xs font-bold text-slate-900 mt-0.5">
+                  {DOCUMENT_BRANDING.chairmanOrganization}
                 </div>
 
-                <p className="font-bold underline text-sm text-slate-900">{doc.namaKetua}</p>
-                <p className="text-xs text-slate-600">{doc.jabatanKetua}</p>
+                <div className="digital-signature text-left my-2.5 py-2 px-3 border border-dashed border-[#2E7D52] bg-emerald-50 rounded-xl">
+                  <div className="text-[10px] font-bold text-[#2E7D52] flex items-center justify-start gap-1 text-left">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> [ DIGITAL SIGNATURE VALID ]
+                  </div>
+                  <div className="text-[9px] font-mono text-slate-600 truncate mt-0.5 text-left">
+                    HASH: {doc.verificationToken}
+                  </div>
+                  <div className="text-[8px] text-slate-500 text-left mt-1">
+                    DOKUMEN DITANDATANGANI SECARA ELEKTRONIK
+                  </div>
+                </div>
+
+                <div className="signature-name text-left font-bold underline text-sm text-slate-900">
+                  {doc.namaKetua || DOCUMENT_BRANDING.chairmanName}
+                </div>
+                <div className="signature-position text-left text-xs text-slate-600">
+                  {doc.jabatanKetua || DOCUMENT_BRANDING.chairmanTitle}
+                </div>
               </div>
 
             </div>

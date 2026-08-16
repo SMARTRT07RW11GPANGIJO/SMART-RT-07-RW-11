@@ -5,7 +5,7 @@ import { generateQRCodeDataUrl, printOrSavePDF, openDocumentInNewTab } from '../
 import { SuratService } from '../services/suratService';
 import { AuthoritativeSessionContext } from '../security/authorization';
 import { OfficialKopSurat } from './OfficialKopSurat';
-import { DOCUMENT_BRANDING } from '../config/documentBranding';
+import { DOCUMENT_BRANDING, getLetterPlace, getChairmanName, getChairmanTitle } from '../config/documentBranding';
 
 interface LetterModalProps {
   isOpen: boolean;
@@ -179,8 +179,8 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
         : '350712******0001',
       pemohonAlamat: `${currentPreview.blok_rumah}, RT 07 RW 11 Perum GPA Ngijo`,
       keperluan: currentPreview.keperluan,
-      namaKetua: 'Sutrisno, S.T.',
-      jabatanKetua: 'Ketua RT 07 RW 11'
+      namaKetua: getChairmanName(),
+      jabatanKetua: getChairmanTitle()
     };
   };
 
@@ -530,7 +530,7 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
 
               {/* Tanda Tangan & QR Code Verification */}
               <div className="mt-8 pt-6 border-t border-slate-200 grid grid-cols-2 gap-4 font-sans text-xs items-end">
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-1.5">
                   <div className="p-2 bg-slate-50 rounded-lg border border-slate-300 inline-block">
                     {qrDataUrl ? (
                       <img src={qrDataUrl} alt="QR Code Verifikasi" className="w-24 h-24 mx-auto object-contain" />
@@ -542,21 +542,35 @@ export const LetterGeneratorModal: React.FC<LetterModalProps> = ({
                       </div>
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-500 font-medium">Scan QR untuk verifikasi keaslian di portal SMART RT</p>
+                  <p className="text-[10px] text-slate-700 font-bold uppercase">SCAN UNTUK VERIFIKASI<br/>DOKUMEN RESMI</p>
+                  <p className="text-[8px] text-slate-500 font-mono">ID: {currentPreview?.id_surat || 'DOC-2026-PREVIEW'}</p>
                 </div>
 
-                <div className="text-center space-y-12">
-                  <div>
-                    <p className="text-slate-600">Ngijo, {currentPreview?.tanggal_pengajuan || '08 Agustus 2026'}</p>
-                    <p className="font-bold text-slate-900">Ketua RT 07 RW 11 GPA Ngijo</p>
+                <div className="signature-block text-left space-y-1.5 max-w-[240px] ml-auto">
+                  <div className="signature-location text-left text-slate-700 text-xs">
+                    {getLetterPlace()}, {currentPreview?.tanggal_pengajuan ? new Date(currentPreview.tanggal_pengajuan).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '1 Agustus 2026'}
                   </div>
-                  <div className="relative">
-                    {/* Digital Seal / Stempel Stamp */}
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-24 h-24 border-2 border-dashed border-blue-600/40 rounded-full flex items-center justify-center rotate-[-12deg] pointer-events-none">
-                      <span className="text-[9px] font-bold text-blue-700/60 text-center uppercase leading-tight">STEMPEL RESMI<br/>RT 07 RW 11<br/>GPA NGIJO</span>
+                  <div className="signature-title text-left font-bold text-slate-900 text-xs">
+                    {DOCUMENT_BRANDING.chairmanOrganization}
+                  </div>
+
+                  <div className="digital-signature text-left my-2 p-2 rounded-lg border border-dashed border-[#2E7D52] bg-emerald-50 text-[#2E7D52]">
+                    <div className="text-[10px] font-bold flex items-center justify-start gap-1 text-left">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> [ DIGITAL SIGNATURE VALID ]
                     </div>
-                    <p className="font-bold text-slate-900 underline text-sm">SUTRISNO, S.T.</p>
-                    <p className="text-[10px] text-slate-500">ID REG: RT07-2025-01</p>
+                    <div className="text-[9px] font-mono text-slate-600 truncate mt-0.5 text-left">
+                      HASH: {currentPreview?.qr_code_hash || 'T9X2A0-VERIFIED'}
+                    </div>
+                    <div className="text-[8px] text-slate-500 text-left mt-1 font-normal">
+                      DOKUMEN DITANDATANGANI SECARA ELEKTRONIK
+                    </div>
+                  </div>
+
+                  <div className="signature-name text-left font-bold text-slate-900 underline text-sm">
+                    {getChairmanName()}
+                  </div>
+                  <div className="signature-position text-left text-[11px] text-slate-600">
+                    {getChairmanTitle()}
                   </div>
                 </div>
               </div>

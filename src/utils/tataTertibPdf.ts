@@ -5,6 +5,7 @@
 
 import { jsPDF } from 'jspdf';
 import { TataTertibArticle, TataTertibConfig } from '../types/tataTertib';
+import { DOCUMENT_BRANDING, getLetterPlace, getChairmanName } from '../config/documentBranding';
 
 export const generateTataTertibPdf = (
   article: TataTertibArticle,
@@ -26,16 +27,16 @@ export const generateTataTertibPdf = (
   // 1. Header & Kop Surat Resmi
   doc.setFont('times', 'bold');
   doc.setFontSize(14);
-  doc.text('RUKUN TETANGGA 07 RUKUN WARGA 11', pageWidth / 2, cursorY, { align: 'center' });
+  doc.text(DOCUMENT_BRANDING.organizationName, pageWidth / 2, cursorY, { align: 'center' });
   cursorY += 6;
 
   doc.setFontSize(12);
-  doc.text('PERUMAHAN GRAHA PERMATA ANUGRAH (GPA) DESA NGIJO', pageWidth / 2, cursorY, { align: 'center' });
+  doc.text(DOCUMENT_BRANDING.housingName, pageWidth / 2, cursorY, { align: 'center' });
   cursorY += 5;
 
   doc.setFont('times', 'normal');
   doc.setFontSize(10);
-  doc.text('Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152', pageWidth / 2, cursorY, { align: 'center' });
+  doc.text(`${DOCUMENT_BRANDING.district}, ${DOCUMENT_BRANDING.regency}, ${DOCUMENT_BRANDING.province} ${DOCUMENT_BRANDING.postalCode}`, pageWidth / 2, cursorY, { align: 'center' });
   cursorY += 6;
 
   // Double Divider Line
@@ -147,17 +148,17 @@ export const generateTataTertibPdf = (
   const signX = pageWidth - margin - 65;
   doc.setFont('times', 'normal');
   doc.setFontSize(9.5);
-  doc.text('Ditetapkan di : Perum GPA Ngijo', signX, cursorY);
+  doc.text(`Ditetapkan di : ${getLetterPlace()}`, signX, cursorY);
   cursorY += 4.5;
   doc.text(`Pada tanggal  : ${article.tanggalBerlaku}`, signX, cursorY);
   cursorY += 5.5;
   doc.text('Mengetahui / Mengesahkan,', signX, cursorY);
   cursorY += 4.5;
   doc.setFont('times', 'bold');
-  doc.text('Ketua RT 07 RW 11 GPA Ngijo', signX, cursorY);
+  doc.text(DOCUMENT_BRANDING.chairmanOrganization, signX, cursorY);
   cursorY += 18;
 
-  doc.text('Bapak Sutrisno, M.P.', signX, cursorY);
+  doc.text(`Bapak ${getChairmanName()}`, signX, cursorY);
   cursorY += 4;
   doc.setFont('times', 'italic');
   doc.setFontSize(8.5);

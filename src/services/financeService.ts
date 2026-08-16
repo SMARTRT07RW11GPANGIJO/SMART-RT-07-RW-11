@@ -848,7 +848,7 @@ export class FinanceService {
       month,
       fundId,
       reportType,
-      generatedBy: session.userId === 'ketua_rt' ? 'Sutrisno, S.T.' : session.userId === 'bendahara_01' ? 'Ahmad Ridwan, S.E.' : session.userId,
+      generatedBy: session.userId === 'ketua_rt' ? 'Eko Sucahyono' : session.userId === 'bendahara_01' ? 'Ahmad Ridwan, S.E.' : session.userId,
       generatedAt: new Date().toISOString(),
       startingBalance,
       totalIncome,
@@ -857,7 +857,7 @@ export class FinanceService {
       documentId: `DOC-FIN-${Date.now()}`,
       driveFileUrl: `/documents/KEUANGAN_${year}_${reportType}.pdf`,
       version: 'FINANCE_REPORT_v1.0',
-      approvedByKetuaRT: 'Sutrisno, S.T.',
+      approvedByKetuaRT: 'Eko Sucahyono',
       approvedByBendahara: 'Ahmad Ridwan, S.E.'
     };
 

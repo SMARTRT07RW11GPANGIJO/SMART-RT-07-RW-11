@@ -179,7 +179,7 @@ export const WhatsAppBotSimulator: React.FC = () => {
               >
                 <option value="WARGA">1. Warga Terdaftar (Bambang Susilo)</option>
                 <option value="PENGURUS">2. Pengurus Sekr (Ahmad Subagyo)</option>
-                <option value="KETUA_RT">3. Ketua RT 07 (Sutrisno, M.P.)</option>
+                <option value="KETUA_RT">3. Ketua RT 07 (Eko Sucahyono)</option>
                 <option value="BENDAHARA">4. Bendahara (Ibu Hj. Anisa)</option>
                 <option value="ADMIN">5. Admin Sistem (Admin RT)</option>
                 <option value="UNKNOWN">6. Nomor Tidak Terdaftar (Tamu)</option>

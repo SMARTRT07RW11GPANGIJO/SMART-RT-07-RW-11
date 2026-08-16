@@ -85,6 +85,9 @@ export const OfficialKopSurat: React.FC<OfficialKopSuratProps> = ({
           <p className="text-[11px] sm:text-sm md:text-base font-semibold text-slate-800 uppercase leading-tight mt-0.5 font-serif">
             {DOCUMENT_BRANDING.regency}
           </p>
+          <p className="text-[11px] sm:text-sm md:text-base font-semibold text-slate-800 uppercase leading-tight mt-0.5 font-serif">
+            {DOCUMENT_BRANDING.province}
+          </p>
           <p className="text-[10px] sm:text-xs text-slate-600 font-sans italic mt-1 leading-snug">
             {DOCUMENT_BRANDING.fullAddress}
           </p>

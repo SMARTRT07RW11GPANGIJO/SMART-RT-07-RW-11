@@ -58,7 +58,7 @@ Silakan seluruh warga RT 07 membuka Portal SMART RT untuk membaca rincian lengka
 🌐 https://smart-rt-07.web.app/
 
 *Pengurus & Ketua RT 07 RW 11 GPA Ngijo*
-_Bapak Sutrisno, M.P._`;
+_Bapak Eko Sucahyono_`;
 
   const handleCopyBroadcast = () => {
     navigator.clipboard.writeText(announcementText);

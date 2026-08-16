@@ -266,7 +266,7 @@ export const TataTertibCetakTab: React.FC<TataTertibCetakTabProps> = ({ articles
             </div>
 
             <div className="text-right space-y-1">
-              <p className="font-sans text-xs">Ngijo, Karangploso, 17 Agustus 2026</p>
+              <p className="font-sans text-xs">Karangploso, 17 Agustus 2026</p>
               <p className="font-bold text-slate-900">Ketua RT 07 RW 11 GPA Ngijo</p>
               <div className="h-14 flex items-center justify-end">
                 <span className="text-xs italic text-emerald-700 font-sans bg-emerald-50 px-2 py-1 rounded border border-emerald-200">

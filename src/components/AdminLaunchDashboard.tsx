@@ -97,7 +97,7 @@ export const AdminLaunchDashboard: React.FC<Props> = ({ currentUserRole, onNavig
   };
 
   const handleSignApproval = (role: 'Ketua RT' | 'Admin' | 'Technical Lead') => {
-    LaunchService.signLaunchApproval(role, currentUserRole === 'KETUA_RT' ? 'H. Sutrisno' : 'Admin SMART RT', sigComment);
+    LaunchService.signLaunchApproval(role, currentUserRole === 'KETUA_RT' ? 'Eko Sucahyono' : 'Admin SMART RT', sigComment);
     setSigComment('');
     refreshState();
   };

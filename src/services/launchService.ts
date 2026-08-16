@@ -150,7 +150,7 @@ const INITIAL_PILOT_PARTICIPANTS: PilotParticipant[] = [
   { id: 'PILOT-02', name: 'Siti Aminah', role: 'WARGA', blockHouse: 'Blok B-05', phone: '081234567891', status: 'COMPLETED', completedTasks: 6, totalTasks: 6 },
   { id: 'PILOT-03', name: 'Dewi Sartika', role: 'WARGA', blockHouse: 'Blok C-08', phone: '081234567892', status: 'COMPLETED', completedTasks: 6, totalTasks: 6 },
   { id: 'PILOT-04', name: 'Ahmad Dahlan', role: 'PENGURUS', blockHouse: 'Blok A-03', phone: '081234567893', status: 'COMPLETED', completedTasks: 8, totalTasks: 8 },
-  { id: 'PILOT-05', name: 'H. Sutrisno', role: 'KETUA_RT', blockHouse: 'Blok A-01', phone: '081234567894', status: 'COMPLETED', completedTasks: 10, totalTasks: 10 },
+  { id: 'PILOT-05', name: 'Eko Sucahyono', role: 'KETUA_RT', blockHouse: 'Blok A-01', phone: '081234567894', status: 'COMPLETED', completedTasks: 10, totalTasks: 10 },
   { id: 'PILOT-06', name: 'Admin Utama SMART RT', role: 'ADMIN', blockHouse: 'Blok Kantor RT', phone: '081234567895', status: 'COMPLETED', completedTasks: 12, totalTasks: 12 }
 ];
 
@@ -187,7 +187,7 @@ const INITIAL_PILOT_FEEDBACKS: PilotFeedbackItem[] = [
   },
   {
     id: 'FB-04',
-    participantName: 'H. Sutrisno',
+    participantName: 'Eko Sucahyono',
     role: 'KETUA_RT',
     rating: 'THUMBS_UP',
     category: 'AI',
@@ -216,7 +216,7 @@ const INITIAL_EXIT_CRITERIA: PilotExitCheck[] = [
 ];
 
 const INITIAL_SIGNATURES: LaunchApprovalSignature[] = [
-  { role: 'Ketua RT', name: 'H. Sutrisno', signed: true, signedAt: '2026-08-11 17:00', comments: 'Sistem sangat siap dan direkomendasikan untuk digunakan seluruh warga RT 07.' },
+  { role: 'Ketua RT', name: 'Eko Sucahyono', signed: true, signedAt: '2026-08-11 17:00', comments: 'Sistem sangat siap dan direkomendasikan untuk digunakan seluruh warga RT 07.' },
   { role: 'Admin', name: 'Admin Utama SMART RT', signed: true, signedAt: '2026-08-11 17:15', comments: 'Seluruh parameter infrastruktur, database, dan AI telah terverifikasi stabil.' },
   { role: 'Technical Lead', name: 'Lead Architect SMART RT', signed: true, signedAt: '2026-08-11 17:30', comments: '47 Kriteria kesiapan teknis, keamanan, dan operasional 100% PASS.' }
 ];
@@ -503,7 +503,7 @@ Karangploso, Kabupaten Malang`;
 **Date**: August 11, 2026
 
 ### Sign-off Signatures:
-1. **Ketua RT**: H. Sutrisno (SIGNED - APPROVED)
+1. **Ketua RT**: Eko Sucahyono (SIGNED - APPROVED)
 2. **Admin Utama**: Admin SMART RT (SIGNED - APPROVED)
 3. **Technical Lead**: Lead Architect (SIGNED - APPROVED)
 

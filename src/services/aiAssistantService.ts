@@ -64,7 +64,7 @@ export const INITIAL_KNOWLEDGE_BASE: KnowledgeItem[] = [
     id: 'KB-004',
     category: 'Profil',
     title: 'Profil RT 07 RW 11 Perum GPA Ngijo',
-    content: 'RT 07 RW 11 berlokasi di Perum Graha Permata Anugrah (GPA) Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur. Tagline: "Bersama Melayani, Bersama Membangun". Ketua RT 07: Bapak Sutrisno, M.P. Contact: rt07rw11.gpa@gmail.com.',
+    content: 'RT 07 RW 11 berlokasi di Perum Graha Permata Anugrah (GPA) Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur. Tagline: "Guyub Rukun Mbangun Deso". Ketua RT 07: Bapak Eko Sucahyono. Contact: rt07rw11.gpa@gmail.com.',
     source: 'Buku Profil RT 07 RW 11',
     lastUpdated: '2026-08-01',
     status: 'PUBLISHED'

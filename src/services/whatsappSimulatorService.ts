@@ -93,7 +93,7 @@ export const SIMULATED_RESIDENTS: Record<string, SimulatedResident> = {
   KETUA_RT: {
     id: 'SIM-003',
     phone: '081333444555',
-    name: 'Sutrisno, M.P.',
+    name: 'Eko Sucahyono',
     role: 'KETUA_RT',
     residentId: 'RT07-001',
     houseBlock: 'Blok A-01',
