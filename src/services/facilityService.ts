@@ -1,5 +1,5 @@
-// SMART RT 07 RW 11 GPA NGIJO - ENVIRONMENTAL FACILITY DATABASE SERVICE v1.0
-// Authoritative Service for Facility Registry, GIS Coordinates, and RBAC Operations
+// SMART RT 07 RW 11 GPA NGIJO - ENVIRONMENTAL FACILITY DATABASE & REAL-WORLD FIELD SURVEY GIS v2.0
+// Authoritative Service for Facility Registry, Real-World GIS GeoBase, Field Surveys, and RBAC Operations
 
 import {
   FasilitasLingkungan,
@@ -11,14 +11,33 @@ import {
   FacilityAnalytics,
   FacilityAuditLog,
   FacilityEventLink,
-  FacilityComplaintReport
+  FacilityComplaintReport,
+  GeoObject,
+  GeoSurvey,
+  GeoEvidence,
+  GeoHistory,
+  RTBoundary,
+  GPSAccuracyGrade,
+  VerificationStatus,
+  GeoSource
 } from '../types/facility';
-import { CONDITION_SCORE_MAP, GPA_NGIJO_BOUNDS } from '../config/facilityConfig';
+import {
+  CONDITION_SCORE_MAP,
+  GPA_NGIJO_BOUNDS,
+  getGPSAccuracyGrade,
+  calculateStaleStatus,
+  RT07_REFERENCE_BOUNDARY
+} from '../config/facilityConfig';
 
 const STORAGE_KEY_FACILITIES = 'smart_rt07_facilities_v1';
 const STORAGE_KEY_AUDIT = 'smart_rt07_facility_audit_v1';
 const STORAGE_KEY_EVENT_LINKS = 'smart_rt07_facility_event_links_v1';
 const STORAGE_KEY_COMPLAINTS = 'smart_rt07_facility_complaints_v1';
+const STORAGE_KEY_GEO_OBJECTS = 'smart_rt07_geo_objects_v2';
+const STORAGE_KEY_GEO_SURVEYS = 'smart_rt07_geo_surveys_v2';
+const STORAGE_KEY_GEO_EVIDENCE = 'smart_rt07_geo_evidence_v2';
+const STORAGE_KEY_GEO_HISTORY = 'smart_rt07_geo_history_v2';
+const STORAGE_KEY_RT_BOUNDARY = 'smart_rt07_rt_boundary_v2';
 
 // Initial authoritative seed data for RT 07 RW 11 GPA Ngijo
 const INITIAL_FACILITIES: FasilitasLingkungan[] = [
@@ -262,6 +281,11 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
 
 class FacilityService {
   private facilities: FasilitasLingkungan[] = [];
+  private geoObjects: GeoObject[] = [];
+  private geoSurveys: GeoSurvey[] = [];
+  private geoEvidence: GeoEvidence[] = [];
+  private geoHistory: GeoHistory[] = [];
+  private rtBoundary: RTBoundary = RT07_REFERENCE_BOUNDARY;
   private auditLogs: FacilityAuditLog[] = [];
   private eventLinks: FacilityEventLink[] = [];
   private complaints: FacilityComplaintReport[] = [];
@@ -296,6 +320,58 @@ class FacilityService {
       if (storedComplaints) {
         this.complaints = JSON.parse(storedComplaints);
       }
+
+      const storedGeo = localStorage.getItem(STORAGE_KEY_GEO_OBJECTS);
+      if (storedGeo) {
+        this.geoObjects = JSON.parse(storedGeo);
+      } else {
+        // Bootstrap GeoObjects from initial facilities
+        this.geoObjects = this.facilities.map((f) => ({
+          geoId: `GEO-${f.fasilitasId}`,
+          objectType: 'FACILITY',
+          geometryType: 'POINT',
+          name: f.namaFasilitas,
+          latitude: f.latitude,
+          longitude: f.longitude,
+          source: (f.coordinateSource || 'SURVEYED') as GeoSource,
+          verificationStatus: (f.surveyStatus || 'VERIFIED') as VerificationStatus,
+          accuracyMeters: f.accuracyMeters || f.akurasiLokasi || 4,
+          accuracyGrade: (f.accuracyGrade || 'HIGH_PRECISION') as GPSAccuracyGrade,
+          capturedAt: f.createdAt,
+          capturedBy: f.createdBy,
+          verifiedAt: f.updatedAt,
+          verifiedBy: f.updatedBy,
+          notes: f.catatan,
+          qualityScore: f.qualityScore || 5,
+          staleStatus: f.staleStatus || 'FRESH',
+          lastSurveyedAt: f.lastSurveyedAt || f.createdAt,
+          lastSurveyedBy: f.lastSurveyedBy || f.penanggungJawabNama,
+          createdAt: f.createdAt,
+          updatedAt: f.updatedAt,
+          version: f.version
+        }));
+        this.saveGeoState();
+      }
+
+      const storedSurveys = localStorage.getItem(STORAGE_KEY_GEO_SURVEYS);
+      if (storedSurveys) {
+        this.geoSurveys = JSON.parse(storedSurveys);
+      }
+
+      const storedEvidence = localStorage.getItem(STORAGE_KEY_GEO_EVIDENCE);
+      if (storedEvidence) {
+        this.geoEvidence = JSON.parse(storedEvidence);
+      }
+
+      const storedHistory = localStorage.getItem(STORAGE_KEY_GEO_HISTORY);
+      if (storedHistory) {
+        this.geoHistory = JSON.parse(storedHistory);
+      }
+
+      const storedBoundary = localStorage.getItem(STORAGE_KEY_RT_BOUNDARY);
+      if (storedBoundary) {
+        this.rtBoundary = JSON.parse(storedBoundary);
+      }
     } catch {
       this.facilities = [...INITIAL_FACILITIES];
     }
@@ -312,6 +388,18 @@ class FacilityService {
     }
   }
 
+  private saveGeoState() {
+    try {
+      localStorage.setItem(STORAGE_KEY_GEO_OBJECTS, JSON.stringify(this.geoObjects));
+      localStorage.setItem(STORAGE_KEY_GEO_SURVEYS, JSON.stringify(this.geoSurveys));
+      localStorage.setItem(STORAGE_KEY_GEO_EVIDENCE, JSON.stringify(this.geoEvidence));
+      localStorage.setItem(STORAGE_KEY_GEO_HISTORY, JSON.stringify(this.geoHistory));
+      localStorage.setItem(STORAGE_KEY_RT_BOUNDARY, JSON.stringify(this.rtBoundary));
+    } catch (e) {
+      console.warn('Geo state save warning:', e);
+    }
+  }
+
   public setBackendStatus(isOnline: boolean) {
     this.backendOnline = isOnline;
   }
@@ -325,21 +413,40 @@ class FacilityService {
   }
 
   // RBAC Permission Check
-  public hasPermission(role: string, action: 'READ' | 'CREATE' | 'UPDATE' | 'DELETE' | 'REPORT' | 'INSPECT' | 'MAINTAIN' | 'VIEW_INTERNAL'): boolean {
+  public hasPermission(
+    role: string,
+    action:
+      | 'READ'
+      | 'CREATE'
+      | 'UPDATE'
+      | 'DELETE'
+      | 'REPORT'
+      | 'INSPECT'
+      | 'MAINTAIN'
+      | 'VIEW_INTERNAL'
+      | 'SURVEY'
+      | 'VERIFY'
+      | 'MANAGE_BOUNDARY'
+  ): boolean {
     const r = role.toUpperCase();
     if (r === 'ADMIN' || r === 'KETUA_RT') return true;
 
     switch (action) {
       case 'READ':
       case 'REPORT':
-        return true;
+      case 'SURVEY':
+        return true; // Warga can submit surveys to PENDING
       case 'VIEW_INTERNAL':
-        return ['SEKRETARIS_RT', 'BENDAHARA_RT', 'SEKSI_KEGIATAN'].includes(r);
+        return ['SEKRETARIS_RT', 'BENDAHARA_RT', 'SEKSI_KEGIATAN', 'SEKSI_LINGKUNGAN'].includes(r);
       case 'CREATE':
       case 'UPDATE':
       case 'INSPECT':
       case 'MAINTAIN':
-        return ['SEKRETARIS_RT', 'SEKSI_KEGIATAN'].includes(r);
+        return ['SEKRETARIS_RT', 'SEKSI_KEGIATAN', 'SEKSI_LINGKUNGAN'].includes(r);
+      case 'VERIFY':
+        return ['SEKRETARIS_RT', 'ADMIN', 'KETUA_RT'].includes(r);
+      case 'MANAGE_BOUNDARY':
+        return ['SEKRETARIS_RT', 'ADMIN', 'KETUA_RT'].includes(r);
       case 'DELETE':
         return false; // Only Admin & Ketua RT
       default:
@@ -715,6 +822,15 @@ class FacilityService {
     return { success: true, data: newComplaint };
   }
 
+  // Alias for backward compatibility
+  public createComplaint(
+    actor: FacilityActorSession,
+    complaintData: Omit<FacilityComplaintReport, 'complaintId' | 'createdAt' | 'status'>,
+    requestId: string
+  ) {
+    return this.reportComplaint(actor, complaintData, requestId);
+  }
+
   public getComplaints(actor: FacilityActorSession, facilityId?: string): FacilityComplaintReport[] {
     if (facilityId) {
       return this.complaints.filter((c) => c.fasilitasId === facilityId);
@@ -823,6 +939,617 @@ class FacilityService {
       facilityCountByStatus,
       facilityCountByPriority,
       topProblematicFacilities: sortedProblematic
+    };
+  }
+
+  // ==========================================
+  // REAL-WORLD GIS GEOBASE METHODS (v2.0)
+  // ==========================================
+
+  public getGeoObjects(actor: FacilityActorSession): GeoObject[] {
+    return this.geoObjects;
+  }
+
+  public getRTBoundary(actor: FacilityActorSession): RTBoundary {
+    return this.rtBoundary;
+  }
+
+  public updateRTBoundary(
+    actor: FacilityActorSession,
+    boundaryData: Partial<RTBoundary>,
+    requestId: string
+  ): { success: boolean; data?: RTBoundary; error?: string } {
+    if (this.processedRequestIds.has(requestId)) {
+      return { success: false, error: 'Duplikat permintaan update boundary.' };
+    }
+    this.processedRequestIds.add(requestId);
+
+    if (!actor.isBackendConnected || !this.backendOnline) {
+      return { success: false, error: 'NOT_COMMITTED: Fail-closed mode aktif. Backend tidak terhubung.' };
+    }
+
+    if (!this.hasPermission(actor.role, 'MANAGE_BOUNDARY')) {
+      this.logAudit(actor, 'UPDATE_BOUNDARY', 'FASILITAS', 'BOUNDARY', 'DENIED', 'FAILED', undefined, undefined, 'Role tidak memiliki hak kelola batas RT.');
+      return { success: false, error: 'Akses ditolak: Hanya Ketua RT / Sekretaris / Admin yang dapat mengubah batas wilayah.' };
+    }
+
+    this.rtBoundary = {
+      ...this.rtBoundary,
+      ...boundaryData,
+      updatedAt: new Date().toISOString()
+    };
+
+    this.saveGeoState();
+    this.logAudit(actor, 'UPDATE_BOUNDARY', 'FASILITAS', this.rtBoundary.boundaryId, 'AUTHORIZED', 'SUCCESS', undefined, JSON.stringify(this.rtBoundary), 'Batas wilayah RT 07 RW 11 diperbarui.');
+
+    return { success: true, data: this.rtBoundary };
+  }
+
+  // GPS FIELD SURVEY CAPTURE (SECTION 6, 8, 9, 36)
+  public createGeoSurvey(
+    actor: FacilityActorSession,
+    surveyData: {
+      fasilitasId?: string;
+      namaFasilitas: string;
+      kategori: FacilityCategory;
+      subkategori?: string;
+      latitude: number;
+      longitude: number;
+      accuracyMeters: number;
+      conditionScore?: number;
+      status?: FacilityStatus;
+      prioritas?: FacilityPriority;
+      notes?: string;
+      deviceMetadata?: any;
+      photoEvidence?: GeoEvidence[];
+      requestId?: string;
+    },
+    requestIdParam?: string
+  ): { success: boolean; data?: GeoSurvey; error?: string; code?: string } {
+    const requestId = surveyData.requestId || requestIdParam || this.generateRequestId();
+    const { latitude, longitude, accuracyMeters } = surveyData;
+
+    // 1. Idempotency Check
+    if (this.processedRequestIds.has(requestId)) {
+      return { success: false, error: 'Duplikat pengiriman survey lapangan (Idempotency Error).', code: 'DUPLICATE_REQUEST' };
+    }
+    this.processedRequestIds.add(requestId);
+
+    // 2. Fail-Closed Offline Verification (Section 20)
+    if (!actor.isBackendConnected || !this.backendOnline) {
+      return {
+        success: false,
+        error: 'SURVEY NOT COMMITTED: Fail-closed mode aktif. Survey GPS gagal disinkronkan ke backend.',
+        code: 'NOT_COMMITTED'
+      };
+    }
+
+    // 3. RBAC Check (Warga can submit surveys, enters PENDING)
+    if (!this.hasPermission(actor.role, 'SURVEY')) {
+      this.logAudit(actor, 'CREATE_SURVEY', 'FASILITAS', 'GEO_SURVEY', 'DENIED', 'FAILED', undefined, undefined, 'Role tidak berwenang melakukan survey.');
+      return { success: false, error: 'Akses ditolak untuk melakukan survey GPS.', code: 'FORBIDDEN' };
+    }
+
+    // 4. Coordinate Range Validation (Section 36)
+    if (typeof latitude !== 'number' || isNaN(latitude) || latitude < -90 || latitude > 90) {
+      return { success: false, error: 'Koordinat Latitude tidak valid (harus antara -90 dan 90).', code: 'INVALID_COORDINATES' };
+    }
+    if (typeof longitude !== 'number' || isNaN(longitude) || longitude < -180 || longitude > 180) {
+      return { success: false, error: 'Koordinat Longitude tidak valid (harus antara -180 dan 180).', code: 'INVALID_COORDINATES' };
+    }
+
+    // 5. GPS Accuracy Gating (Section 7)
+    const accuracyInfo = getGPSAccuracyGrade(accuracyMeters);
+
+    // 6. Generate IDs
+    const now = new Date().toISOString();
+    const surveyId = `SURVEY-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    const geoId = surveyData.fasilitasId ? `GEO-${surveyData.fasilitasId}` : `GEO-${Date.now()}`;
+
+    // 7. Construct GeoSurvey Entity (Section 4, 8)
+    const newSurvey: GeoSurvey = {
+      surveyId,
+      requestId,
+      geoId,
+      fasilitasId: surveyData.fasilitasId,
+      namaFasilitas: surveyData.namaFasilitas.trim(),
+      kategori: surveyData.kategori,
+      subkategori: surveyData.subkategori || 'UMUM',
+      latitude,
+      longitude,
+      accuracyMeters,
+      accuracyGrade: accuracyInfo.grade,
+      conditionScore: surveyData.conditionScore ?? 5,
+      status: surveyData.status || 'AKTIF',
+      prioritas: surveyData.prioritas || 'NORMAL',
+      source: 'SURVEYED',
+      verificationStatus: 'PENDING', // STRICT: Initial status is always PENDING per Section 8 & 11
+      capturedAt: now,
+      capturedBy: actor.userId,
+      capturedByName: actor.nama,
+      deviceMetadata: surveyData.deviceMetadata,
+      photoEvidence: surveyData.photoEvidence,
+      notes: surveyData.notes
+    };
+
+    this.geoSurveys.unshift(newSurvey);
+
+    // If survey is attached to existing facility, record GeoHistory for coordinate shifts (Section 27)
+    if (surveyData.fasilitasId) {
+      const existingFacility = this.facilities.find((f) => f.fasilitasId === surveyData.fasilitasId);
+      if (existingFacility) {
+        const history: GeoHistory = {
+          geoHistoryId: `GEO-HIST-${Date.now()}`,
+          geoId,
+          oldGeometry: { latitude: existingFacility.latitude, longitude: existingFacility.longitude },
+          newGeometry: { latitude, longitude },
+          changedAt: now,
+          changedBy: actor.nama,
+          reason: `Survey Lapangan GPS oleh ${actor.nama} (${accuracyInfo.label})`
+        };
+        this.geoHistory.unshift(history);
+      }
+    }
+
+    // Update or add corresponding GeoObject in PENDING status
+    const existingGeo = this.geoObjects.find((g) => g.geoId === geoId);
+    if (existingGeo) {
+      existingGeo.latitude = latitude;
+      existingGeo.longitude = longitude;
+      existingGeo.accuracyMeters = accuracyMeters;
+      existingGeo.accuracyGrade = accuracyInfo.grade;
+      existingGeo.source = 'SURVEYED';
+      existingGeo.verificationStatus = 'PENDING';
+      existingGeo.capturedAt = now;
+      existingGeo.capturedBy = actor.nama;
+      existingGeo.updatedAt = now;
+      existingGeo.staleStatus = 'FRESH';
+      existingGeo.lastSurveyedAt = now;
+      existingGeo.lastSurveyedBy = actor.nama;
+    } else {
+      this.geoObjects.unshift({
+        geoId,
+        objectType: 'FACILITY',
+        geometryType: 'POINT',
+        name: surveyData.namaFasilitas,
+        latitude,
+        longitude,
+        source: 'SURVEYED',
+        verificationStatus: 'PENDING',
+        accuracyMeters,
+        accuracyGrade: accuracyInfo.grade,
+        capturedAt: now,
+        capturedBy: actor.nama,
+        notes: surveyData.notes,
+        staleStatus: 'FRESH',
+        qualityScore: accuracyInfo.grade === 'HIGH_PRECISION' ? 5 : 3,
+        lastSurveyedAt: now,
+        lastSurveyedBy: actor.nama,
+        createdAt: now,
+        updatedAt: now,
+        version: 1
+      });
+    }
+
+    this.saveGeoState();
+    this.logAudit(
+      actor,
+      'CREATE_SURVEY',
+      'FASILITAS',
+      surveyId,
+      'AUTHORIZED',
+      'SUCCESS',
+      undefined,
+      JSON.stringify(newSurvey),
+      `Survey GPS berhasil dicatat (${accuracyInfo.label}). Status menunggu verifikasi.`
+    );
+
+    return { success: true, data: newSurvey };
+  }
+
+  // VERIFICATION WORKFLOW (SECTION 11, 12)
+  public verifyGeoSurvey(
+    actor: FacilityActorSession,
+    surveyId: string,
+    reviewNotes?: string,
+    requestId?: string
+  ): { success: boolean; data?: GeoSurvey; error?: string; code?: string } {
+    if (requestId && this.processedRequestIds.has(requestId)) {
+      return { success: false, error: 'Duplikat permintaan verifikasi survey.', code: 'DUPLICATE_REQUEST' };
+    }
+    if (requestId) this.processedRequestIds.add(requestId);
+
+    if (!actor.isBackendConnected || !this.backendOnline) {
+      return { success: false, error: 'NOT_COMMITTED: Fail-closed mode aktif.', code: 'NOT_COMMITTED' };
+    }
+
+    if (!this.hasPermission(actor.role, 'VERIFY')) {
+      this.logAudit(actor, 'VERIFY_SURVEY', 'FASILITAS', surveyId, 'DENIED', 'FAILED', undefined, undefined, 'Role tidak berwenang memverifikasi survey.');
+      return { success: false, error: 'Akses ditolak: Hanya Pengurus/Sekretaris/Ketua RT yang dapat memverifikasi survey lapangan.', code: 'FORBIDDEN' };
+    }
+
+    const survey = this.geoSurveys.find((s) => s.surveyId === surveyId);
+    if (!survey) {
+      return { success: false, error: 'Data survey lapangan tidak ditemukan.', code: 'NOT_FOUND' };
+    }
+
+    const now = new Date().toISOString();
+    survey.verificationStatus = 'VERIFIED';
+    survey.reviewedBy = actor.nama;
+    survey.reviewedAt = now;
+    survey.reviewNotes = reviewNotes || 'Terverifikasi sesuai kondisi fisik lapangan.';
+
+    // Update underlying GeoObject
+    const targetGeo = this.geoObjects.find((g) => g.geoId === survey.geoId);
+    if (targetGeo) {
+      targetGeo.verificationStatus = 'VERIFIED';
+      targetGeo.verifiedBy = actor.nama;
+      targetGeo.verifiedAt = now;
+      targetGeo.updatedAt = now;
+    }
+
+    // Update single-source-of-truth FasilitasLingkungan if linked
+    if (survey.fasilitasId) {
+      const facility = this.facilities.find((f) => f.fasilitasId === survey.fasilitasId);
+      if (facility) {
+        facility.latitude = survey.latitude;
+        facility.longitude = survey.longitude;
+        facility.accuracyMeters = survey.accuracyMeters;
+        facility.accuracyGrade = survey.accuracyGrade;
+        facility.coordinateSource = 'SURVEYED';
+        facility.surveyStatus = 'VERIFIED';
+        facility.locationStatus = 'VERIFIED';
+        facility.lastSurveyedAt = survey.capturedAt;
+        facility.lastSurveyedBy = survey.capturedByName;
+        facility.staleStatus = 'FRESH';
+        facility.conditionScore = survey.conditionScore;
+        facility.qualityScore = survey.accuracyGrade === 'HIGH_PRECISION' ? 5 : 4;
+        facility.updatedAt = now;
+        facility.updatedBy = actor.userId;
+        this.saveState();
+      }
+    }
+
+    this.saveGeoState();
+    this.logAudit(actor, 'VERIFY_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'VERIFIED', `Survey ${surveyId} diverifikasi oleh ${actor.nama}.`);
+
+    return { success: true, data: survey };
+  }
+
+  public rejectGeoSurvey(
+    actor: FacilityActorSession,
+    surveyId: string,
+    rejectionReason: string,
+    requestId?: string
+  ): { success: boolean; data?: GeoSurvey; error?: string; code?: string } {
+    if (requestId && this.processedRequestIds.has(requestId)) {
+      return { success: false, error: 'Duplikat permintaan penolakan survey.', code: 'DUPLICATE_REQUEST' };
+    }
+    if (requestId) this.processedRequestIds.add(requestId);
+
+    if (!this.hasPermission(actor.role, 'VERIFY')) {
+      return { success: false, error: 'Akses ditolak.', code: 'FORBIDDEN' };
+    }
+
+    const survey = this.geoSurveys.find((s) => s.surveyId === surveyId);
+    if (!survey) {
+      return { success: false, error: 'Data survey tidak ditemukan.', code: 'NOT_FOUND' };
+    }
+
+    const now = new Date().toISOString();
+    survey.verificationStatus = 'REJECTED';
+    survey.reviewedBy = actor.nama;
+    survey.reviewedAt = now;
+    survey.reviewNotes = rejectionReason;
+
+    const targetGeo = this.geoObjects.find((g) => g.geoId === survey.geoId);
+    if (targetGeo) {
+      targetGeo.verificationStatus = 'REJECTED';
+      targetGeo.rejectionReason = rejectionReason;
+      targetGeo.updatedAt = now;
+    }
+
+    this.saveGeoState();
+    this.logAudit(actor, 'REJECT_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'REJECTED', `Survey ditolak: ${rejectionReason}`);
+
+    return { success: true, data: survey };
+  }
+
+  // GEOTAGGED PHOTO EVIDENCE UPLOAD (SECTION 10, 35)
+  public uploadGeoEvidence(
+    actor: FacilityActorSession,
+    evidenceData: {
+      fileData: string;
+      fileName: string;
+      fileMimeType: string;
+      fileSizeBytes: number;
+      latitude?: number;
+      longitude?: number;
+      geoId?: string;
+      fasilitasId?: string;
+      notes?: string;
+    }
+  ): { success: boolean; data?: GeoEvidence; error?: string } {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    if (!allowedMimes.includes(evidenceData.fileMimeType.toLowerCase())) {
+      return {
+        success: false,
+        error: `Format berkas tidak valid (${evidenceData.fileMimeType}). Hanya diizinkan JPEG, PNG, atau WEBP.`
+      };
+    }
+
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (evidenceData.fileSizeBytes > MAX_SIZE) {
+      return {
+        success: false,
+        error: `Ukuran foto melebihi batas maksimal 5 MB (${(evidenceData.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB).`
+      };
+    }
+
+    const evidence: GeoEvidence = {
+      evidenceId: `EVD-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      geoId: evidenceData.geoId,
+      fasilitasId: evidenceData.fasilitasId,
+      fileData: evidenceData.fileData,
+      fileName: evidenceData.fileName,
+      fileMimeType: evidenceData.fileMimeType,
+      fileSizeBytes: evidenceData.fileSizeBytes,
+      latitude: evidenceData.latitude,
+      longitude: evidenceData.longitude,
+      capturedAt: new Date().toISOString(),
+      capturedBy: actor.nama,
+      notes: evidenceData.notes
+    };
+
+    this.geoEvidence.unshift(evidence);
+    this.saveGeoState();
+
+    this.logAudit(actor, 'ADD_PHOTO', 'FASILITAS', evidence.evidenceId, 'AUTHORIZED', 'SUCCESS', undefined, evidence.fileName, 'Foto evidence survey lapangan berhasil diunggah.');
+
+    return { success: true, data: evidence };
+  }
+
+  public getGeoHistory(actor: FacilityActorSession, geoId?: string): GeoHistory[] {
+    if (!this.hasPermission(actor.role, 'VIEW_INTERNAL')) {
+      return [];
+    }
+    if (geoId) {
+      return this.geoHistory.filter((h) => h.geoId === geoId);
+    }
+    return this.geoHistory;
+  }
+
+  public getGeoSurveys(actor: FacilityActorSession): GeoSurvey[] {
+    if (!this.hasPermission(actor.role, 'VIEW_INTERNAL')) {
+      return this.geoSurveys.filter((s) => s.verificationStatus === 'VERIFIED');
+    }
+    return this.geoSurveys;
+  }
+
+  // Calculate Haversine distance in meters
+  private calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // metres
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  }
+
+  public getFacilitiesNear(actor: FacilityActorSession, lat: number, lng: number, radiusMeters: number): FasilitasLingkungan[] {
+    const list = this.getFacilities(actor);
+    return list.filter((f) => {
+      const dist = this.calculateDistanceMeters(lat, lng, f.latitude, f.longitude);
+      return dist <= radiusMeters;
+    });
+  }
+
+  public getFacilitiesByCategory(actor: FacilityActorSession, category: FacilityCategory): FasilitasLingkungan[] {
+    return this.getFacilities(actor).filter((f) => f.kategori === category);
+  }
+
+  public getFacilitiesByCondition(actor: FacilityActorSession, condition: FacilityCondition): FasilitasLingkungan[] {
+    return this.getFacilities(actor).filter((f) => f.kondisi === condition);
+  }
+
+  public getFacilitiesByPriority(actor: FacilityActorSession, priority: FacilityPriority): FasilitasLingkungan[] {
+    return this.getFacilities(actor).filter((f) => f.tingkatPrioritas === priority);
+  }
+
+  public getUnverifiedGeoObjects(actor: FacilityActorSession): GeoObject[] {
+    if (!this.hasPermission(actor.role, 'VIEW_INTERNAL')) return [];
+    return this.geoObjects.filter((g) => g.verificationStatus !== 'VERIFIED');
+  }
+
+  public getStaleFacilities(actor: FacilityActorSession): FasilitasLingkungan[] {
+    return this.getFacilities(actor).filter((f) => {
+      const stale = calculateStaleStatus(f.lastSurveyedAt);
+      return stale.status === 'STALE' || stale.status === 'AGING';
+    });
+  }
+
+  // IMPORT & EXPORT GEOBASE DATA (SECTION 42, 43)
+  public importGeoFeatures(
+    actor: FacilityActorSession,
+    geoData:
+      | {
+          type?: string;
+          features: Array<{
+            type?: string;
+            geometry: { type: string; coordinates: any };
+            properties?: Record<string, any>;
+          }>;
+        }
+      | Array<{
+          type?: string;
+          geometry: { type: string; coordinates: any };
+          properties?: Record<string, any>;
+        }>,
+    requestIdParam?: string
+  ): { success: boolean; importedCount: number; data?: { importedCount: number }; error?: string; code?: string } {
+    const requestId = requestIdParam || this.generateRequestId();
+    if (this.processedRequestIds.has(requestId)) {
+      return { success: false, importedCount: 0, error: 'Duplikat permintaan impor data geospasial.', code: 'DUPLICATE_REQUEST' };
+    }
+    this.processedRequestIds.add(requestId);
+
+    if (!this.hasPermission(actor.role, 'CREATE')) {
+      return { success: false, importedCount: 0, error: 'Akses ditolak.', code: 'FORBIDDEN' };
+    }
+
+    const featureList = Array.isArray(geoData) ? geoData : geoData?.features;
+
+    if (!featureList || !Array.isArray(featureList)) {
+      return { success: false, importedCount: 0, error: 'Format GeoJSON FeatureCollection tidak valid.', code: 'INVALID_FORMAT' };
+    }
+
+    let count = 0;
+    const now = new Date().toISOString();
+
+    featureList.forEach((feat, idx) => {
+      const geom = feat?.geometry;
+      const props = feat?.properties || {};
+
+      let lat = 0;
+      let lng = 0;
+      if (geom?.type === 'Point' && Array.isArray(geom.coordinates)) {
+        lng = geom.coordinates[0];
+        lat = geom.coordinates[1];
+      }
+
+      const geoId = `GEO-IMP-${Date.now()}-${idx}`;
+      const newGeo: GeoObject = {
+        geoId,
+        objectType: (props.objectType || 'FACILITY') as any,
+        geometryType: geom?.type === 'Point' ? 'POINT' : geom?.type === 'LineString' ? 'LINESTRING' : 'POLYGON',
+        name: props.name || props.nama || `Objek Impor #${idx + 1}`,
+        latitude: lat || undefined,
+        longitude: lng || undefined,
+        source: 'IMPORTED', // STRICT: Tagged as IMPORTED & UNVERIFIED
+        verificationStatus: 'UNVERIFIED',
+        accuracyMeters: props.accuracy || 10,
+        accuracyGrade: 'ACCEPTABLE',
+        capturedAt: now,
+        capturedBy: actor.nama,
+        notes: `Diimpor dari berkas eksternal (${props.sourceName || 'GeoJSON'})`,
+        staleStatus: 'AGING',
+        qualityScore: 3,
+        createdAt: now,
+        updatedAt: now,
+        version: 1
+      };
+
+      this.geoObjects.unshift(newGeo);
+      count++;
+    });
+
+    this.saveGeoState();
+    this.logAudit(actor, 'IMPORT_GEO', 'FASILITAS', 'GEO_IMPORT', 'AUTHORIZED', 'SUCCESS', undefined, `Jumlah: ${count}`, `Impor data geospasial berhasil (${count} objek). Status: UNVERIFIED.`);
+
+    return { success: true, importedCount: count, data: { importedCount: count } };
+  }
+
+  public exportGeoJson(actor: FacilityActorSession): any {
+    const list = this.getFacilities(actor);
+    const features = list.map((f) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [f.longitude, f.latitude]
+      },
+      properties: {
+        fasilitasId: f.fasilitasId,
+        kodeFasilitas: f.kodeFasilitas,
+        namaFasilitas: f.namaFasilitas,
+        kategori: f.kategori,
+        subkategori: f.subkategori,
+        kondisi: f.kondisi,
+        conditionScore: f.conditionScore,
+        status: f.status,
+        tingkatPrioritas: f.tingkatPrioritas,
+        source: f.coordinateSource || 'SURVEYED',
+        surveyStatus: f.surveyStatus || 'VERIFIED',
+        accuracyMeters: f.accuracyMeters || 4,
+        lastSurveyedAt: f.lastSurveyedAt,
+        lastSurveyedBy: f.lastSurveyedBy,
+        staleStatus: f.staleStatus
+      }
+    }));
+
+    return {
+      type: 'FeatureCollection',
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        exportedBy: actor.nama,
+        rtNumber: '07',
+        rwNumber: '11',
+        area: 'Perumahan GPA Ngijo, Karangploso'
+      },
+      features
+    };
+  }
+
+  // AI GEO ASSISTANT (FOUNDATION - READ/ANALYZE ONLY)
+  public getAIGeoRecommendations(actor: FacilityActorSession): {
+    staleSurveyBacklog: FasilitasLingkungan[];
+    priorityClusters: { category: string; area: string; issue: string; count: number }[];
+    inspectionRecommendations: { facility: FasilitasLingkungan; reason: string; urgency: 'TINGGI' | 'DARURAT' | 'NORMAL' }[];
+    summaryMessage: string;
+  } {
+    const list = this.getFacilities(actor);
+
+    const staleList = list.filter((f) => {
+      const stale = calculateStaleStatus(f.lastSurveyedAt);
+      return stale.status === 'STALE' || stale.status === 'AGING';
+    });
+
+    const inspectionRecs = list
+      .filter((f) => f.kondisi === 'RUSAK_BERAT' || f.kondisi === 'TIDAK_LAYAK' || f.tingkatPrioritas === 'DARURAT' || f.kondisi === 'RUSAK_SEDANG')
+      .map((f) => ({
+        facility: f,
+        reason: f.tingkatPrioritas === 'DARURAT'
+          ? 'Prioritas DARURAT membutuhkan penanganan dan inspeksi on-site segera.'
+          : f.kondisi === 'TIDAK_LAYAK'
+          ? 'Kondisi tidak layak pakai memerlukan pemeriksaan estimasi perbaikan/penggantian.'
+          : 'Kondisi rusak sedang memerlukan pengecekan lapangan berkala.',
+        urgency: (f.tingkatPrioritas === 'DARURAT' ? 'DARURAT' : f.tingkatPrioritas === 'TINGGI' ? 'TINGGI' : 'NORMAL') as any
+      }))
+      .slice(0, 5);
+
+    const damagedLights = list.filter((f) => f.kategori === 'PENERANGAN' && ['RUSAK_RINGAN', 'RUSAK_SEDANG', 'RUSAK_BERAT', 'TIDAK_LAYAK'].includes(f.kondisi)).length;
+    const damagedDrains = list.filter((f) => f.kategori === 'DRAINASE' && ['RUSAK_SEDANG', 'RUSAK_BERAT', 'TIDAK_LAYAK'].includes(f.kondisi)).length;
+
+    const clusters = [];
+    if (damagedLights > 0) {
+      clusters.push({
+        category: 'PENERANGAN',
+        area: 'Blok B & Lorong Gang RT 07',
+        issue: `${damagedLights} titik lampu memerlukan penggantian bohlam/fitting untuk mencegah titik rawan keamanan.`,
+        count: damagedLights
+      });
+    }
+    if (damagedDrains > 0) {
+      clusters.push({
+        category: 'DRAINASE',
+        area: 'Sisi Timur Blok C',
+        issue: `${damagedDrains} saluran air mengalami sedimentasi/retakan penutup, disarankan masuk agenda Kerja Bakti RT.`,
+        count: damagedDrains
+      });
+    }
+
+    const summaryMessage = `AI Geo Engine mendeteksi ${staleList.length} fasilitas memerlukan pembaruan survey berkala dan ${inspectionRecs.length} titik fasilitas prioritas tinggi membutuhkan verifikasi kondisi fisik lapangan.`;
+
+    return {
+      staleSurveyBacklog: staleList,
+      priorityClusters: clusters,
+      inspectionRecommendations: inspectionRecs,
+      summaryMessage
     };
   }
 

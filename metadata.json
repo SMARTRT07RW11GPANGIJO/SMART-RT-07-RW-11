@@ -1,6 +1,6 @@
 {
   "name": "SMART RT 07 RW 11 GPA NGIJO",
   "description": "Portal Digital & Ekosistem Pelayanan Warga RT 07 RW 11 Perum GPA Ngijo, Karangploso, Malang.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

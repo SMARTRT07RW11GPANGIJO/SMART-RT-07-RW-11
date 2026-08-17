@@ -1,5 +1,5 @@
-// SMART RT 07 RW 11 GPA NGIJO - ENVIRONMENTAL FACILITY DATABASE & GIS MAPPING v1.0
-// Main Type Definitions for Facilities, GIS Mapping, Inspections, and Maintenance
+// SMART RT 07 RW 11 GPA NGIJO - ENVIRONMENTAL FACILITY DATABASE & REAL-WORLD FIELD SURVEY GIS v2.0
+// Main Type Definitions for Facilities, Real-World GIS GeoBase, Field Surveys, Inspections, and Maintenance
 
 export type FacilityCategory =
   | 'KEAMANAN'
@@ -40,7 +40,41 @@ export type FacilityPriority =
   | 'TINGGI'
   | 'DARURAT';
 
-export type LocationVerificationStatus = 'VERIFIED' | 'UNVERIFIED';
+export type LocationVerificationStatus = 'VERIFIED' | 'UNVERIFIED' | 'PENDING' | 'REJECTED';
+
+export type GeoSource =
+  | 'SURVEYED'
+  | 'IMPORTED'
+  | 'REFERENCE'
+  | 'UNVERIFIED';
+
+export type VerificationStatus =
+  | 'UNVERIFIED'
+  | 'PENDING'
+  | 'VERIFIED'
+  | 'REJECTED';
+
+export type GPSAccuracyGrade =
+  | 'HIGH_PRECISION'    // <= 5m
+  | 'ACCEPTABLE'        // > 5m - <= 15m
+  | 'LOW_PRECISION'      // > 15m - <= 30m
+  | 'REQUIRES_REVIEW';  // > 30m
+
+export type DataStaleStatus = 'FRESH' | 'AGING' | 'STALE';
+
+export type GeoObjectType =
+  | 'BOUNDARY'
+  | 'ROAD'
+  | 'BUILDING'
+  | 'FACILITY'
+  | 'DRAINAGE'
+  | 'PARK'
+  | 'SECURITY'
+  | 'LIGHTING'
+  | 'WATER'
+  | 'OTHER';
+
+export type GeometryType = 'POINT' | 'LINESTRING' | 'POLYGON';
 
 export type FundingSource =
   | 'KAS_RT'
@@ -48,6 +82,125 @@ export type FundingSource =
   | 'DANA_DESA_PEMDA'
   | 'CSR_DONATUR'
   | 'LAINNYA';
+
+export interface GeoEvidence {
+  evidenceId: string;
+  geoId?: string;
+  fasilitasId?: string;
+  fileData: string; // Base64 data URL or remote URL
+  fileName: string;
+  fileMimeType: string;
+  fileSizeBytes: number;
+  latitude?: number;
+  longitude?: number;
+  accuracyMeters?: number;
+  capturedAt: string;
+  capturedBy: string;
+  notes?: string;
+  exifMetadata?: {
+    make?: string;
+    model?: string;
+    dateTimeOriginal?: string;
+    gpsLatitude?: number;
+    gpsLongitude?: number;
+    gpsAltitude?: number;
+  };
+}
+
+export interface GeoHistory {
+  geoHistoryId: string;
+  geoId: string;
+  oldGeometry: {
+    latitude?: number;
+    longitude?: number;
+    coordinates?: [number, number][];
+  };
+  newGeometry: {
+    latitude?: number;
+    longitude?: number;
+    coordinates?: [number, number][];
+  };
+  changedAt: string;
+  changedBy: string;
+  reason: string;
+}
+
+export interface GeoObject {
+  geoId: string;
+  objectType: GeoObjectType;
+  geometryType: GeometryType;
+  name: string;
+  latitude?: number;
+  longitude?: number;
+  coordinates?: [number, number][]; // For lines / polygons (lat, lng)
+  source: GeoSource;
+  verificationStatus: VerificationStatus;
+  accuracyMeters?: number;
+  accuracyGrade?: GPSAccuracyGrade;
+  capturedAt?: string;
+  capturedBy?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  rejectionReason?: string;
+  photoEvidenceIds?: string[];
+  notes?: string;
+  qualityScore?: number; // 1-5
+  staleStatus?: DataStaleStatus;
+  lastSurveyedAt?: string;
+  lastSurveyedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export interface RTBoundary {
+  boundaryId: string;
+  rtNumber: string; // "07"
+  rwNumber: string; // "11"
+  areaName: string; // "Perumahan GPA Ngijo RT 07 RW 11"
+  polygon: [number, number][]; // Array of [lat, lng]
+  source: GeoSource;
+  verificationStatus: VerificationStatus;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GeoSurvey {
+  surveyId: string; // SURVEY-YYYYMMDD-XXXXXX
+  requestId: string; // REQ-YYYYMMDD-XXXXXX
+  geoId?: string;
+  fasilitasId?: string;
+  namaFasilitas: string;
+  kategori: FacilityCategory;
+  subkategori: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  accuracyGrade: GPSAccuracyGrade;
+  conditionScore: number;
+  status: FacilityStatus;
+  prioritas: FacilityPriority;
+  source: 'SURVEYED';
+  verificationStatus: VerificationStatus;
+  capturedAt: string;
+  capturedBy: string;
+  capturedByName: string;
+  deviceMetadata?: {
+    userAgent?: string;
+    platform?: string;
+    altitude?: number | null;
+    heading?: number | null;
+    speed?: number | null;
+  };
+  photoEvidence?: GeoEvidence[];
+  notes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  reviewNotes?: string;
+}
 
 export interface FasilitasLingkungan {
   fasilitasId: string; // e.g. "FAS-2026-000001"
@@ -63,6 +216,15 @@ export interface FasilitasLingkungan {
   longitude: number; // -180 to 180
   akurasiLokasi: number; // in meters (e.g. 5)
   locationStatus: LocationVerificationStatus;
+  geoId?: string; // Relation to GeoObject
+  coordinateSource?: GeoSource;
+  accuracyMeters?: number;
+  accuracyGrade?: GPSAccuracyGrade;
+  surveyStatus?: VerificationStatus;
+  lastSurveyedAt?: string;
+  lastSurveyedBy?: string;
+  staleStatus?: DataStaleStatus;
+  qualityScore?: number; // 1-5 stars
   status: FacilityStatus;
   kondisi: FacilityCondition;
   conditionScore: number; // 5=BAIK, 4=CUKUP_BAIK, 3=RUSAK_RINGAN, 2=RUSAK_SEDANG, 1=RUSAK_BERAT, 0=TIDAK_LAYAK
@@ -76,6 +238,7 @@ export interface FasilitasLingkungan {
   fotoUtama?: string;
   fotoTambahan?: string[];
   jumlahFoto: number;
+  photoEvidenceList?: GeoEvidence[];
   estimasiNilaiAset?: number; // In IDR
   estimasiBiayaPerbaikan?: number; // In IDR
   sumberDana?: FundingSource | string;

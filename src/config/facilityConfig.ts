@@ -223,3 +223,262 @@ export const PRIORITY_METADATA: Record<
     isAlert: true
   }
 };
+
+// SMART RT GEOBASE v2.0 REAL-WORLD MAP PROVIDER ABSTRACTION
+export interface MapProviderConfig {
+  id: string;
+  name: string;
+  type: 'VECTOR' | 'TILE' | 'SATELLITE' | 'HYBRID';
+  tileUrl: string;
+  subdomains?: string[];
+  attribution: string;
+  maxZoom: number;
+  minZoom: number;
+}
+
+export const MAP_PROVIDERS: MapProviderConfig[] = [
+  {
+    id: 'OSM_STANDARD',
+    name: 'OpenStreetMap (Real-World Standard)',
+    type: 'TILE',
+    tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subdomains: ['a', 'b', 'c'],
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+    minZoom: 14
+  },
+  {
+    id: 'CARTO_VOYAGER',
+    name: 'CartoDB Voyager (Clean Detailed)',
+    type: 'TILE',
+    tileUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    subdomains: ['a', 'b', 'c', 'd'],
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    maxZoom: 20,
+    minZoom: 14
+  },
+  {
+    id: 'ESRI_SATELLITE',
+    name: 'Esri World Imagery (Satellite)',
+    type: 'SATELLITE',
+    tileUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    maxZoom: 19,
+    minZoom: 14
+  },
+  {
+    id: 'OPENTOPOMAP',
+    name: 'OpenTopoMap (Topografi Lingkungan)',
+    type: 'TILE',
+    tileUrl: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    subdomains: ['a', 'b', 'c'],
+    attribution: 'Map data: &copy; OpenStreetMap, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)',
+    maxZoom: 17,
+    minZoom: 14
+  }
+];
+
+// GPS ACCURACY GATING THRESHOLDS (SECTION 7)
+export const GPS_ACCURACY_THRESHOLDS = {
+  HIGH_PRECISION: 5.0,     // <= 5m
+  ACCEPTABLE: 15.0,         // > 5m - <= 15m
+  LOW_PRECISION: 30.0       // > 15m - <= 30m
+  // > 30m: REQUIRES REVIEW
+};
+
+export const getGPSAccuracyGrade = (
+  accuracyMeters: number
+): {
+  grade: 'HIGH_PRECISION' | 'ACCEPTABLE' | 'LOW_PRECISION' | 'REQUIRES_REVIEW';
+  label: string;
+  colorClass: string;
+  badgeClass: string;
+  color: string;
+  description: string;
+} => {
+  if (accuracyMeters <= GPS_ACCURACY_THRESHOLDS.HIGH_PRECISION) {
+    return {
+      grade: 'HIGH_PRECISION',
+      label: 'HIGH PRECISION (Sangat Akurat)',
+      colorClass: 'text-emerald-700',
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      color: '#10B981',
+      description: 'Presisi tinggi, optimal untuk pencatatan koordinat titik presisi.'
+    };
+  }
+  if (accuracyMeters <= GPS_ACCURACY_THRESHOLDS.ACCEPTABLE) {
+    return {
+      grade: 'ACCEPTABLE',
+      label: 'ACCEPTABLE (Cukup Akurat)',
+      colorClass: 'text-sky-700',
+      badgeClass: 'bg-sky-100 text-sky-800 border-sky-300',
+      color: '#0284C7',
+      description: 'Presisi standar perangkat seluler, layak digunakan untuk pemetaan.'
+    };
+  }
+  if (accuracyMeters <= GPS_ACCURACY_THRESHOLDS.LOW_PRECISION) {
+    return {
+      grade: 'LOW_PRECISION',
+      label: 'LOW PRECISION (Akurasi Rendah)',
+      colorClass: 'text-amber-700',
+      badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
+      color: '#F59E0B',
+      description: 'Akurasi rendah, disarankan kalibrasi GPS atau pindah ke area terbuka.'
+    };
+  }
+  return {
+    grade: 'REQUIRES_REVIEW',
+    label: 'REQUIRES REVIEW (Akurasi Lemah)',
+    colorClass: 'text-rose-700',
+    badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold animate-pulse',
+    color: '#EF4444',
+    description: 'Akurasi lemah (>20m), membutuhkan review atau pengambilan ulang.'
+  };
+};
+
+// STALE DATA THRESHOLDS (SECTION 26)
+export const STALE_DATA_CONFIG = {
+  FRESH_DAYS: 90,
+  AGING_DAYS: 180
+};
+
+export const calculateStaleStatus = (
+  lastSurveyedDateStr?: string
+): {
+  status: 'FRESH' | 'AGING' | 'STALE';
+  daysElapsed: number;
+  label: string;
+  badgeClass: string;
+} => {
+  if (!lastSurveyedDateStr) {
+    return {
+      status: 'STALE',
+      daysElapsed: 999,
+      label: 'STALE (Belum Pernah Disurvey)',
+      badgeClass: 'bg-rose-100 text-rose-800 border-rose-300'
+    };
+  }
+
+  const lastDate = new Date(lastSurveyedDateStr);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - lastDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays < STALE_DATA_CONFIG.FRESH_DAYS) {
+    return {
+      status: 'FRESH',
+      daysElapsed: diffDays,
+      label: `FRESH (${diffDays} hari lalu)`,
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    };
+  }
+  if (diffDays <= STALE_DATA_CONFIG.AGING_DAYS) {
+    return {
+      status: 'AGING',
+      daysElapsed: diffDays,
+      label: `AGING (${diffDays} hari lalu)`,
+      badgeClass: 'bg-amber-100 text-amber-800 border-amber-300'
+    };
+  }
+  return {
+    status: 'STALE',
+    daysElapsed: diffDays,
+    label: `STALE (${diffDays} hari lalu)`,
+    badgeClass: 'bg-rose-100 text-rose-800 border-rose-300'
+  };
+};
+
+// REAL-WORLD REFERENCE BOUNDARIES & ROAD NETWORKS (SOURCE: REFERENCE)
+// Explicitly tagged as REFERENCE/UNVERIFIED per Section 13-14 rules
+export const RT07_REFERENCE_BOUNDARY = {
+  boundaryId: 'BOUND-RT07-RW11-REFERENCE',
+  rtNumber: '07',
+  rwNumber: '11',
+  areaName: 'Perumahan Griya Permata Alam (GPA) Ngijo RT 07 RW 11',
+  source: 'REFERENCE' as const,
+  verificationStatus: 'UNVERIFIED' as const,
+  notes: 'Batas estimasi referensi spasial lingkungan. Wajib diverifikasi melalui survey GPS batas wilayah.',
+  polygon: [
+    [-7.9015, 112.5968],
+    [-7.9014, 112.5998],
+    [-7.9022, 112.6002],
+    [-7.9038, 112.5997],
+    [-7.9039, 112.5972],
+    [-7.9028, 112.5966]
+  ] as [number, number][],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z'
+};
+
+export const RT07_REFERENCE_ROADS = [
+  {
+    roadId: 'ROAD-001',
+    name: 'Jl. Permata Raya (Akses Utama)',
+    type: 'JALAN_UTAMA',
+    source: 'REFERENCE' as const,
+    verificationStatus: 'VERIFIED' as const,
+    points: [
+      [-7.9016, 112.5970],
+      [-7.9020, 112.5980],
+      [-7.9025, 112.5990],
+      [-7.9030, 112.6000]
+    ] as [number, number][]
+  },
+  {
+    roadId: 'ROAD-002',
+    name: 'Gang 1 Blok A (Paving)',
+    type: 'GANG',
+    source: 'REFERENCE' as const,
+    verificationStatus: 'VERIFIED' as const,
+    points: [
+      [-7.9018, 112.5975],
+      [-7.9028, 112.5973]
+    ] as [number, number][]
+  },
+  {
+    roadId: 'ROAD-003',
+    name: 'Gang 2 Blok B (Paving)',
+    type: 'GANG',
+    source: 'REFERENCE' as const,
+    verificationStatus: 'VERIFIED' as const,
+    points: [
+      [-7.9022, 112.5983],
+      [-7.9032, 112.5981]
+    ] as [number, number][]
+  },
+  {
+    roadId: 'ROAD-004',
+    name: 'Gang 3 Blok C (Paving)',
+    type: 'GANG',
+    source: 'REFERENCE' as const,
+    verificationStatus: 'VERIFIED' as const,
+    points: [
+      [-7.9026, 112.5991],
+      [-7.9036, 112.5989]
+    ] as [number, number][]
+  }
+];
+
+export const RT07_REFERENCE_DRAINAGE = [
+  {
+    drainId: 'DRAIN-001',
+    name: 'Drainase Primer Timur Blok C ke Sungai',
+    source: 'REFERENCE' as const,
+    verificationStatus: 'VERIFIED' as const,
+    points: [
+      [-7.9015, 112.5998],
+      [-7.9025, 112.5999],
+      [-7.9038, 112.5997]
+    ] as [number, number][]
+  },
+  {
+    drainId: 'DRAIN-002',
+    name: 'Saluran Tersier Barat Blok A',
+    source: 'REFERENCE' as const,
+    verificationStatus: 'UNVERIFIED' as const,
+    points: [
+      [-7.9016, 112.5970],
+      [-7.9038, 112.5972]
+    ] as [number, number][]
+  }
+];
