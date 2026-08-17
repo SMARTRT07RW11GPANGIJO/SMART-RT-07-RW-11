@@ -169,11 +169,17 @@ export class OwnerDataIsolationService {
       resourceType: 'PROFILE',
       data: {
         idWarga: warga.id_warga,
+        wargaId: warga.wargaId || warga.id_warga,
         namaLengkap: warga.nama_lengkap,
         nikMasked: `${warga.nik.slice(0, 6)}******${warga.nik.slice(-4)}`,
         noKkMasked: kk ? `${kk.no_kk.slice(0, 6)}******${kk.no_kk.slice(-4)}` : '******',
+        keluargaId: warga.keluargaId || kk?.keluargaId || kk?.id_kk,
         blok: warga.blok,
         statusWarga: warga.status_warga,
+        statusWargaEnum: warga.statusWarga || (warga.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : warga.status_warga === 'Kos' ? 'KOS' : 'TETAP'),
+        hubunganKeluarga: warga.hubunganKeluarga || 'KEPALA_KELUARGA',
+        namaPemilikRumah: warga.namaPemilikRumah,
+        teleponPemilikRumah: warga.teleponPemilikRumah,
         noHp: warga.no_hp,
         email: warga.email
       }

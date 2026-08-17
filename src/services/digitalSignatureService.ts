@@ -30,7 +30,7 @@ import { DOCUMENT_BRANDING, getChairmanName, getChairmanTitle, getLetterPlace } 
 const STORAGE_KEY_SIGNATURES = 'SMART_RT_DIGITAL_SIGNATURES_STORE_V2';
 const STORAGE_KEY_SIGNATURE_AUDIT = 'SMART_RT_SIGNATURE_AUDIT_LOGS_V2';
 
-// Pure JavaScript SHA-256 Implementation (guarantees zero-dependency, 100% reliable deterministic execution)
+// Pure JavaScript / Node SHA-256 Implementation (guarantees zero-dependency, 100% reliable deterministic execution)
 function sha256Pure(ascii: string): string {
   function rightRotate(value: number, amount: number) {
     return (value >>> amount) | (value << (32 - amount));
@@ -61,11 +61,6 @@ function sha256Pure(ascii: string): string {
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
   ];
 
-  const compositeMessage = ascii + '\x80';
-  while (compositeMessage[lengthProperty] % 64 - 56) {
-    // Pad
-  }
-
   for (i = 0; i < ascii[lengthProperty]; i++) {
     j = ascii.charCodeAt(i);
     words[i >> 2] |= j << ((3 - i) % 4) * 8;
@@ -79,7 +74,6 @@ function sha256Pure(ascii: string): string {
     hash = hash.slice(0, 8);
 
     for (j = 0; j < 64; j++) {
-      const i2 = j + i;
       const w15 = w[j - 15], w2 = w[j - 2];
 
       const a = hash[0], e = hash[4];
@@ -88,9 +82,9 @@ function sha256Pure(ascii: string): string {
         + ((e & hash[5]) ^ ((~e) & hash[6]))
         + k[j]
         + (w[j] = (j < 16) ? (w[j] || 0) : (
-            w[j - 16]
+            (w[j - 16] || 0)
             + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
-            + w[j - 7]
+            + (w[j - 7] || 0)
             + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
           ) | 0
         );
@@ -106,7 +100,7 @@ function sha256Pure(ascii: string): string {
   }
 
   for (i = 0; i < 8; i++) {
-    for (j = 3; j + 1; j--) {
+    for (j = 3; j >= 0; j--) {
       const b = (hash[i] >> (j * 8)) & 255;
       result += ((b < 16) ? '0' : '') + b.toString(16);
     }

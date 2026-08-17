@@ -1,6 +1,7 @@
 import {
   Warga,
   Keluarga,
+  PemilikRumah,
   SuratPengantar,
   TransaksiKeuangan,
   TagihanIuran,
@@ -11,11 +12,33 @@ import {
   AuditLog
 } from '../types/rt';
 
+export const INITIAL_PEMILIK_RUMAH: PemilikRumah[] = [
+  {
+    pemilikRumahId: 'OWN-001',
+    namaPemilik: 'H. Sudarsono',
+    nomorTelepon: '081299887766',
+    blokRumah: 'Blok C-12',
+    statusKepemilikan: 'KONTRAKAN',
+    createdAt: '2020-01-10T08:00:00.000Z'
+  },
+  {
+    pemilikRumahId: 'OWN-002',
+    namaPemilik: 'Hj. Mardiah',
+    nomorTelepon: '081322334455',
+    blokRumah: 'Blok C-14',
+    statusKepemilikan: 'KOS',
+    createdAt: '2021-03-15T09:30:00.000Z'
+  }
+];
+
 export const INITIAL_WARGA: Warga[] = [
   {
     id_warga: 'WRG-001',
+    wargaId: 'WRG-001',
     nik: '3507121508820001',
     no_kk: '3507120101150001',
+    nomorKK: '3507120101150001',
+    keluargaId: 'KK-001',
     nama_lengkap: 'Bambang Sugianto, S.T.',
     tempat_lahir: 'Malang',
     tanggal_lahir: '1982-08-15',
@@ -31,13 +54,18 @@ export const INITIAL_WARGA: Warga[] = [
     rt: '07',
     rw: '11',
     status_warga: 'Tetap',
+    statusWarga: 'TETAP',
+    hubunganKeluarga: 'KEPALA_KELUARGA',
     tanggal_masuk: '2015-03-10',
     keterangan: 'Ketua RT 07'
   },
   {
     id_warga: 'WRG-002',
+    wargaId: 'WRG-002',
     nik: '3507125204850002',
     no_kk: '3507120101150001',
+    nomorKK: '3507120101150001',
+    keluargaId: 'KK-001',
     nama_lengkap: 'Siti Rahmawati, S.Pd.',
     tempat_lahir: 'Surabaya',
     tanggal_lahir: '1985-04-12',
@@ -53,12 +81,17 @@ export const INITIAL_WARGA: Warga[] = [
     rt: '07',
     rw: '11',
     status_warga: 'Tetap',
+    statusWarga: 'TETAP',
+    hubunganKeluarga: 'ISTRI',
     tanggal_masuk: '2015-03-10'
   },
   {
     id_warga: 'WRG-003',
+    wargaId: 'WRG-003',
     nik: '3507121011900003',
     no_kk: '3507120102180002',
+    nomorKK: '3507120102180002',
+    keluargaId: 'KK-002',
     nama_lengkap: 'Dr. Agus Hermawan',
     tempat_lahir: 'Kediri',
     tanggal_lahir: '1990-11-10',
@@ -74,13 +107,18 @@ export const INITIAL_WARGA: Warga[] = [
     rt: '07',
     rw: '11',
     status_warga: 'Tetap',
+    statusWarga: 'TETAP',
+    hubunganKeluarga: 'KEPALA_KELUARGA',
     tanggal_masuk: '2018-06-01',
     keterangan: 'Seksi Kesehatan & Sosial'
   },
   {
     id_warga: 'WRG-004',
+    wargaId: 'WRG-004',
     nik: '3507122005930004',
     no_kk: '3507120103200003',
+    nomorKK: '3507120103200003',
+    keluargaId: 'KK-003',
     nama_lengkap: 'Hendrik Prasetyo',
     tempat_lahir: 'Blitar',
     tanggal_lahir: '1993-05-20',
@@ -96,12 +134,19 @@ export const INITIAL_WARGA: Warga[] = [
     rt: '07',
     rw: '11',
     status_warga: 'Kontrak',
+    statusWarga: 'KONTRAK_SEWA',
+    hubunganKeluarga: 'PENYEWA',
+    namaPemilikRumah: 'H. Sudarsono',
+    teleponPemilikRumah: '081299887766',
     tanggal_masuk: '2020-01-15'
   },
   {
     id_warga: 'WRG-005',
+    wargaId: 'WRG-005',
     nik: '3507120809880005',
     no_kk: '3507120104190004',
+    nomorKK: '3507120104190004',
+    keluargaId: 'KK-004',
     nama_lengkap: 'Eko Nurcahyo',
     tempat_lahir: 'Malang',
     tanggal_lahir: '1988-09-08',
@@ -117,6 +162,8 @@ export const INITIAL_WARGA: Warga[] = [
     rt: '07',
     rw: '11',
     status_warga: 'Tetap',
+    statusWarga: 'TETAP',
+    hubunganKeluarga: 'KEPALA_KELUARGA',
     tanggal_masuk: '2017-09-10',
     keterangan: 'Sekretaris RT 07'
   }
@@ -125,47 +172,63 @@ export const INITIAL_WARGA: Warga[] = [
 export const INITIAL_KELUARGA: Keluarga[] = [
   {
     id_kk: 'KK-001',
+    keluargaId: 'KK-001',
     no_kk: '3507120101150001',
+    nomorKK: '3507120101150001',
     nama_kepala_keluarga: 'Bambang Sugianto, S.T.',
+    kepalaKeluargaWargaId: 'WRG-001',
     alamat: 'Perum GPA Ngijo Blok C-07',
     blok: 'Blok C-07',
     jumlah_anggota: 4,
     status_rumah: 'Milik Sendiri',
+    statusKeluarga: 'AKTIF',
     no_hp: '081234567890',
     keterangan: 'Aktif'
   },
   {
     id_kk: 'KK-002',
+    keluargaId: 'KK-002',
     no_kk: '3507120102180002',
+    nomorKK: '3507120102180002',
     nama_kepala_keluarga: 'Dr. Agus Hermawan',
+    kepalaKeluargaWargaId: 'WRG-003',
     alamat: 'Perum GPA Ngijo Blok C-08',
     blok: 'Blok C-08',
     jumlah_anggota: 3,
     status_rumah: 'Milik Sendiri',
+    statusKeluarga: 'AKTIF',
     no_hp: '081345678912',
     keterangan: 'Aktif'
   },
   {
     id_kk: 'KK-003',
+    keluargaId: 'KK-003',
     no_kk: '3507120103200003',
+    nomorKK: '3507120103200003',
     nama_kepala_keluarga: 'Hendrik Prasetyo',
+    kepalaKeluargaWargaId: 'WRG-004',
     alamat: 'Perum GPA Ngijo Blok C-12',
     blok: 'Blok C-12',
     jumlah_anggota: 2,
     status_rumah: 'Sewa / Kontrak',
+    statusKeluarga: 'AKTIF',
     no_hp: '081567890123',
     keterangan: 'Kontrak 2 Tahun'
   },
   {
     id_kk: 'KK-004',
+    keluargaId: 'KK-004',
     no_kk: '3507120104190004',
+    nomorKK: '3507120104190004',
     nama_kepala_keluarga: 'Eko Nurcahyo',
+    kepalaKeluargaWargaId: 'WRG-005',
     alamat: 'Perum GPA Ngijo Blok C-05',
     blok: 'Blok C-05',
     jumlah_anggota: 4,
     status_rumah: 'Milik Sendiri',
+    statusKeluarga: 'AKTIF',
     no_hp: '081789012345',
-    keterangan: 'Sekretaris RT'
+    keterangan: 'Aktif'
   }
 ];
 

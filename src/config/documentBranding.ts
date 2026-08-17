@@ -32,6 +32,37 @@ export const DOCUMENT_BRANDING = {
 export type DocumentBranding = typeof DOCUMENT_BRANDING;
 
 /**
+ * Permanent Locked Letterhead Contract Baseline v1.0
+ */
+export const OFFICIAL_LETTERHEAD = {
+  logoWidth: 82,
+  logoHeight: 98,
+  headerHeight: 100,
+  logoPath: "/assets/logo-kabupaten-malang.png",
+  letterPlace: "Karangploso",
+  chairmanName: "Eko Sucahyono",
+  chairmanTitle: "Ketua RT 07 RW 11"
+} as const;
+
+export function assertOfficialLetterheadIntegrity(): void {
+  if (OFFICIAL_LETTERHEAD.logoWidth !== 82) {
+    throw new Error("OFFICIAL_LOGO_WIDTH_CHANGED");
+  }
+  if (OFFICIAL_LETTERHEAD.logoHeight !== 98) {
+    throw new Error("OFFICIAL_LOGO_HEIGHT_CHANGED");
+  }
+  if (OFFICIAL_LETTERHEAD.letterPlace !== "Karangploso") {
+    throw new Error("OFFICIAL_LETTER_PLACE_CHANGED");
+  }
+  if (OFFICIAL_LETTERHEAD.chairmanName !== "Eko Sucahyono") {
+    throw new Error("OFFICIAL_CHAIRMAN_CHANGED");
+  }
+  if (OFFICIAL_LETTERHEAD.chairmanTitle !== "Ketua RT 07 RW 11") {
+    throw new Error("OFFICIAL_CHAIRMAN_TITLE_CHANGED");
+  }
+}
+
+/**
  * Helper: Ambil Tempat Surat Resmi
  * WAJIB return: "Karangploso"
  */

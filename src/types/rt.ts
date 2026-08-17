@@ -41,10 +41,27 @@ export type KategoriPengaduan = 'Keamanan' | 'Kebersihan' | 'Lampu jalan' | 'Jal
 
 export type KategoriPengumuman = 'Pengumuman' | 'Kegiatan' | 'Keamanan' | 'Lingkungan' | 'Sosial' | 'Administrasi';
 
+export type StatusWarga = 'TETAP' | 'KONTRAK_SEWA' | 'KOS';
+
+export type HubunganKeluarga = 'KEPALA_KELUARGA' | 'ISTRI' | 'ANAK' | 'ORANG_TUA' | 'FAMILI_LAIN' | 'PENYEWA' | 'PENGHUNI_KOS';
+
+export interface PemilikRumah {
+  pemilikRumahId: string;
+  namaPemilik: string;
+  nomorTelepon: string;
+  blokRumah: string;
+  statusKepemilikan?: 'MILIK_SENDIRI' | 'KONTRAKAN' | 'KOS';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Warga {
   id_warga: string;
-  nik: string; // Masked for non-admins
+  wargaId?: string; // v1.1 relational identifier
+  nik: string; // 16 digits, masked for non-admins
   no_kk: string;
+  nomorKK?: string;
+  keluargaId?: string; // Foreign Key to Keluarga entity
   nama_lengkap: string;
   tempat_lahir: string;
   tanggal_lahir: string;
@@ -59,21 +76,33 @@ export interface Warga {
   blok: string;
   rt: string;
   rw: string;
-  status_warga: 'Tetap' | 'Kontrak' | 'Kos';
+  status_warga: 'Tetap' | 'Kontrak' | 'Kos'; // Backward compatibility
+  statusWarga?: StatusWarga; // v1.1 Enum standard
+  hubunganKeluarga?: HubunganKeluarga;
+  namaPemilikRumah?: string; // Conditional: required if KONTRAK_SEWA or KOS
+  teleponPemilikRumah?: string; // Conditional: required if KONTRAK_SEWA or KOS
   tanggal_masuk: string;
   keterangan?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Keluarga {
   id_kk: string;
+  keluargaId?: string; // v1.1 UUID / relational ID
   no_kk: string;
+  nomorKK?: string;
   nama_kepala_keluarga: string;
+  kepalaKeluargaWargaId?: string;
   alamat: string;
   blok: string;
   jumlah_anggota: number;
   status_rumah: 'Milik Sendiri' | 'Sewa / Kontrak' | 'Rumah Dinas';
+  statusKeluarga?: 'AKTIF' | 'PINDAH' | 'NONAKTIF';
   no_hp: string;
   keterangan?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SuratPengantar {

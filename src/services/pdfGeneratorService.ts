@@ -1,6 +1,9 @@
 import QRCode from 'qrcode';
 import { DigitalDocument } from '../types/rt';
-import { DOCUMENT_BRANDING, getLetterPlace, assertDocumentOfficialIntegrity } from '../config/documentBranding';
+import { DOCUMENT_BRANDING, OFFICIAL_LETTERHEAD, getLetterPlace, assertDocumentOfficialIntegrity, assertOfficialLetterheadIntegrity } from '../config/documentBranding';
+
+const OFFICIAL_LOGO_WIDTH = 82;
+const OFFICIAL_LOGO_HEIGHT = 98;
 
 // Generate QR Code as Data URL
 export const generateQRCodeDataUrl = async (text: string): Promise<string> => {
@@ -21,7 +24,8 @@ export const generateQRCodeDataUrl = async (text: string): Promise<string> => {
 
 // Generate HTML Content for A4 Document Print / PDF Export
 export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> => {
-  // Enforce validation on place and signer
+  // Enforce validation on letterhead, place and signer
+  assertOfficialLetterheadIntegrity();
   assertDocumentOfficialIntegrity(
     DOCUMENT_BRANDING.letterPlace,
     doc.namaKetua || DOCUMENT_BRANDING.chairmanName,
@@ -77,64 +81,80 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
         margin: 0;
         padding: 0;
       }
-      .kop-header {
+      .official-letterhead {
+        width: 100%;
+        min-height: 100px;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+      }
+      .official-logo-container {
+        width: ${OFFICIAL_LOGO_WIDTH}px;
+        height: ${OFFICIAL_LOGO_HEIGHT}px;
+        min-width: ${OFFICIAL_LOGO_WIDTH}px;
+        flex: 0 0 ${OFFICIAL_LOGO_WIDTH}px;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 20px;
-        border-bottom: 3px double #123B5D;
-        padding-bottom: 12px;
-        margin-bottom: 22px;
+        box-sizing: border-box;
       }
-      .kop-logo {
-        width: 85px;
-        height: 102px;
-        object-fit: contain;
-        flex-shrink: 0;
+      .official-logo {
+        width: ${OFFICIAL_LOGO_WIDTH}px !important;
+        height: ${OFFICIAL_LOGO_HEIGHT}px !important;
+        object-fit: contain !important;
+        object-position: center !important;
+        display: block;
+        flex: 0 0 ${OFFICIAL_LOGO_WIDTH}px;
       }
-      .kop-text-block {
+      .official-text-block {
+        min-height: 98px;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         text-align: center;
-        flex: 1;
+        box-sizing: border-box;
       }
-      .kop-title {
-        font-size: 16pt;
+      .official-title {
+        font-size: 15pt;
         font-weight: bold;
-        color: #123B5D;
+        color: #1E3A8A;
         text-transform: uppercase;
         margin: 0;
         letter-spacing: 0.5px;
-        line-height: 1.25;
+        line-height: 1.2;
       }
-      .kop-subtitle {
-        font-size: 13.5pt;
+      .official-subtitle {
+        font-size: 13pt;
         font-weight: bold;
-        color: #2E7D52;
-        margin: 3px 0 2px 0;
+        color: #166534;
+        margin: 2px 0 0 0;
         text-transform: uppercase;
         line-height: 1.2;
       }
-      .kop-district {
-        font-size: 11pt;
+      .official-district {
+        font-size: 10.5pt;
         font-weight: bold;
         color: #111827;
         text-transform: uppercase;
-        margin: 2px 0;
+        margin: 2px 0 0 0;
         line-height: 1.2;
       }
-      .kop-address {
-        font-size: 9.5pt;
+      .official-address {
+        font-size: 9pt;
         color: #333333;
         margin: 2px 0 0 0;
         font-style: italic;
         line-height: 1.2;
       }
-      .kop-tagline {
-        font-size: 8.5pt;
-        color: #D4A72C;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin-top: 2px;
-        letter-spacing: 0.5px;
+      .official-header-line {
+        width: 100%;
+        height: 4px;
+        border-top: 2px solid #1E3A8A;
+        border-bottom: 2px solid #1E3A8A;
+        box-sizing: border-box;
+        margin-top: 6px;
+        margin-bottom: 18px;
       }
       .doc-title {
         text-align: center;
@@ -256,17 +276,18 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
   <body>
     ${doc.status === 'REVOKED' ? '<div class="watermark-status">DOKUMEN DICABUT</div>' : ''}
     
-    <div class="kop-header">
-      <img src="${logoDataUrl}" alt="${DOCUMENT_BRANDING.logoAlt}" class="kop-logo" />
-      <div class="kop-text-block">
-        <div class="kop-title">${DOCUMENT_BRANDING.organizationName}</div>
-        <div class="kop-subtitle">${DOCUMENT_BRANDING.housingName}</div>
-        <div class="kop-district">${DOCUMENT_BRANDING.district}</div>
-        <div class="kop-district">${DOCUMENT_BRANDING.regency}</div>
-        <div class="kop-district">${DOCUMENT_BRANDING.province}</div>
-        <div class="kop-address">${DOCUMENT_BRANDING.fullAddress}</div>
+    <div class="official-letterhead">
+      <div class="official-logo-container">
+        <img src="${logoDataUrl}" alt="${DOCUMENT_BRANDING.logoAlt}" class="official-logo" width="82" height="98" />
+      </div>
+      <div class="official-text-block">
+        <div class="official-title">${DOCUMENT_BRANDING.organizationName}</div>
+        <div class="official-subtitle">${DOCUMENT_BRANDING.housingName}</div>
+        <div class="official-district">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
+        <div class="official-address">${DOCUMENT_BRANDING.fullAddress}</div>
       </div>
     </div>
+    <div class="official-header-line"></div>
 
     <div class="doc-title">
       <h2>${doc.jenisSurat.toUpperCase()}</h2>

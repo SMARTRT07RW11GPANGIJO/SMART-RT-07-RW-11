@@ -215,16 +215,19 @@ export class OmplonganPdfService {
         </style>
       </head>
       <body>
-        <div class="header-box" style="display: flex; align-items: center; justify-content: center; gap: 16px; border-bottom: 3px double #0f172a; padding-bottom: 12px; margin-bottom: 20px;">
-          <img src="${DOCUMENT_BRANDING.logoKabupaten}" alt="${DOCUMENT_BRANDING.logoAlt}" style="width: 70px; height: 84px; object-fit: contain; flex-shrink: 0;" />
-          <div style="text-align: center; flex: 1;">
+        <div class="official-letterhead" style="display: flex; align-items: center; justify-content: center; gap: 20px; box-sizing: border-box; width: 100%; min-height: 100px;">
+          <div style="width: 82px; height: 98px; min-width: 82px; flex: 0 0 82px; display: flex; align-items: center; justify-content: center;">
+            <img src="${DOCUMENT_BRANDING.logoKabupaten}" alt="${DOCUMENT_BRANDING.logoAlt}" style="width: 82px; height: 98px; object-fit: contain; flex-shrink: 0;" />
+          </div>
+          <div style="text-align: center; flex: 1 1 auto; min-height: 98px; display: flex; flex-direction: column; justify-content: center;">
             <h1 class="header-title">${DOCUMENT_BRANDING.organizationName}</h1>
             <div class="header-subtitle">${DOCUMENT_BRANDING.housingName}</div>
-            <div class="header-address" style="font-weight: 600;">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency} • ${DOCUMENT_BRANDING.province}</div>
-            <div class="header-address">${DOCUMENT_BRANDING.fullAddress}</div>
-            <div class="doc-badge">🇮🇩 ${payload.kegiatan.namaKegiatan.toUpperCase()} (TAHUN ${payload.kegiatan.tahun})</div>
+            <div class="header-address" style="font-weight: 700; color: #111827;">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
+            <div class="header-address" style="font-style: italic; color: #333333;">${DOCUMENT_BRANDING.fullAddress}</div>
+            <div class="doc-badge" style="margin-top: 4px;">🇮🇩 ${payload.kegiatan.namaKegiatan.toUpperCase()} (TAHUN ${payload.kegiatan.tahun})</div>
           </div>
         </div>
+        <div style="width: 100%; height: 4px; border-top: 2px solid #1E3A8A; border-bottom: 2px solid #1E3A8A; box-sizing: border-box; margin-top: 6px; margin-bottom: 18px;"></div>
 
         ${contentBody}
 

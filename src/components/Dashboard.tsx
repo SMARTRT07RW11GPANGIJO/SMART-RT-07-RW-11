@@ -854,8 +854,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
                 <div>
-                  <h3 className="font-bold text-lg text-[#123B5D]">Database Kependudukan Warga RT 07</h3>
-                  <p className="text-xs text-slate-500">Perum GPA Ngijo • NIK disamarkan untuk non-admin.</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-lg text-[#123B5D]">Database Kependudukan Warga RT 07</h3>
+                    <span className="bg-[#2E7D52] text-white text-[9px] font-bold px-2 py-0.5 rounded-full">v1.1 Relasional</span>
+                  </div>
+                  <p className="text-xs text-slate-500">Perum GPA Ngijo • NIK disamarkan untuk non-admin • Terkoneksi ke Kartu Keluarga & Data Pemilik Rumah.</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -897,7 +900,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari berdasarkan nama, NIK, blok rumah, atau pekerjaan..."
+                  placeholder="Cari berdasarkan nama, NIK, No. KK, blok rumah, nama pemilik, atau pekerjaan..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full text-xs pl-9 pr-4 py-2.5 rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
@@ -910,12 +913,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <thead className="bg-[#123B5D] text-white font-bold uppercase text-[10px]">
                     <tr>
                       <th className="p-3">ID Warga</th>
-                      <th className="p-3">Nama Lengkap</th>
-                      <th className="p-3">NIK</th>
-                      <th className="p-3">Blok</th>
-                      <th className="p-3">Pekerjaan</th>
-                      <th className="p-3">No. HP</th>
-                      <th className="p-3">Status</th>
+                      <th className="p-3">Nama Lengkap & Hubungan</th>
+                      <th className="p-3">NIK & No. KK</th>
+                      <th className="p-3">Blok Rumah</th>
+                      <th className="p-3">Kontak & Pekerjaan</th>
+                      <th className="p-3">Status Domisili</th>
+                      <th className="p-3">Data Pemilik Rumah</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -923,25 +926,56 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       .filter((w) =>
                         w.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         w.blok.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        w.nik.includes(searchTerm)
+                        w.nik.includes(searchTerm) ||
+                        w.no_kk.includes(searchTerm) ||
+                        (w.namaPemilikRumah && w.namaPemilikRumah.toLowerCase().includes(searchTerm.toLowerCase()))
                       )
-                      .map((w) => (
-                        <tr key={w.id_warga} className="hover:bg-slate-50 transition-colors">
-                          <td className="p-3 font-mono text-slate-500 font-bold">{w.id_warga}</td>
-                          <td className="p-3 font-bold text-slate-800">{w.nama_lengkap}</td>
-                          <td className="p-3 font-mono font-semibold text-slate-600">{maskNik(w.nik)}</td>
-                          <td className="p-3 font-semibold text-[#123B5D]">{w.blok}</td>
-                          <td className="p-3 text-slate-600">{w.pekerjaan}</td>
-                          <td className="p-3 text-slate-600">{w.no_hp}</td>
-                          <td className="p-3">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              w.status_warga === 'Tetap' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
-                            }`}>
-                              {w.status_warga}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                      .map((w) => {
+                        const statusBadge = w.statusWarga || (w.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : w.status_warga === 'Kos' ? 'KOS' : 'TETAP');
+                        return (
+                          <tr key={w.id_warga} className="hover:bg-slate-50 transition-colors">
+                            <td className="p-3 font-mono text-slate-500 font-bold">{w.id_warga}</td>
+                            <td className="p-3">
+                              <span className="font-bold text-slate-800 block">{w.nama_lengkap}</span>
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                {w.hubunganKeluarga?.replace(/_/g, ' ') || 'Anggota Keluarga'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className="font-mono font-semibold text-slate-700 block">NIK: {maskNik(w.nik)}</span>
+                              <span className="font-mono text-[10px] text-slate-500 block">KK: {maskNik(w.no_kk)}</span>
+                            </td>
+                            <td className="p-3 font-semibold text-[#123B5D]">{w.blok}</td>
+                            <td className="p-3">
+                              <span className="text-slate-800 font-medium block">{w.no_hp || '-'}</span>
+                              <span className="text-[10px] text-slate-500 block">{w.pekerjaan}</span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                statusBadge === 'TETAP'
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : statusBadge === 'KONTRAK_SEWA'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  : 'bg-purple-100 text-purple-800 border border-purple-200'
+                              }`}>
+                                {statusBadge === 'TETAP' ? 'Warga Tetap' : statusBadge === 'KONTRAK_SEWA' ? 'Kontrak/Sewa' : 'Penghuni Kos'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              {statusBadge === 'TETAP' ? (
+                                <span className="text-slate-400 text-[10px] italic">Pemilik Langsung</span>
+                              ) : w.namaPemilikRumah ? (
+                                <div className="text-[10px]">
+                                  <span className="font-bold text-slate-800 block">{w.namaPemilikRumah}</span>
+                                  <span className="font-mono text-slate-500 block">{w.teleponPemilikRumah}</span>
+                                </div>
+                              ) : (
+                                <span className="text-amber-600 text-[10px] font-bold">Belum Tercatat</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -951,10 +985,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* SubTab 3: DATA KELUARGA */}
           {activeSubTab === 'keluarga' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
                 <div>
-                  <h3 className="font-bold text-lg text-[#123B5D]">Direktori Kepala Keluarga (KK)</h3>
-                  <p className="text-xs text-slate-500">Master Data Rumah Tangga Perum GPA Ngijo RT 07</p>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-lg text-[#123B5D]">Direktori Kepala Keluarga (KK)</h3>
+                    <span className="bg-[#123B5D] text-white text-[9px] font-bold px-2 py-0.5 rounded-full">Basis Iuran Lingkungan</span>
+                  </div>
+                  <p className="text-xs text-slate-500">Master Data Rumah Tangga Perum GPA Ngijo RT 07 • Terhubung dengan Daftar Anggota Keluarga.</p>
                 </div>
                 <button
                   onClick={() => setKkModalOpen(true)}
@@ -965,22 +1002,65 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {keluargaList.map((k) => (
-                  <div key={k.id_kk} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                      <h4 className="font-bold text-sm text-[#123B5D]">{k.nama_kepala_keluarga}</h4>
-                      <span className="bg-[#123B5D] text-white text-[10px] font-bold px-3 py-1 rounded-full">
-                        {k.blok}
-                      </span>
+                {keluargaList.map((k) => {
+                  const members = wargaList.filter(
+                    (w) => w.keluargaId === (k.keluargaId || k.id_kk) || w.no_kk === k.no_kk || w.nomorKK === k.no_kk
+                  );
+                  return (
+                    <div key={k.id_kk} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm hover:border-[#123B5D]/30 transition-all">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                        <div>
+                          <h4 className="font-bold text-sm text-[#123B5D]">{k.nama_kepala_keluarga}</h4>
+                          <span className="text-[10px] text-slate-500 font-mono">KK ID: {k.id_kk}</span>
+                        </div>
+                        <span className="bg-[#123B5D] text-white text-[10px] font-bold px-3 py-1 rounded-full">
+                          {k.blok}
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-slate-600 space-y-1.5">
+                        <div className="flex justify-between">
+                          <span><b>Nomor KK:</b></span>
+                          <span className="font-mono font-bold text-slate-800">{maskNik(k.no_kk)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span><b>Status Kepemilikan:</b></span>
+                          <span className="text-[#2E7D52] font-semibold">{k.status_rumah}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span><b>Kontak WhatsApp:</b></span>
+                          <span className="font-mono text-slate-800">{k.no_hp || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span><b>Anggota Terdaftar:</b></span>
+                          <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200 text-[10px]">
+                            {members.length > 0 ? `${members.length} Jiwa Terhubung` : `${k.jumlah_anggota} Orang`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Member List Preview */}
+                      {members.length > 0 && (
+                        <div className="pt-2 border-t border-slate-200">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                            Anggota Keluarga Terdaftar di Portal:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {members.map((m) => (
+                              <span
+                                key={m.id_warga}
+                                className="bg-white text-slate-700 border border-slate-300 text-[10px] px-2 py-0.5 rounded-lg font-medium flex items-center gap-1"
+                              >
+                                <span>{m.nama_lengkap.split(',')[0]}</span>
+                                <span className="text-[8px] text-slate-400 font-mono">({m.hubunganKeluarga?.slice(0, 4) || 'WRG'})</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-slate-600 space-y-1">
-                      <p><b>No. KK:</b> <span className="font-mono font-bold text-slate-800">{k.no_kk}</span></p>
-                      <p><b>Jumlah Anggota:</b> {k.jumlah_anggota} Orang</p>
-                      <p><b>Kepemilikan Rumah:</b> <span className="text-[#2E7D52] font-semibold">{k.status_rumah}</span></p>
-                      <p><b>Kontak No HP:</b> {k.no_hp}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1497,6 +1577,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         isOpen={wargaModalOpen}
         onClose={() => setWargaModalOpen(false)}
         onAddWarga={handleAddWargaSubmit}
+        keluargaList={keluargaList}
       />
 
       <KeluargaFormModal
