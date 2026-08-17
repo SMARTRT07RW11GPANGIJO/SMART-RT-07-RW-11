@@ -43,6 +43,7 @@ import { AdminControlCenterDashboard } from './components/AdminControlCenterDash
 import { AdminSystemDocumentationDashboard } from './components/AdminSystemDocumentationDashboard';
 import { AdminTrainingDashboard } from './components/AdminTrainingDashboard';
 import { AdminLaunchDashboard } from './components/AdminLaunchDashboard';
+import { FacilityDashboard } from './components/facility/FacilityDashboard';
 import { RitaAssistantWidget } from './components/RitaAssistantWidget';
 import { AIAssistantPage } from './pages/AIAssistant';
 
@@ -312,6 +313,17 @@ export default function App() {
 
         {currentTab === 'ai-chat' && (
           <AIAssistantPage currentRole={currentRole} userName="Warga RT 07" addToast={addToast} />
+        )}
+
+        {(currentTab === 'fasilitas' || currentTab === 'gis' || currentTab === 'facility') && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <FacilityDashboard
+              currentRole={currentRole}
+              currentUserId={`USR-${currentRole}`}
+              currentUserName={currentRole === 'KETUA_RT' ? 'Bpk. Eko Sucahyono' : 'Pengurus RT 07'}
+              isBackendConnected={true}
+            />
+          </div>
         )}
 
         {currentTab === 'ai-audit' && (

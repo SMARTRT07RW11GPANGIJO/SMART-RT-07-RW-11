@@ -153,6 +153,17 @@ export const Header: React.FC<HeaderProps> = ({
               PORTAL DASHBOARD
             </button>
 
+            <button
+              onClick={() => handleNavClick('fasilitas')}
+              className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
+                currentTab === 'fasilitas' || currentTab === 'gis'
+                  ? 'bg-[#2E7D52] text-white shadow-sm border border-[#D4A72C]' 
+                  : 'text-emerald-100 bg-[#0E3554] hover:bg-[#2E7D52] hover:text-white border border-emerald-400/40'
+              }`}
+            >
+              🗺️ FASILITAS & GIS
+            </button>
+
             {openOmplonganModal && (
               <button
                 onClick={openOmplonganModal}
@@ -478,6 +489,12 @@ export const Header: React.FC<HeaderProps> = ({
               className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'dashboard' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300'}`}
             >
               PORTAL DASHBOARD
+            </button>
+            <button
+              onClick={() => handleNavClick('fasilitas')}
+              className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'fasilitas' || currentTab === 'gis' ? 'bg-[#2E7D52] text-white' : 'bg-emerald-950 text-emerald-200 border border-emerald-500/40'}`}
+            >
+              🗺️ FASILITAS & GIS
             </button>
             <button
               onClick={() => handleNavClick('verify')}

@@ -45,7 +45,8 @@ import {
   Activity,
   CheckCircle2,
   Database,
-  FileSpreadsheet
+  FileSpreadsheet,
+  MapPin
 } from 'lucide-react';
 
 import {
@@ -68,6 +69,8 @@ import { TransaksiFormModal } from './TransaksiFormModal';
 import { PengumumanFormModal } from './PengumumanFormModal';
 import { AgendaFormModal } from './AgendaFormModal';
 import { BackendCodeModal } from './BackendCodeModal';
+import { ActivityCalendar } from './ActivityCalendar';
+import { FacilityDashboard } from './facility/FacilityDashboard';
 import { testGasConnection, getGasWebappUrl, setGasWebappUrl } from '../services/apiService';
 import { waServiceInstance } from '../services/whatsappService';
 import { createDigitalDocumentFromSurat } from '../services/documentService';
@@ -605,12 +608,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={() => setActiveSubTab('agenda')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
               activeSubTab === 'agenda' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
             }`}
           >
-            <Calendar className="w-4 h-4 text-[#2E7D52]" />
-            Agenda Kegiatan RT
+            <div className="flex items-center gap-2.5">
+              <Calendar className="w-4 h-4 text-[#2E7D52]" />
+              <span>Kalender Kegiatan RT</span>
+            </div>
+            <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+              v1.0
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('fasilitas')}
+            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+              activeSubTab === 'fasilitas' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <MapPin className="w-4 h-4 text-[#D4A72C]" />
+              <span>Fasilitas Lingkungan & GIS</span>
+            </div>
+            <span className="bg-[#123B5D] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
+              v1.0
+            </span>
           </button>
 
           <button
@@ -1353,41 +1376,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           )}
 
-          {/* SubTab 9: AGENDA KEGIATAN */}
+          {/* SubTab 9: KALENDER & TATA KELOLA KEGIATAN RT v1.0 */}
           {activeSubTab === 'agenda' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div>
-                  <h3 className="font-bold text-lg text-[#123B5D]">Agenda & Timelines Kegiatan Warga</h3>
-                  <p className="text-xs text-slate-500">Jadwal Gotong Royong, Rapat RT, Posyandu, dan Peringatan Hari Besar</p>
-                </div>
-                <button
-                  onClick={() => setAgdModalOpen(true)}
-                  className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow"
-                >
-                  <Plus className="w-4 h-4" /> Tambah Agenda
-                </button>
-              </div>
+            <ActivityCalendar
+              currentRole={currentRole}
+              wargaList={wargaList}
+              onBackToDashboard={() => setActiveSubTab('overview')}
+            />
+          )}
 
-              <div className="space-y-3">
-                {agendaList.map((agd) => (
-                  <div key={agd.id_agenda} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
-                    <div className="space-y-1 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-[#D4A72C] text-[#123B5D] font-bold text-[10px] px-2.5 py-0.5 rounded-full">
-                          {agd.kategori}
-                        </span>
-                        <span className="font-bold text-slate-500">{agd.tanggal} ({agd.jam})</span>
-                      </div>
-                      <h4 className="font-bold text-slate-800 text-base">{agd.judul}</h4>
-                      <p className="text-slate-600"><b>Lokasi:</b> {agd.lokasi}</p>
-                      <p className="text-slate-500">{agd.deskripsi}</p>
-                      <p className="text-slate-400 text-[11px]">PIC: {agd.penanggung_jawab}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* SubTab 9B: DATABASE FASILITAS LINGKUNGAN & PEMETAAN GIS v1.0 */}
+          {activeSubTab === 'fasilitas' && (
+            <FacilityDashboard
+              currentRole={currentRole}
+              currentUserId={`USR-${currentRole}`}
+              currentUserName={currentRole === 'KETUA_RT' ? 'Bpk. Eko Sucahyono (Ketua RT)' : 'Pengurus RT 07'}
+              isBackendConnected={true}
+            />
           )}
 
           {/* SubTab 10: PROFIL PENGURUS & DIGITAL ID CARD */}
