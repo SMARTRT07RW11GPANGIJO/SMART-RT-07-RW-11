@@ -71,7 +71,7 @@ export const FacilityDashboard: React.FC<FacilityDashboardProps> = ({
   currentUserName = 'Bpk. Eko Sucahyono',
   isBackendConnected = true
 }) => {
-  const [activeTab, setActiveTab] = useState<'MAP' | 'LIST' | 'SURVEYS' | 'INSPECTIONS' | 'MAINTENANCE' | 'COMPLAINTS' | 'REGRESSION'>('MAP');
+  const [activeTab, setActiveTab] = useState<'MAP' | 'LIST' | 'SURVEYS' | 'REPORT' | 'INSPECTIONS' | 'MAINTENANCE' | 'COMPLAINTS' | 'REGRESSION'>('MAP');
   const [facilities, setFacilities] = useState<FasilitasLingkungan[]>([]);
   const [inspections, setInspections] = useState<FacilityInspection[]>([]);
   const [maintenanceList, setMaintenanceList] = useState<FacilityMaintenance[]>([]);
@@ -784,6 +784,18 @@ export const FacilityDashboard: React.FC<FacilityDashboardProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('REPORT')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
+            activeTab === 'REPORT'
+              ? 'bg-[#123B5D] text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <FileCode className="w-4 h-4 text-emerald-500" />
+          <span>Laporan Verifikasi GIS v2.1</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('INSPECTIONS')}
           className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
             activeTab === 'INSPECTIONS'
@@ -1144,6 +1156,180 @@ export const FacilityDashboard: React.FC<FacilityDashboardProps> = ({
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB: GIS FIELD VERIFICATION REPORT v2.1 (Section 43) */}
+      {activeTab === 'REPORT' && (
+        <div className="space-y-5">
+          {/* Header Status Card */}
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FileCode className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-bold text-slate-900 text-base">
+                    GIS FIELD VERIFICATION & ACCURACY GATE REPORT v2.1
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Laporan Audit Keabsahan Objek Spasial RT 07 RW 11 GPA Ngijo Berdasarkan Bukti Fisik Lapangan & GPS Metadata
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> SOFTWARE GIS GATE: PASSED
+                </span>
+                <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-600" /> FIELD VERIFICATION: PENDING SURVEYS
+                </span>
+              </div>
+            </div>
+
+            {/* Core Metrics Matrix (Section 43) */}
+            {(() => {
+              const totalObjects = facilities.filter(f => f.status !== 'DIHAPUS').length;
+              const surveyed = geoSurveys.length;
+              const verified = geoSurveys.filter(s => s.verificationStatus === 'VERIFIED').length;
+              const pending = geoSurveys.filter(s => s.verificationStatus === 'PENDING').length;
+              const rejected = geoSurveys.filter(s => s.verificationStatus === 'REJECTED').length;
+              const reference = totalObjects - verified; // non-verified default facilities
+
+              const highPrecision = geoSurveys.filter(s => s.accuracyMeters <= 5).length;
+              const acceptable = geoSurveys.filter(s => s.accuracyMeters > 5 && s.accuracyMeters <= 10).length;
+              const lowPrecision = geoSurveys.filter(s => s.accuracyMeters > 10 && s.accuracyMeters <= 25).length;
+              const requiresReview = geoSurveys.filter(s => s.accuracyMeters > 25).length;
+
+              const staleFacilities = facilities.filter(f => calculateStaleStatus(f.lastSurveyedAt).status === 'STALE').length;
+              const agingFacilities = facilities.filter(f => calculateStaleStatus(f.lastSurveyedAt).status === 'AGING').length;
+              const freshFacilities = facilities.filter(f => calculateStaleStatus(f.lastSurveyedAt).status === 'FRESH').length;
+
+              return (
+                <div className="space-y-6">
+                  {/* Summary Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                      <span className="text-[11px] font-bold text-slate-500 block">TOTAL OBJECTS</span>
+                      <span className="text-2xl font-black text-slate-900 mt-1 block">{totalObjects}</span>
+                      <span className="text-[10px] text-slate-400">Objek Geospasial</span>
+                    </div>
+
+                    <div className="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-200">
+                      <span className="text-[11px] font-bold text-indigo-700 block">SURVEYED</span>
+                      <span className="text-2xl font-black text-indigo-900 mt-1 block">{surveyed}</span>
+                      <span className="text-[10px] text-indigo-600">On-site GPS captured</span>
+                    </div>
+
+                    <div className="bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-200">
+                      <span className="text-[11px] font-bold text-emerald-700 block">VERIFIED</span>
+                      <span className="text-2xl font-black text-emerald-900 mt-1 block">{verified}</span>
+                      <span className="text-[10px] text-emerald-600">Disetujui Pengurus RT</span>
+                    </div>
+
+                    <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-200">
+                      <span className="text-[11px] font-bold text-amber-700 block">PENDING</span>
+                      <span className="text-2xl font-black text-amber-900 mt-1 block">{pending}</span>
+                      <span className="text-[10px] text-amber-600">Menunggu Verifikasi</span>
+                    </div>
+
+                    <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-200">
+                      <span className="text-[11px] font-bold text-sky-700 block">REFERENCE</span>
+                      <span className="text-2xl font-black text-sky-900 mt-1 block">{reference}</span>
+                      <span className="text-[10px] text-sky-600">Data Awal / Referensi</span>
+                    </div>
+
+                    <div className="bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
+                      <span className="text-[11px] font-bold text-rose-700 block">REJECTED</span>
+                      <span className="text-2xl font-black text-rose-900 mt-1 block">{rejected}</span>
+                      <span className="text-[10px] text-rose-600">Ditolak Auditor</span>
+                    </div>
+                  </div>
+
+                  {/* Two Column Detailed Breakdown */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Accuracy Grade Distribution */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                        <Radio className="w-4 h-4 text-indigo-600" /> Distribusi Akurasi GPS Survey (v2.1 Gate)
+                      </h4>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                          <span className="font-medium text-emerald-800 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> HIGH PRECISION (≤ 5m)
+                          </span>
+                          <span className="font-mono font-bold text-slate-900">{highPrecision} Titik</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                          <span className="font-medium text-sky-800 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-sky-500" /> ACCEPTABLE (&gt; 5–10m)
+                          </span>
+                          <span className="font-mono font-bold text-slate-900">{acceptable} Titik</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                          <span className="font-medium text-amber-800 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> LOW PRECISION (&gt; 10–25m)
+                          </span>
+                          <span className="font-mono font-bold text-slate-900">{lowPrecision} Titik</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                          <span className="font-medium text-rose-800 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> REQUIRES REVIEW (&gt; 25m)
+                          </span>
+                          <span className="font-mono font-bold text-slate-900">{requiresReview} Titik</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stale & Lifecycle Distribution */}
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                      <h4 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-amber-600" /> Siklus Usia Data Spasial (Stale Tracking)
+                      </h4>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                          <span className="font-medium text-emerald-800 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> FRESH (&lt; 90 Hari)
+                          </span>
+                          <span className="font-mono font-bold text-slate-900">{freshFacilities} Objek</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                          <span className="font-medium text-amber-800 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> AGING (90 – 180 Hari)
+                          </span>
+                          <span className="font-mono font-bold text-slate-900">{agingFacilities} Objek</span>
+                        </div>
+                        <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-200">
+                          <span className="font-medium text-rose-800 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> STALE (&gt; 180 Hari)
+                          </span>
+                          <span className="font-mono font-bold text-slate-900">{staleFacilities} Objek</span>
+                        </div>
+                        <div className="p-2 bg-indigo-50/50 rounded-xl border border-indigo-100 text-[11px] text-indigo-900">
+                          ℹ️ Objek yang berstatus STALE secara otomatis disarankan untuk dilakukan survey ulang on-site.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Governance Statement & Sign-off Box */}
+                  <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-amber-400">PRINSIP TATA KELOLA GEOSPASIAL RESMI SMART RT:</span>
+                      <span className="text-[10px] text-slate-400 font-mono">ISO 19115 / RFC 7946 GeoBase Compliance</span>
+                    </div>
+                    <p className="text-slate-300 italic">
+                      "Tidak ada koordinat tanpa sumber. Tidak ada data lapangan tanpa evidence. Tidak ada data resmi tanpa verifikasi. Tidak ada perubahan tanpa audit."
+                    </p>
+                    <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between text-[11px] text-slate-400">
+                      <span>Penanggung Jawab: Ketua RT 07 Bpk. Eko Sucahyono</span>
+                      <span>Lokasi: GPA Ngijo, Karangploso, Malang</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
       )}
 

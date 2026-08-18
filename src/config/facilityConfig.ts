@@ -278,12 +278,12 @@ export const MAP_PROVIDERS: MapProviderConfig[] = [
   }
 ];
 
-// GPS ACCURACY GATING THRESHOLDS (SECTION 7)
+// GPS ACCURACY GATING THRESHOLDS (SECTION 7 - v2.1 SPECIFICATION)
 export const GPS_ACCURACY_THRESHOLDS = {
-  HIGH_PRECISION: 5.0,     // <= 5m
-  ACCEPTABLE: 15.0,         // > 5m - <= 15m
-  LOW_PRECISION: 30.0       // > 15m - <= 30m
-  // > 30m: REQUIRES REVIEW
+  HIGH_PRECISION: 5.0,     // <= 5m (PRESISI TINGGI)
+  ACCEPTABLE: 10.0,        // > 5m - <= 10m (DAPAT DITERIMA)
+  LOW_PRECISION: 25.0      // > 10m - <= 25m (PRESISI RENDAH)
+  // > 25m: REQUIRES REVIEW (MEMBUTUHKAN PENINJAUAN)
 };
 
 export const getGPSAccuracyGrade = (
@@ -299,40 +299,40 @@ export const getGPSAccuracyGrade = (
   if (accuracyMeters <= GPS_ACCURACY_THRESHOLDS.HIGH_PRECISION) {
     return {
       grade: 'HIGH_PRECISION',
-      label: 'HIGH PRECISION (Sangat Akurat)',
+      label: 'PRESISI TINGGI (≤ 5m)',
       colorClass: 'text-emerald-700',
       badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       color: '#10B981',
-      description: 'Presisi tinggi, optimal untuk pencatatan koordinat titik presisi.'
+      description: 'Presisi tinggi, optimal untuk pencatatan koordinat titik fisik on-site.'
     };
   }
   if (accuracyMeters <= GPS_ACCURACY_THRESHOLDS.ACCEPTABLE) {
     return {
       grade: 'ACCEPTABLE',
-      label: 'ACCEPTABLE (Cukup Akurat)',
+      label: 'DAPAT DITERIMA (> 5-10m)',
       colorClass: 'text-sky-700',
       badgeClass: 'bg-sky-100 text-sky-800 border-sky-300',
       color: '#0284C7',
-      description: 'Presisi standar perangkat seluler, layak digunakan untuk pemetaan.'
+      description: 'Presisi standar perangkat seluler, layak digunakan untuk pemetaan lingkungan.'
     };
   }
   if (accuracyMeters <= GPS_ACCURACY_THRESHOLDS.LOW_PRECISION) {
     return {
       grade: 'LOW_PRECISION',
-      label: 'LOW PRECISION (Akurasi Rendah)',
+      label: 'PRESISI RENDAH (> 10-25m)',
       colorClass: 'text-amber-700',
       badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
       color: '#F59E0B',
-      description: 'Akurasi rendah, disarankan kalibrasi GPS atau pindah ke area terbuka.'
+      description: 'Akurasi rendah, disarankan kalibrasi GPS atau berpindah ke area terbuka.'
     };
   }
   return {
     grade: 'REQUIRES_REVIEW',
-    label: 'REQUIRES REVIEW (Akurasi Lemah)',
+    label: 'MEMBUTUHKAN PENINJAUAN (> 25m)',
     colorClass: 'text-rose-700',
     badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold animate-pulse',
     color: '#EF4444',
-    description: 'Akurasi lemah (>20m), membutuhkan review atau pengambilan ulang.'
+    description: 'Akurasi lemah (> 25m), membutuhkan peninjauan atau pengambilan ulang di lapangan.'
   };
 };
 
@@ -462,23 +462,251 @@ export const RT07_REFERENCE_ROADS = [
 export const RT07_REFERENCE_DRAINAGE = [
   {
     drainId: 'DRAIN-001',
-    name: 'Drainase Primer Timur Blok C ke Sungai',
+    name: 'Saluran Drainase Utama Jl. Permata Raya',
+    type: 'SALURAN_PRIMER',
     source: 'REFERENCE' as const,
-    verificationStatus: 'VERIFIED' as const,
+    verificationStatus: 'UNVERIFIED' as const,
     points: [
-      [-7.9015, 112.5998],
-      [-7.9025, 112.5999],
-      [-7.9038, 112.5997]
+      [-7.9016, 112.5971],
+      [-7.9021, 112.5981],
+      [-7.9026, 112.5991],
+      [-7.9031, 112.6001]
     ] as [number, number][]
   },
   {
     drainId: 'DRAIN-002',
-    name: 'Saluran Tersier Barat Blok A',
+    name: 'Drainase Sekunder Gang 1 Blok A',
+    type: 'SALURAN_SEKUNDER',
     source: 'REFERENCE' as const,
     verificationStatus: 'UNVERIFIED' as const,
     points: [
-      [-7.9016, 112.5970],
-      [-7.9038, 112.5972]
+      [-7.9019, 112.5976],
+      [-7.9029, 112.5974]
+    ] as [number, number][]
+  },
+  {
+    drainId: 'DRAIN-003',
+    name: 'Drainase Sekunder Gang 2 Blok B',
+    type: 'SALURAN_SEKUNDER',
+    source: 'REFERENCE' as const,
+    verificationStatus: 'UNVERIFIED' as const,
+    points: [
+      [-7.9023, 112.5984],
+      [-7.9033, 112.5982]
     ] as [number, number][]
   }
 ];
+
+// POINT IN POLYGON (RAY CASTING) GEOFENCE VALIDATION
+export const isPointInPolygon = (point: [number, number], polygon: [number, number][]): boolean => {
+  const [lat, lng] = point;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0];
+    const yi = polygon[i][1];
+    const xj = polygon[j][0];
+    const yj = polygon[j][1];
+
+    const intersect = yi > lng !== yj > lng && lat < ((xj - xi) * (lng - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+};
+
+// Check if coordinates reside within RT 07 RW 11 GPA Ngijo Boundary
+export const isInsideRT07Boundary = (lat: number, lng: number): boolean => {
+  return isPointInPolygon([lat, lng], RT07_REFERENCE_BOUNDARY.polygon);
+};
+
+// Calculate Haversine distance in meters
+export const calculateDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371e3; // meters
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return Number((R * c).toFixed(1));
+};
+
+// Distance Comparison Status vs Reference Point
+export const getDistanceComparisonStatus = (
+  distanceMeters: number | null | undefined
+): {
+  status: 'MATCH' | 'NEAR' | 'SIGNIFICANT_DIFFERENCE' | 'REQUIRES_REVIEW' | 'NO_REFERENCE';
+  label: string;
+  colorClass: string;
+  badgeClass: string;
+} => {
+  if (distanceMeters === null || distanceMeters === undefined || isNaN(distanceMeters)) {
+    return {
+      status: 'NO_REFERENCE',
+      label: 'FASILITAS BARU (Tanpa Referensi)',
+      colorClass: 'text-slate-600',
+      badgeClass: 'bg-slate-100 text-slate-700 border-slate-300'
+    };
+  }
+
+  if (distanceMeters <= 5.0) {
+    return {
+      status: 'MATCH',
+      label: `MATCH (Δ ${distanceMeters}m)`,
+      colorClass: 'text-emerald-700',
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    };
+  }
+  if (distanceMeters <= 15.0) {
+    return {
+      status: 'NEAR',
+      label: `NEAR (Δ ${distanceMeters}m)`,
+      colorClass: 'text-sky-700',
+      badgeClass: 'bg-sky-100 text-sky-800 border-sky-300'
+    };
+  }
+  if (distanceMeters <= 50.0) {
+    return {
+      status: 'SIGNIFICANT_DIFFERENCE',
+      label: `SELISIH SIGNIFIKAN (Δ ${distanceMeters}m)`,
+      colorClass: 'text-amber-700',
+      badgeClass: 'bg-amber-100 text-amber-800 border-amber-300'
+    };
+  }
+  return {
+    status: 'REQUIRES_REVIEW',
+    label: `PERLU REVIEW (Δ ${distanceMeters}m > 50m)`,
+    colorClass: 'text-rose-700',
+    badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-bold'
+  };
+};
+
+// GPS Signal Quality Derivation
+export const getGPSSignalStatus = (
+  accuracyMeters: number | null,
+  isAcquiring = false
+): {
+  status: 'ACQUIRING' | 'GOOD' | 'ACCEPTABLE' | 'POOR' | 'UNAVAILABLE';
+  label: string;
+  colorClass: string;
+  badgeClass: string;
+  iconColor: string;
+} => {
+  if (isAcquiring) {
+    return {
+      status: 'ACQUIRING',
+      label: 'ACQUIRING SATELLITE LOCK...',
+      colorClass: 'text-purple-700',
+      badgeClass: 'bg-purple-100 text-purple-800 border-purple-300 animate-pulse',
+      iconColor: '#7C3AED'
+    };
+  }
+  if (accuracyMeters === null || isNaN(accuracyMeters)) {
+    return {
+      status: 'UNAVAILABLE',
+      label: 'GPS UNAVAILABLE',
+      colorClass: 'text-slate-500',
+      badgeClass: 'bg-slate-100 text-slate-600 border-slate-300',
+      iconColor: '#6B7280'
+    };
+  }
+  if (accuracyMeters <= 5.0) {
+    return {
+      status: 'GOOD',
+      label: 'GPS SIGNAL: EXCELLENT (GOOD)',
+      colorClass: 'text-emerald-700',
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+      iconColor: '#10B981'
+    };
+  }
+  if (accuracyMeters <= 12.0) {
+    return {
+      status: 'ACCEPTABLE',
+      label: 'GPS SIGNAL: ACCEPTABLE',
+      colorClass: 'text-sky-700',
+      badgeClass: 'bg-sky-100 text-sky-800 border-sky-300',
+      iconColor: '#0284C7'
+    };
+  }
+  return {
+    status: 'POOR',
+    label: 'GPS SIGNAL: POOR (HIGH UNCERTAINTY)',
+    colorClass: 'text-rose-700',
+    badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
+    iconColor: '#EF4444'
+  };
+};
+
+// Quality Score calculation based on GPS, Geofence, Photo Evidence, Checklist, Freshness
+export const calculateSurveyQualityScore = (params: {
+  accuracyMeters: number;
+  insideBoundary: boolean;
+  photoCount: number;
+  checklistComplete: boolean;
+  daysElapsed?: number;
+}): {
+  grade: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR' | 'REQUIRES_REVIEW';
+  score: number; // 0-100
+  label: string;
+  badgeClass: string;
+} => {
+  let score = 0;
+
+  // GPS Accuracy weight (max 35)
+  if (params.accuracyMeters <= 5) score += 35;
+  else if (params.accuracyMeters <= 10) score += 25;
+  else if (params.accuracyMeters <= 25) score += 10;
+
+  // Boundary weight (max 25)
+  if (params.insideBoundary) score += 25;
+
+  // Photo evidence weight (max 20)
+  if (params.photoCount >= 2) score += 20;
+  else if (params.photoCount === 1) score += 12;
+
+  // Checklist weight (max 20)
+  if (params.checklistComplete) score += 20;
+
+  if (!params.insideBoundary || params.accuracyMeters > 25) {
+    return {
+      grade: 'REQUIRES_REVIEW',
+      score,
+      label: `REQUIRES REVIEW (${score}/100)`,
+      badgeClass: 'bg-rose-100 text-rose-800 border-rose-300'
+    };
+  }
+
+  if (score >= 85) {
+    return {
+      grade: 'EXCELLENT',
+      score,
+      label: `EXCELLENT (${score}/100)`,
+      badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    };
+  }
+  if (score >= 70) {
+    return {
+      grade: 'GOOD',
+      score,
+      label: `GOOD (${score}/100)`,
+      badgeClass: 'bg-sky-100 text-sky-800 border-sky-300'
+    };
+  }
+  if (score >= 50) {
+    return {
+      grade: 'FAIR',
+      score,
+      label: `FAIR (${score}/100)`,
+      badgeClass: 'bg-amber-100 text-amber-800 border-amber-300'
+    };
+  }
+  return {
+    grade: 'POOR',
+    score,
+    label: `POOR (${score}/100)`,
+    badgeClass: 'bg-orange-100 text-orange-800 border-orange-300'
+  };
+};

@@ -26,7 +26,12 @@ import {
   GPA_NGIJO_BOUNDS,
   getGPSAccuracyGrade,
   calculateStaleStatus,
-  RT07_REFERENCE_BOUNDARY
+  RT07_REFERENCE_BOUNDARY,
+  isInsideRT07Boundary,
+  getDistanceComparisonStatus,
+  getGPSSignalStatus,
+  calculateSurveyQualityScore,
+  calculateDistanceMeters
 } from '../config/facilityConfig';
 
 const STORAGE_KEY_FACILITIES = 'smart_rt07_facilities_v1';
@@ -985,7 +990,7 @@ class FacilityService {
     return { success: true, data: this.rtBoundary };
   }
 
-  // GPS FIELD SURVEY CAPTURE (SECTION 6, 8, 9, 36)
+  // GPS FIELD SURVEY CAPTURE (FIELD SURVEY EXECUTION v1.0)
   public createGeoSurvey(
     actor: FacilityActorSession,
     surveyData: {
@@ -996,41 +1001,46 @@ class FacilityService {
       latitude: number;
       longitude: number;
       accuracyMeters: number;
+      altitude?: number | null;
+      heading?: number | null;
+      speed?: number | null;
+      deviceTimestamp?: string;
       conditionScore?: number;
       status?: FacilityStatus;
       prioritas?: FacilityPriority;
       notes?: string;
+      checklist?: any;
       deviceMetadata?: any;
       photoEvidence?: GeoEvidence[];
       requestId?: string;
     },
     requestIdParam?: string
-  ): { success: boolean; data?: GeoSurvey; error?: string; code?: string } {
+  ): { success: boolean; data?: GeoSurvey; error?: string; code?: string; isDuplicate?: boolean } {
     const requestId = surveyData.requestId || requestIdParam || this.generateRequestId();
     const { latitude, longitude, accuracyMeters } = surveyData;
 
     // 1. Idempotency Check
     if (this.processedRequestIds.has(requestId)) {
-      return { success: false, error: 'Duplikat pengiriman survey lapangan (Idempotency Error).', code: 'DUPLICATE_REQUEST' };
+      return { success: false, error: 'Duplikat pengiriman survey lapangan (Idempotency Error).', code: 'DUPLICATE_REQUEST', isDuplicate: true };
     }
     this.processedRequestIds.add(requestId);
 
-    // 2. Fail-Closed Offline Verification (Section 20)
+    // 2. Fail-Closed Offline Verification
     if (!actor.isBackendConnected || !this.backendOnline) {
       return {
         success: false,
-        error: 'SURVEY NOT COMMITTED: Fail-closed mode aktif. Survey GPS gagal disinkronkan ke backend.',
+        error: 'SURVEY NOT COMMITTED: Fail-closed mode aktif. Backend belum terhubung. Survey belum disahkan.',
         code: 'NOT_COMMITTED'
       };
     }
 
-    // 3. RBAC Check (Warga can submit surveys, enters PENDING)
+    // 3. RBAC Check (Warga can submit surveys, enters PENDING_REVIEW)
     if (!this.hasPermission(actor.role, 'SURVEY')) {
       this.logAudit(actor, 'CREATE_SURVEY', 'FASILITAS', 'GEO_SURVEY', 'DENIED', 'FAILED', undefined, undefined, 'Role tidak berwenang melakukan survey.');
       return { success: false, error: 'Akses ditolak untuk melakukan survey GPS.', code: 'FORBIDDEN' };
     }
 
-    // 4. Coordinate Range Validation (Section 36)
+    // 4. Coordinate Range Validation
     if (typeof latitude !== 'number' || isNaN(latitude) || latitude < -90 || latitude > 90) {
       return { success: false, error: 'Koordinat Latitude tidak valid (harus antara -90 dan 90).', code: 'INVALID_COORDINATES' };
     }
@@ -1038,17 +1048,84 @@ class FacilityService {
       return { success: false, error: 'Koordinat Longitude tidak valid (harus antara -180 dan 180).', code: 'INVALID_COORDINATES' };
     }
 
-    // 5. GPS Accuracy Gating (Section 7)
+    // 5. GPS Accuracy & Signal Derivation
     const accuracyInfo = getGPSAccuracyGrade(accuracyMeters);
+    const signalInfo = getGPSSignalStatus(accuracyMeters);
 
-    // 6. Generate IDs
-    const now = new Date().toISOString();
-    const surveyId = `SURVEY-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    // 6. Geofence Check against RT 07 RW 11 GPA Ngijo
+    const insideBoundary = isInsideRT07Boundary(latitude, longitude);
+
+    // 7. Distance comparison against expected / reference point if attached to existing facility
+    let distanceFromExpected: number | null = null;
+    let expectedStatus: any = 'NO_REFERENCE';
+    let existingFacility: FasilitasLingkungan | undefined;
+
+    if (surveyData.fasilitasId) {
+      existingFacility = this.facilities.find((f) => f.fasilitasId === surveyData.fasilitasId);
+      if (existingFacility) {
+        distanceFromExpected = calculateDistanceMeters(
+          existingFacility.latitude,
+          existingFacility.longitude,
+          latitude,
+          longitude
+        );
+        expectedStatus = getDistanceComparisonStatus(distanceFromExpected).status;
+      }
+    }
+
+    // 8. Near-duplicate coordinate detection (< 2.0 meters to another distinct facility)
+    const nearFacilities = this.facilities.filter(
+      (f) => f.fasilitasId !== surveyData.fasilitasId && calculateDistanceMeters(f.latitude, f.longitude, latitude, longitude) < 2.0
+    );
+    const hasNearDuplicate = nearFacilities.length > 0;
+
+    // 9. Photo & Checklist Verification
+    const photoList = surveyData.photoEvidence || [];
+    const isNewFacility = !surveyData.fasilitasId;
+    const isHighPriority = surveyData.prioritas === 'TINGGI' || surveyData.prioritas === 'DARURAT';
+
+    if (isNewFacility && photoList.length === 0) {
+      return {
+        success: false,
+        error: 'Fasilitas baru wajib menyertakan minimal 1 foto bukti fisik lapangan.',
+        code: 'PHOTO_REQUIRED'
+      };
+    }
+
+    const defaultChecklist = {
+      locationMatch: true,
+      physicalFound: true,
+      conditionMatch: true,
+      photoAvailable: photoList.length > 0,
+      gpsAccurate: accuracyMeters <= 25,
+      insideRt: insideBoundary,
+      notDuplicate: !hasNearDuplicate,
+      dataComplete: true,
+      ...(surveyData.checklist || {})
+    };
+
+    const isChecklistComplete = Object.values(defaultChecklist).every(Boolean);
+
+    // 10. Quality Score calculation
+    const quality = calculateSurveyQualityScore({
+      accuracyMeters,
+      insideBoundary,
+      photoCount: photoList.length,
+      checklistComplete: isChecklistComplete
+    });
+
+    // 11. Generate Survey Code: SURVEY-YYYYMMDD-XXXXXX
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const seqNum = String(this.geoSurveys.length + 1).padStart(6, '0');
+    const surveyCode = `SURVEY-${dateStr}-${seqNum}`;
+    const surveyId = surveyCode;
     const geoId = surveyData.fasilitasId ? `GEO-${surveyData.fasilitasId}` : `GEO-${Date.now()}`;
+    const now = new Date().toISOString();
 
-    // 7. Construct GeoSurvey Entity (Section 4, 8)
+    // 12. Construct GeoSurvey / FieldSurvey Entity
     const newSurvey: GeoSurvey = {
       surveyId,
+      surveyCode,
       requestId,
       geoId,
       fasilitasId: surveyData.fasilitasId,
@@ -1059,36 +1136,47 @@ class FacilityService {
       longitude,
       accuracyMeters,
       accuracyGrade: accuracyInfo.grade,
-      conditionScore: surveyData.conditionScore ?? 5,
-      status: surveyData.status || 'AKTIF',
-      prioritas: surveyData.prioritas || 'NORMAL',
+      gpsSignalStatus: signalInfo.status,
+      gpsPrecisionStatus: accuracyInfo.grade,
+      conditionScore: surveyData.conditionScore ?? (existingFacility ? existingFacility.conditionScore : 5),
+      status: surveyData.status || (existingFacility ? existingFacility.status : 'AKTIF'),
+      prioritas: surveyData.prioritas || (existingFacility ? existingFacility.tingkatPrioritas : 'NORMAL'),
       source: 'SURVEYED',
-      verificationStatus: 'PENDING', // STRICT: Initial status is always PENDING per Section 8 & 11
+      verificationStatus: 'PENDING',
+      surveyStatus: 'PENDING_REVIEW',
       capturedAt: now,
       capturedBy: actor.userId,
       capturedByName: actor.nama,
-      deviceMetadata: surveyData.deviceMetadata,
-      photoEvidence: surveyData.photoEvidence,
+      insideRtBoundary: insideBoundary,
+      distanceFromExpectedPoint: distanceFromExpected,
+      expectedPointStatus: expectedStatus,
+      checklist: defaultChecklist,
+      qualityScoreGrade: quality.grade,
+      deviceMetadata: {
+        altitude: surveyData.altitude ?? null,
+        heading: surveyData.heading ?? null,
+        speed: surveyData.speed ?? null,
+        ...(surveyData.deviceMetadata || {})
+      },
+      photoEvidence: photoList,
+      photoCount: photoList.length,
       notes: surveyData.notes
     };
 
     this.geoSurveys.unshift(newSurvey);
 
-    // If survey is attached to existing facility, record GeoHistory for coordinate shifts (Section 27)
-    if (surveyData.fasilitasId) {
-      const existingFacility = this.facilities.find((f) => f.fasilitasId === surveyData.fasilitasId);
-      if (existingFacility) {
-        const history: GeoHistory = {
-          geoHistoryId: `GEO-HIST-${Date.now()}`,
-          geoId,
-          oldGeometry: { latitude: existingFacility.latitude, longitude: existingFacility.longitude },
-          newGeometry: { latitude, longitude },
-          changedAt: now,
-          changedBy: actor.nama,
-          reason: `Survey Lapangan GPS oleh ${actor.nama} (${accuracyInfo.label})`
-        };
-        this.geoHistory.unshift(history);
-      }
+    // If survey is attached to existing facility, record GeoHistory for coordinate shifts
+    if (surveyData.fasilitasId && existingFacility) {
+      const history: GeoHistory = {
+        geoHistoryId: `GEO-HIST-${Date.now()}`,
+        geoId,
+        oldGeometry: { latitude: existingFacility.latitude, longitude: existingFacility.longitude },
+        newGeometry: { latitude, longitude },
+        changedAt: now,
+        changedBy: actor.nama,
+        reason: `Pengukuran GPS Lapangan (${surveyCode}) oleh ${actor.nama} [Akurasi: ±${accuracyMeters}m - ${accuracyInfo.label}]`
+      };
+      this.geoHistory.unshift(history);
     }
 
     // Update or add corresponding GeoObject in PENDING status
@@ -1122,7 +1210,7 @@ class FacilityService {
         capturedBy: actor.nama,
         notes: surveyData.notes,
         staleStatus: 'FRESH',
-        qualityScore: accuracyInfo.grade === 'HIGH_PRECISION' ? 5 : 3,
+        qualityScore: quality.grade === 'EXCELLENT' ? 5 : 3,
         lastSurveyedAt: now,
         lastSurveyedBy: actor.nama,
         createdAt: now,
@@ -1140,14 +1228,14 @@ class FacilityService {
       'AUTHORIZED',
       'SUCCESS',
       undefined,
-      JSON.stringify(newSurvey),
-      `Survey GPS berhasil dicatat (${accuracyInfo.label}). Status menunggu verifikasi.`
+      JSON.stringify({ surveyCode, latitude, longitude, accuracyMeters, insideBoundary }),
+      `Survey Lapangan ${surveyCode} berhasil dicatat (${accuracyInfo.label}). Status: PENDING_REVIEW.`
     );
 
     return { success: true, data: newSurvey };
   }
 
-  // VERIFICATION WORKFLOW (SECTION 11, 12)
+  // VERIFICATION WORKFLOW
   public verifyGeoSurvey(
     actor: FacilityActorSession,
     surveyId: string,
@@ -1160,7 +1248,7 @@ class FacilityService {
     if (requestId) this.processedRequestIds.add(requestId);
 
     if (!actor.isBackendConnected || !this.backendOnline) {
-      return { success: false, error: 'NOT_COMMITTED: Fail-closed mode aktif.', code: 'NOT_COMMITTED' };
+      return { success: false, error: 'NOT_COMMITTED: Fail-closed mode aktif. Backend belum terhubung.', code: 'NOT_COMMITTED' };
     }
 
     if (!this.hasPermission(actor.role, 'VERIFY')) {
@@ -1173,11 +1261,25 @@ class FacilityService {
       return { success: false, error: 'Data survey lapangan tidak ditemukan.', code: 'NOT_FOUND' };
     }
 
+    // Geofence enforcement: Cannot verify if outside RT boundary
+    if (survey.insideRtBoundary === false) {
+      this.logAudit(actor, 'VERIFY_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'FAILED', undefined, undefined, 'Ditolak: Titik berada di luar batas RT 07 RW 11');
+      return {
+        success: false,
+        error: 'GEOFENCE REJECTED: Titik GPS berada di luar batas wilayah RT 07 RW 11 GPA Ngijo. Tidak dapat diverifikasi sebagai data resmi.',
+        code: 'OUTSIDE_RT_BOUNDARY'
+      };
+    }
+
     const now = new Date().toISOString();
     survey.verificationStatus = 'VERIFIED';
+    survey.surveyStatus = 'VERIFIED';
     survey.reviewedBy = actor.nama;
+    survey.reviewerId = actor.userId;
+    survey.reviewerName = actor.nama;
     survey.reviewedAt = now;
-    survey.reviewNotes = reviewNotes || 'Terverifikasi sesuai kondisi fisik lapangan.';
+    survey.reviewNotes = reviewNotes || 'Terverifikasi sesuai kondisi fisik lapangan & GPS hardware metadata.';
+    survey.reviewNote = survey.reviewNotes;
 
     // Update underlying GeoObject
     const targetGeo = this.geoObjects.find((g) => g.geoId === survey.geoId);
@@ -1211,7 +1313,7 @@ class FacilityService {
     }
 
     this.saveGeoState();
-    this.logAudit(actor, 'VERIFY_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'VERIFIED', `Survey ${surveyId} diverifikasi oleh ${actor.nama}.`);
+    this.logAudit(actor, 'VERIFY_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'VERIFIED', `Survey ${surveyId} diverifikasi resmi oleh ${actor.nama}.`);
 
     return { success: true, data: survey };
   }
@@ -1227,6 +1329,10 @@ class FacilityService {
     }
     if (requestId) this.processedRequestIds.add(requestId);
 
+    if (!actor.isBackendConnected || !this.backendOnline) {
+      return { success: false, error: 'NOT_COMMITTED: Fail-closed mode aktif.', code: 'NOT_COMMITTED' };
+    }
+
     if (!this.hasPermission(actor.role, 'VERIFY')) {
       return { success: false, error: 'Akses ditolak.', code: 'FORBIDDEN' };
     }
@@ -1238,9 +1344,13 @@ class FacilityService {
 
     const now = new Date().toISOString();
     survey.verificationStatus = 'REJECTED';
+    survey.surveyStatus = 'REJECTED';
     survey.reviewedBy = actor.nama;
+    survey.reviewerId = actor.userId;
+    survey.reviewerName = actor.nama;
     survey.reviewedAt = now;
     survey.reviewNotes = rejectionReason;
+    survey.reviewNote = rejectionReason;
 
     const targetGeo = this.geoObjects.find((g) => g.geoId === survey.geoId);
     if (targetGeo) {
@@ -1251,6 +1361,46 @@ class FacilityService {
 
     this.saveGeoState();
     this.logAudit(actor, 'REJECT_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'REJECTED', `Survey ditolak: ${rejectionReason}`);
+
+    return { success: true, data: survey };
+  }
+
+  public requestResurvey(
+    actor: FacilityActorSession,
+    surveyId: string,
+    reason: string,
+    requestId?: string
+  ): { success: boolean; data?: GeoSurvey; error?: string; code?: string } {
+    if (requestId && this.processedRequestIds.has(requestId)) {
+      return { success: false, error: 'Duplikat permintaan survey ulang.', code: 'DUPLICATE_REQUEST' };
+    }
+    if (requestId) this.processedRequestIds.add(requestId);
+
+    if (!actor.isBackendConnected || !this.backendOnline) {
+      return { success: false, error: 'NOT_COMMITTED: Fail-closed mode aktif.', code: 'NOT_COMMITTED' };
+    }
+
+    if (!this.hasPermission(actor.role, 'VERIFY')) {
+      return { success: false, error: 'Akses ditolak.', code: 'FORBIDDEN' };
+    }
+
+    const survey = this.geoSurveys.find((s) => s.surveyId === surveyId);
+    if (!survey) {
+      return { success: false, error: 'Data survey tidak ditemukan.', code: 'NOT_FOUND' };
+    }
+
+    const now = new Date().toISOString();
+    survey.verificationStatus = 'REJECTED';
+    survey.surveyStatus = 'RESURVEY_REQUIRED';
+    survey.reviewedBy = actor.nama;
+    survey.reviewerId = actor.userId;
+    survey.reviewerName = actor.nama;
+    survey.reviewedAt = now;
+    survey.reviewNotes = `MINTA SURVEY ULANG: ${reason}`;
+    survey.reviewNote = survey.reviewNotes;
+
+    this.saveGeoState();
+    this.logAudit(actor, 'REQUEST_RESURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'RESURVEY_REQUIRED', `Diminta survey ulang on-site: ${reason}`);
 
     return { success: true, data: survey };
   }
@@ -1326,26 +1476,10 @@ class FacilityService {
     return this.geoSurveys;
   }
 
-  // Calculate Haversine distance in meters
-  private calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371e3; // metres
-    const phi1 = (lat1 * Math.PI) / 180;
-    const phi2 = (lat2 * Math.PI) / 180;
-    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  }
-
   public getFacilitiesNear(actor: FacilityActorSession, lat: number, lng: number, radiusMeters: number): FasilitasLingkungan[] {
     const list = this.getFacilities(actor);
     return list.filter((f) => {
-      const dist = this.calculateDistanceMeters(lat, lng, f.latitude, f.longitude);
+      const dist = calculateDistanceMeters(lat, lng, f.latitude, f.longitude);
       return dist <= radiusMeters;
     });
   }

@@ -169,67 +169,88 @@ export const SurveyVerificationModal: React.FC<SurveyVerificationModalProps> = (
             )}
           </div>
 
-          {/* Action Selector */}
-          <div className="space-y-3">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Keputusan Pengurus RT 07
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setActionType('APPROVE')}
-                className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all ${
-                  actionType === 'APPROVE'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                Setujui & Sinkronkan
-              </button>
-              <button
-                type="button"
-                onClick={() => setActionType('REJECT')}
-                className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all ${
-                  actionType === 'REJECT'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
-                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                <XCircle className="w-4 h-4" />
-                Tolak Hasil Survey
-              </button>
+            {/* Action Selector */}
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Keputusan Pengurus RT 07
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActionType('APPROVE')}
+                  className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all ${
+                    actionType === 'APPROVE'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Setujui & Sinkronkan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActionType('REJECT')}
+                  className={`py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 border transition-all ${
+                    actionType === 'REJECT'
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <XCircle className="w-4 h-4" />
+                  Tolak Hasil Survey
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Notes or Reason Input */}
-          {actionType === 'APPROVE' ? (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Catatan Verifikasi Resmi
-              </label>
-              <textarea
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
-                rows={2}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-          ) : (
-            <div>
-              <label className="block text-xs font-bold text-rose-700 uppercase tracking-wider mb-1.5">
-                Alasan Penolakan Survey <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={2}
-                placeholder="Jelaskan alasan penolakan (misal: titik GPS di luar wilayah RT 07, foto tidak sesuai, dll)..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-rose-300 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-rose-500"
-                required
-              />
-            </div>
-          )}
+            {/* Verification Confirmation Box (Section 39) */}
+            {actionType === 'APPROVE' && (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-bold text-emerald-900 text-sm">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>Konfirmasi Penetapan Data Lapangan Terverifikasi</span>
+                </div>
+                <p className="text-emerald-800">
+                  Anda akan menetapkan data ini sebagai <strong>VERIFIED REAL-WORLD DATA</strong> untuk GeoBase Resmi RT 07.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5 pt-1 text-[11px] font-mono text-emerald-900 bg-white/75 p-2 rounded-lg border border-emerald-200">
+                  <div><strong>Identitas:</strong> {survey.namaFasilitas}</div>
+                  <div><strong>GPS:</strong> {survey.latitude}, {survey.longitude}</div>
+                  <div><strong>Akurasi:</strong> ±{survey.accuracyMeters}m ({accuracyInfo.label})</div>
+                  <div><strong>Surveyor:</strong> {survey.capturedByName}</div>
+                  <div><strong>Waktu:</strong> {new Date(survey.capturedAt).toLocaleDateString('id-ID')}</div>
+                  <div><strong>Evidence:</strong> {survey.photoEvidence?.length ? `${survey.photoEvidence.length} Foto` : 'Metadata GPS'}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Notes or Reason Input */}
+            {actionType === 'APPROVE' ? (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Catatan Verifikasi Resmi
+                </label>
+                <textarea
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  rows={2}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-bold text-rose-700 uppercase tracking-wider mb-1.5">
+                  Alasan Penolakan Survey <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={2}
+                  placeholder="Jelaskan alasan penolakan (misal: titik GPS di luar wilayah RT 07, foto tidak sesuai, dll)..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-rose-300 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-rose-500"
+                  required
+                />
+              </div>
+            )}
         </form>
 
         {/* Footer */}

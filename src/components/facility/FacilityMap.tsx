@@ -659,31 +659,52 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
         </svg>
 
         {/* HUD Info Bar (Bottom Left) */}
-        <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200 shadow-md text-xs space-y-1.5 max-w-xs pointer-events-auto">
-          <div className="flex items-center justify-between font-bold text-slate-800 text-[11px] border-b border-slate-100 pb-1">
+        <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 shadow-lg text-xs space-y-2 max-w-sm pointer-events-auto">
+          {/* Trust Status Header (Section 44) */}
+          <div className="flex items-center justify-between font-bold text-slate-800 text-[11px] border-b border-slate-100 pb-1.5">
             <span className="flex items-center gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-[#123B5D]" /> GeoBase RT 07 RW 11 GPA
+              <Compass className="w-4 h-4 text-[#123B5D]" /> GEOBASE TRUST STATUS
             </span>
-            <span className="text-slate-500 font-mono text-[10px]">WGS84 Datum</span>
+            {(() => {
+              const total = facilities.filter(f => f.status !== 'DIHAPUS').length;
+              const verified = facilities.filter(f => f.status !== 'DIHAPUS' && (f.surveyStatus === 'VERIFIED' || f.locationStatus === 'VERIFIED')).length;
+              const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
+              const trustLevel = pct >= 80 ? 'HIGH' : pct >= 50 ? 'MEDIUM' : 'LOW';
+              const badgeStyle = pct >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : pct >= 50 ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-rose-100 text-rose-800 border-rose-300';
+              return (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeStyle}`}>
+                  KEPERCAYAAN: {trustLevel} ({pct}%)
+                </span>
+              );
+            })()}
           </div>
 
-          <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-slate-600">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Baik ({facilities.filter(f => f.kondisi === 'BAIK').length})
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Cukup ({facilities.filter(f => f.kondisi === 'CUKUP_BAIK').length})
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Rusak Ringan ({facilities.filter(f => f.kondisi === 'RUSAK_RINGAN').length})
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" /> Rusak Berat ({facilities.filter(f => f.kondisi === 'RUSAK_BERAT').length})
+          {/* Map Legend (Section 17) */}
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">LEGENDA STATUS DATA:</span>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-slate-600">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> 🟢 Data Terverifikasi
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> 🟡 Menunggu Verifikasi
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> 🔵 Data Referensi
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block" /> ⚪ Belum Diverifikasi
+              </div>
             </div>
           </div>
 
-          <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500">
-            <span>Stale Key: 🟢 Fresh 🟡 Aging 🔴 Stale</span>
+          {/* Section 45: No False Claim Notice */}
+          <div className="pt-1.5 border-t border-slate-100 text-[9px] text-slate-500 italic leading-tight">
+            "Peta berisi kombinasi data terverifikasi, data referensi, dan data yang menunggu verifikasi."
+          </div>
+
+          <div className="pt-1 flex items-center justify-between text-[9px] text-slate-500">
+            <span>Stale: 🟢&lt;90h 🟡&lt;180h 🔴&gt;180h</span>
             <label className="flex items-center gap-1 cursor-pointer">
               <input
                 type="checkbox"
@@ -691,7 +712,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
                 onChange={(e) => setShowAccuracyRadius(e.target.checked)}
                 className="w-3 h-3 rounded text-indigo-600"
               />
-              Akurasi Buffer
+              Akurasi Buffer (±m)
             </label>
           </div>
         </div>

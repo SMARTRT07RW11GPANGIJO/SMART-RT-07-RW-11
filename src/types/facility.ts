@@ -54,11 +54,62 @@ export type VerificationStatus =
   | 'VERIFIED'
   | 'REJECTED';
 
-export type GPSAccuracyGrade =
+export type FieldSurveyStatus =
+  | 'REFERENCE'
+  | 'PENDING_SURVEY'
+  | 'SURVEY_CAPTURED'
+  | 'PENDING_REVIEW'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'RESURVEY_REQUIRED'
+  | 'CHANGE_REQUESTED';
+
+export type GPSPrecisionStatus =
   | 'HIGH_PRECISION'    // <= 5m
-  | 'ACCEPTABLE'        // > 5m - <= 15m
-  | 'LOW_PRECISION'      // > 15m - <= 30m
-  | 'REQUIRES_REVIEW';  // > 30m
+  | 'ACCEPTABLE'        // > 5m - <= 10m
+  | 'LOW_PRECISION'      // > 10m - <= 25m
+  | 'REQUIRES_REVIEW';  // > 25m
+
+export type GPSAccuracyGrade = GPSPrecisionStatus;
+
+export type GPSSignalStatus =
+  | 'ACQUIRING'
+  | 'GOOD'
+  | 'ACCEPTABLE'
+  | 'POOR'
+  | 'UNAVAILABLE';
+
+export type DistanceComparisonStatus =
+  | 'MATCH'
+  | 'NEAR'
+  | 'SIGNIFICANT_DIFFERENCE'
+  | 'REQUIRES_REVIEW'
+  | 'NO_REFERENCE';
+
+export type QualityScoreGrade =
+  | 'EXCELLENT'
+  | 'GOOD'
+  | 'FAIR'
+  | 'POOR'
+  | 'REQUIRES_REVIEW';
+
+export type PhotoCategory =
+  | 'FRONT'
+  | 'CONDITION'
+  | 'DAMAGE'
+  | 'SURROUNDING'
+  | 'IDENTIFICATION';
+
+export interface FieldSurveyChecklist {
+  locationMatch: boolean;
+  physicalFound: boolean;
+  conditionMatch: boolean;
+  photoAvailable: boolean;
+  gpsAccurate: boolean;
+  insideRt: boolean;
+  notDuplicate: boolean;
+  dataComplete: boolean;
+}
 
 export type DataStaleStatus = 'FRESH' | 'AGING' | 'STALE';
 
@@ -168,8 +219,69 @@ export interface RTBoundary {
   updatedAt: string;
 }
 
+export interface FieldSurvey {
+  surveyId: string;
+  facilityId?: string;
+  surveyCode: string; // SURVEY-YYYYMMDD-XXXXXX
+  surveyorId: string;
+  surveyorName: string;
+
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  altitude: number | null;
+  heading: number | null;
+  speed: number | null;
+
+  capturedAt: string;
+  deviceTimestamp: string;
+  serverTimestamp: string;
+
+  gpsSignalStatus: GPSSignalStatus;
+  gpsPrecisionStatus: GPSPrecisionStatus;
+
+  photoEvidenceId?: string;
+  photoEvidenceList?: GeoEvidence[];
+  photoCount: number;
+
+  insideRtBoundary: boolean;
+  distanceFromExpectedPoint: number | null;
+  expectedPointStatus?: DistanceComparisonStatus;
+
+  surveyStatus: FieldSurveyStatus;
+
+  reviewerId?: string;
+  reviewerName?: string;
+  reviewedAt?: string;
+  reviewNote?: string;
+
+  checklist?: FieldSurveyChecklist;
+  qualityScoreGrade?: QualityScoreGrade;
+
+  requestId: string;
+  createdAt: string;
+  updatedAt: string;
+
+  dataSource: 'GPS_ON_SITE' | 'REFERENCE';
+  sourceConfidence: 'HIGH' | 'MEDIUM' | 'LOW';
+  version: number;
+}
+
+export interface SurveySession {
+  sessionId: string;
+  surveyorId: string;
+  surveyorName: string;
+  startedAt: string;
+  endedAt?: string;
+  deviceInfo?: string;
+  surveyCount: number;
+  verifiedCount: number;
+  pendingCount: number;
+}
+
 export interface GeoSurvey {
   surveyId: string; // SURVEY-YYYYMMDD-XXXXXX
+  surveyCode?: string;
   requestId: string; // REQ-YYYYMMDD-XXXXXX
   geoId?: string;
   fasilitasId?: string;
@@ -180,14 +292,22 @@ export interface GeoSurvey {
   longitude: number;
   accuracyMeters: number;
   accuracyGrade: GPSAccuracyGrade;
+  gpsSignalStatus?: GPSSignalStatus;
+  gpsPrecisionStatus?: GPSPrecisionStatus;
   conditionScore: number;
   status: FacilityStatus;
   prioritas: FacilityPriority;
-  source: 'SURVEYED';
-  verificationStatus: VerificationStatus;
+  source: 'SURVEYED' | 'REFERENCE';
+  verificationStatus: VerificationStatus | FieldSurveyStatus;
+  surveyStatus?: FieldSurveyStatus;
   capturedAt: string;
   capturedBy: string;
   capturedByName: string;
+  insideRtBoundary?: boolean;
+  distanceFromExpectedPoint?: number | null;
+  expectedPointStatus?: DistanceComparisonStatus;
+  checklist?: FieldSurveyChecklist;
+  qualityScoreGrade?: QualityScoreGrade;
   deviceMetadata?: {
     userAgent?: string;
     platform?: string;
@@ -196,10 +316,14 @@ export interface GeoSurvey {
     speed?: number | null;
   };
   photoEvidence?: GeoEvidence[];
+  photoCount?: number;
   notes?: string;
+  reviewerId?: string;
+  reviewerName?: string;
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNotes?: string;
+  reviewNote?: string;
 }
 
 export interface FasilitasLingkungan {
