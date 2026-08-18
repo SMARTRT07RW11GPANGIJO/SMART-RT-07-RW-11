@@ -2,6 +2,40 @@
 // Production Grade Geospatial Visualization for RT 07 Facilities, Boundary, Roads, and GPS Evidence
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { APIProvider, Map, AdvancedMarker, Pin, useMap } from '@vis.gl/react-google-maps';
+
+// Helper component to draw polygon
+const MapPolygon: React.FC<{ paths: {lat: number, lng: number}[], options: any }> = ({ paths, options }) => {
+  const map = useMap();
+  const [polygon, setPolygon] = useState<google.maps.Polygon | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+    const p = new google.maps.Polygon({ paths, ...options });
+    p.setMap(map);
+    setPolygon(p);
+    return () => p.setMap(null);
+  }, [map, paths, options]);
+
+  return null;
+}
+
+// Helper component to draw polyline
+const MapPolyline: React.FC<{ path: {lat: number, lng: number}[], options: any }> = ({ path, options }) => {
+  const map = useMap();
+  const [polyline, setPolyline] = useState<google.maps.Polyline | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+    const p = new google.maps.Polyline({ path, ...options });
+    p.setMap(map);
+    setPolyline(p);
+    return () => p.setMap(null);
+  }, [map, path, options]);
+
+  return null;
+}
+
 import {
   FasilitasLingkungan,
   FacilityCategory,
@@ -16,7 +50,7 @@ import {
   PRIORITY_METADATA,
   RT07_REFERENCE_BOUNDARY,
   RT07_REFERENCE_ROADS,
-  RT07_REFERENCE_DRAINAGE,
+  
   getGPSAccuracyGrade,
   calculateStaleStatus
 } from '../../config/facilityConfig';
@@ -61,6 +95,14 @@ interface FacilityMapProps {
   onOpenFieldSurveyModal?: (facility?: FasilitasLingkungan) => void;
 }
 
+
+const API_KEY =
+  process.env.GOOGLE_MAPS_PLATFORM_KEY ||
+  (import.meta as any).env?.VITE_GOOGLE_MAPS_PLATFORM_KEY ||
+  (globalThis as any).GOOGLE_MAPS_PLATFORM_KEY ||
+  '';
+const hasValidKey = Boolean(API_KEY) && API_KEY !== 'YOUR_API_KEY';
+
 export const FacilityMap: React.FC<FacilityMapProps> = ({
   facilities,
   selectedFacility,
@@ -93,6 +135,32 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
   const svgContainerRef = useRef<HTMLDivElement>(null);
 
   // Live Location Tracker
+  
+  if (!hasValidKey) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-50 p-8 rounded-3xl border border-slate-200">
+        <div className="text-center max-w-xl bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+          <Compass className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Google Maps API Key Required</h2>
+          <p className="text-sm text-slate-600 mb-6">
+            Sistem GeoBase membutuhkan koneksi ke Google Maps Platform untuk memuat peta digital lingkungan RT 07.
+          </p>
+          <div className="text-left text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <p className="font-bold text-slate-700 mb-2">Langkah Pemasangan:</p>
+            <ol className="list-decimal pl-5 space-y-2 text-slate-600">
+              <li>Dapatkan API Key dari <a href="https://console.cloud.google.com/google/maps-apis/start?utm_campaign=gmp-code-assist-ais" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Google Cloud Console</a>.</li>
+              <li>Buka <strong>Settings</strong> (ikon ⚙️ gear di pojok kanan atas).</li>
+              <li>Pilih menu <strong>Secrets</strong>.</li>
+              <li>Ketik <code className="bg-slate-200 px-1 py-0.5 rounded">GOOGLE_MAPS_PLATFORM_KEY</code> lalu tekan Enter.</li>
+              <li>Tempelkan API Key Anda dan tekan Enter.</li>
+            </ol>
+            <p className="mt-4 text-xs text-slate-500 italic">Aplikasi akan melakukan reload secara otomatis setelah kunci dimasukkan.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleLocateMe = () => {
     if (!navigator.geolocation) return;
     setIsLocatingUser(true);
@@ -332,338 +400,155 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
       {/* Main Interactive Map Stage */}
       <div className="relative w-full overflow-hidden bg-slate-950 min-h-[500px] sm:min-h-[580px]" ref={svgContainerRef}>
         {/* SVG Interactive Canvas */}
-        <svg
-          viewBox="0 0 1000 700"
-          className="w-full h-full cursor-crosshair select-none"
-          onClick={svgPointToLatLng}
-          style={{
-            background:
-              mapLayer === 'SATELLITE'
-                ? '#0f172a'
-                : mapLayer === 'INFRASTRUCTURE'
-                ? '#090d16'
-                : '#f8fafc'
-          }}
-        >
-          {/* Map Grid / Grid Lines */}
-          <defs>
-            <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-              <path
-                d="M 50 0 L 0 0 0 50"
-                fill="none"
-                stroke={mapLayer === 'STREET' ? '#e2e8f0' : '#1e293b'}
-                strokeWidth="0.75"
-              />
-            </pattern>
-          </defs>
-
-          <rect width="1000" height="700" fill="url(#grid)" />
-
-          {/* RT 07 Official Boundary Polygon (Section 13) */}
-          {showBoundary && (
-            <g id="rt07-boundary">
-              <polygon
-                points={boundarySvgPoints}
-                fill={mapLayer === 'STREET' ? '#123B5D' : '#38bdf8'}
-                fillOpacity={mapLayer === 'STREET' ? '0.04' : '0.08'}
-                stroke={mapLayer === 'STREET' ? '#123B5D' : '#38bdf8'}
-                strokeWidth="2.5"
-                strokeDasharray="6,4"
-              />
-              <text x="80" y="60" fill={mapLayer === 'STREET' ? '#123B5D' : '#38bdf8'} fontSize="11" fontWeight="bold">
-                BATAS REFERENSI WILAYAH RT 07 RW 11 GPA NGIJO
-              </text>
-              <text x="80" y="75" fill="#94a3b8" fontSize="9">
-                [REFERENCE: UNVERIFIED] Menunggu Survey GPS Batas
-              </text>
-            </g>
-          )}
-
-          {/* Road Network Lines (Section 14) */}
-          <g id="road-network">
-            {RT07_REFERENCE_ROADS.map((road) => {
-              const svgPoints = road.points
-                .map(([lat, lng]) => {
-                  const pt = latLngToSvgPoint(lat, lng);
-                  return `${pt.x},${pt.y}`;
-                })
-                .join(' ');
-              const isMain = road.type === 'JALAN_UTAMA';
-
-              return (
-                <g key={road.roadId}>
-                  <polyline
-                    points={svgPoints}
-                    fill="none"
-                    stroke={mapLayer === 'STREET' ? '#cbd5e1' : '#334155'}
-                    strokeWidth={isMain ? '26' : '16'}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  {isMain && (
-                    <polyline
-                      points={svgPoints}
-                      fill="none"
-                      stroke="#f59e0b"
-                      strokeWidth="2"
-                      strokeDasharray="8,8"
-                    />
-                  )}
-                </g>
-              );
-            })}
-          </g>
-
-          {/* Road Labels */}
-          <text x="70" y="175" fill="#64748b" fontSize="11" fontWeight="bold" fontFamily="sans-serif">
-            Jl. Permata Raya (Akses Utama RT 07)
-          </text>
-          <text x="145" y="380" fill="#94a3b8" fontSize="10" fontWeight="bold" transform="rotate(-90 145 380)">
-            Gang 1 (Blok A)
-          </text>
-          <text x="345" y="380" fill="#94a3b8" fontSize="10" fontWeight="bold" transform="rotate(-90 345 380)">
-            Gang 2 (Blok B)
-          </text>
-          <text x="545" y="380" fill="#94a3b8" fontSize="10" fontWeight="bold" transform="rotate(-90 545 380)">
-            Gang 3 (Blok C)
-          </text>
-
-          {/* Housing Block Zones */}
-          {/* Blok A */}
-          <rect x="70" y="240" width="80" height="300" rx="10" fill={mapLayer === 'STREET' ? '#f1f5f9' : '#1e293b'} stroke="#cbd5e1" strokeWidth="1" />
-          <text x="95" y="390" fill="#94a3b8" fontSize="11" fontWeight="bold">BLOK A</text>
-
-          {/* Blok B */}
-          <rect x="220" y="240" width="130" height="300" rx="10" fill={mapLayer === 'STREET' ? '#f1f5f9' : '#1e293b'} stroke="#cbd5e1" strokeWidth="1" />
-          <text x="265" y="390" fill="#94a3b8" fontSize="11" fontWeight="bold">BLOK B</text>
-
-          {/* Fasum & Balai Warga */}
-          <rect x="420" y="240" width="120" height="300" rx="14" fill={mapLayer === 'STREET' ? '#ecfdf5' : '#064e3b'} stroke="#a7f3d0" strokeWidth="1.5" />
-          <text x="440" y="270" fill="#047857" fontSize="11" fontWeight="bold">🌿 FASUM & TAMAN</text>
-          <text x="440" y="390" fill="#065f46" fontSize="10">Balai RT & Pendopo</text>
-
-          {/* Blok C */}
-          <rect x="620" y="240" width="120" height="300" rx="10" fill={mapLayer === 'STREET' ? '#f1f5f9' : '#1e293b'} stroke="#cbd5e1" strokeWidth="1" />
-          <text x="660" y="390" fill="#94a3b8" fontSize="11" fontWeight="bold">BLOK C</text>
-
-          {/* Drainage Overlay */}
-          {mapLayer === 'INFRASTRUCTURE' && (
-            <g id="drainage-layer">
-              {RT07_REFERENCE_DRAINAGE.map((drain) => {
-                const svgPoints = drain.points
-                  .map(([lat, lng]) => {
-                    const pt = latLngToSvgPoint(lat, lng);
-                    return `${pt.x},${pt.y}`;
-                  })
-                  .join(' ');
-                return (
-                  <g key={drain.drainId}>
-                    <polyline
-                      points={svgPoints}
-                      fill="none"
-                      stroke="#0284c7"
-                      strokeWidth="3.5"
-                      strokeDasharray="5,5"
-                    />
-                  </g>
-                );
-              })}
-            </g>
-          )}
-
-          {/* Measurement Distance Line */}
-          {measurePoints.length > 0 && (
-            <g id="measure-layer">
-              {measurePoints.map((pt, idx) => {
-                const sPt = latLngToSvgPoint(pt.lat, pt.lng);
-                return (
-                  <circle
-                    key={idx}
-                    cx={sPt.x}
-                    cy={sPt.y}
-                    r="6"
-                    fill="#f59e0b"
-                    stroke="#ffffff"
-                    strokeWidth="2"
-                  />
-                );
-              })}
-              {measurePoints.length === 2 && (
-                <>
-                  <line
-                    x1={latLngToSvgPoint(measurePoints[0].lat, measurePoints[0].lng).x}
-                    y1={latLngToSvgPoint(measurePoints[0].lat, measurePoints[0].lng).y}
-                    x2={latLngToSvgPoint(measurePoints[1].lat, measurePoints[1].lng).x}
-                    y2={latLngToSvgPoint(measurePoints[1].lat, measurePoints[1].lng).y}
-                    stroke="#f59e0b"
-                    strokeWidth="2.5"
-                    strokeDasharray="4,4"
-                  />
-                  <rect
-                    x={(latLngToSvgPoint(measurePoints[0].lat, measurePoints[0].lng).x + latLngToSvgPoint(measurePoints[1].lat, measurePoints[1].lng).x) / 2 - 40}
-                    y={(latLngToSvgPoint(measurePoints[0].lat, measurePoints[0].lng).y + latLngToSvgPoint(measurePoints[1].lat, measurePoints[1].lng).y) / 2 - 14}
-                    width="80"
-                    height="20"
-                    rx="6"
-                    fill="#0f172a"
-                  />
-                  <text
-                    x={(latLngToSvgPoint(measurePoints[0].lat, measurePoints[0].lng).x + latLngToSvgPoint(measurePoints[1].lat, measurePoints[1].lng).x) / 2}
-                    y={(latLngToSvgPoint(measurePoints[0].lat, measurePoints[0].lng).y + latLngToSvgPoint(measurePoints[1].lat, measurePoints[1].lng).y) / 2}
-                    fill="#ffffff"
-                    fontSize="10"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                  >
-                    {calculatedDistanceMeters} m
-                  </text>
-                </>
+        
+        <APIProvider apiKey={API_KEY} version="weekly">
+          <div className="absolute inset-0">
+            <Map
+              defaultCenter={{lat: GPA_NGIJO_BOUNDS.centerLat, lng: GPA_NGIJO_BOUNDS.centerLng}}
+              defaultZoom={GPA_NGIJO_BOUNDS.defaultZoom}
+              mapId="DEMO_MAP_ID"
+              internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
+              disableDefaultUI={true}
+              mapTypeId={mapLayer === 'SATELLITE' ? 'hybrid' : 'roadmap'}
+              onClick={(e) => {
+                if (isCoordinatePickerMode && onPickCoordinates && e.detail.latLng) {
+                  onPickCoordinates(e.detail.latLng.lat, e.detail.latLng.lng);
+                  setPickerPin({ lat: e.detail.latLng.lat, lng: e.detail.latLng.lng });
+                } else if (isMeasuring && e.detail.latLng) {
+                  setMeasurePoints(prev => prev.length >= 2 ? [{lat: e.detail.latLng!.lat, lng: e.detail.latLng!.lng}] : [...prev, {lat: e.detail.latLng!.lat, lng: e.detail.latLng!.lng}]);
+                } else {
+                  onSelectFacility(null as any);
+                }
+              }}
+            >
+              {/* Boundary */}
+              {showBoundary && (
+                <MapPolygon
+                  paths={RT07_REFERENCE_BOUNDARY.polygon.map(p => ({lat: p[0], lng: p[1]}))}
+                  options={{
+                    fillColor: '#ef4444',
+                    fillOpacity: 0.05,
+                    strokeColor: '#ef4444',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    strokeDasharray: '5,5'
+                  }}
+                />
               )}
-            </g>
-          )}
 
-          {/* User Live GPS Marker */}
-          {userGpsLocation && (
-            <g
-              transform={`translate(${latLngToSvgPoint(userGpsLocation.lat, userGpsLocation.lng).x}, ${
-                latLngToSvgPoint(userGpsLocation.lat, userGpsLocation.lng).y
-              })`}
-            >
-              <circle r="30" fill="#3b82f6" opacity="0.2" className="animate-ping" />
-              <circle r="16" fill="#3b82f6" opacity="0.3" />
-              <circle r="8" fill="#2563eb" stroke="#ffffff" strokeWidth="2.5" />
-              <text y="-18" textAnchor="middle" fill="#2563eb" fontSize="10" fontWeight="bold">
-                Posisi Anda (±{userGpsLocation.accuracy}m)
-              </text>
-            </g>
-          )}
-
-          {/* Facility Markers with Accuracy Buffers and Status Tags */}
-          {filteredFacilities.map((facility) => {
-            const { x, y } = latLngToSvgPoint(facility.latitude, facility.longitude);
-            const isSelected = selectedFacility?.fasilitasId === facility.fasilitasId;
-            const isHovered = hoveredFacility?.fasilitasId === facility.fasilitasId;
-            const isEmergency = facility.tingkatPrioritas === 'DARURAT';
-            
-            let statusColor = '#94a3b8'; // default gray
-            if (facility.surveyStatus === 'FIELD_VERIFIED' || facility.locationStatus === 'FIELD_VERIFIED') statusColor = '#10b981'; // green
-            else if (facility.surveyStatus === 'PENDING_REVIEW' || facility.locationStatus === 'PENDING_REVIEW') statusColor = '#f97316'; // orange
-            else if (facility.surveyStatus === 'REJECTED' || facility.locationStatus === 'REJECTED') statusColor = '#ef4444'; // red
-            else if (facility.surveyStatus === 'RESURVEY_REQUIRED') statusColor = '#a855f7'; // purple
-            else if (facility.surveyStatus === 'REFERENCE_UNVERIFIED' || facility.locationStatus === 'REFERENCE_UNVERIFIED' || !facility.surveyStatus) statusColor = '#eab308'; // yellow
-            
-            const accMeters = facility.accuracyMeters || facility.akurasiLokasi || 4;
-            const staleInfo = calculateStaleStatus(facility.lastSurveyedAt);
-
-            return (
-              <g
-                key={facility.fasilitasId}
-                transform={`translate(${x}, ${y})`}
-                className="cursor-pointer transition-transform duration-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectFacility(facility);
-                }}
-                onMouseEnter={() => setHoveredFacility(facility)}
-                onMouseLeave={() => setHoveredFacility(null)}
-              >
-                {/* Accuracy Radius Buffer Circle (Section 7) */}
-                {showAccuracyRadius && (
-                  <circle
-                    r={Math.max(10, Math.min(45, accMeters * 3))}
-                    fill={statusColor}
-                    opacity={isSelected ? '0.25' : '0.12'}
-                    stroke={statusColor}
-                    strokeWidth="1"
-                    strokeDasharray="3,3"
-                  />
-                )}
-
-                {/* Pulse Ring for Emergency / Selected */}
-                {(isEmergency || isSelected) && (
-                  <circle
-                    r={isSelected ? '24' : '20'}
-                    fill={isEmergency ? '#ef4444' : '#123B5D'}
-                    opacity="0.3"
-                    className="animate-ping"
-                  />
-                )}
-
-                {/* Marker Outer Circle */}
-                <circle
-                  r={isSelected ? '16' : '12'}
-                  fill={isEmergency ? '#dc2626' : isSelected ? '#123B5D' : '#ffffff'}
-                  stroke={isEmergency ? '#fee2e2' : statusColor}
-                  strokeWidth={isSelected ? '3.5' : '2.5'}
-                  className="shadow-md"
+              {/* Roads */}
+              {showBoundary && RT07_REFERENCE_ROADS.map(road => (
+                <MapPolyline
+                  key={road.roadId}
+                  path={road.points.map(p => ({lat: p[0], lng: p[1]}))}
+                  options={{
+                    strokeColor: mapLayer === 'STREET' ? '#cbd5e1' : '#334155',
+                    strokeOpacity: 1,
+                    strokeWeight: road.type === 'MAIN_ROAD' ? 12 : 6,
+                  }}
                 />
+              ))}
 
-                {/* Inner Icon Dot / Status Indicator */}
-                <circle
-                  r="4.5"
-                  fill={isEmergency ? '#ffffff' : statusColor}
+              {/* Measurement */}
+              {measurePoints.length > 0 && (
+                <MapPolyline
+                  path={measurePoints}
+                  options={{
+                    strokeColor: '#f59e0b',
+                    strokeOpacity: 1,
+                    strokeWeight: 4,
+                  }}
                 />
+              )}
+              {measurePoints.length === 2 && (
+                <AdvancedMarker 
+                  position={{
+                    lat: (measurePoints[0].lat + measurePoints[1].lat) / 2,
+                    lng: (measurePoints[0].lng + measurePoints[1].lng) / 2
+                  }} 
+                  zIndex={1000}
+                >
+                  <div className="bg-slate-900 text-white text-[10px] font-bold px-3 py-1 rounded shadow-lg whitespace-nowrap">
+                    {calculatedDistanceMeters} m
+                  </div>
+                </AdvancedMarker>
+              )}
 
-                {/* Stale Data Indicator Dot (top right of marker) */}
-                <circle
-                  cx="8"
-                  cy="-8"
-                  r="3.5"
-                  fill={
-                    staleInfo.status === 'FRESH'
-                      ? '#10b981'
-                      : staleInfo.status === 'AGING'
-                      ? '#f59e0b'
-                      : '#ef4444'
-                  }
-                  stroke="#ffffff"
-                  strokeWidth="1"
-                />
+              {/* Facilities */}
+              {filteredFacilities.map(facility => {
+                const isSelected = selectedFacility?.fasilitasId === facility.fasilitasId;
+                const isHovered = hoveredFacility?.fasilitasId === facility.fasilitasId;
+                const isEmergency = facility.tingkatPrioritas === 'DARURAT';
+                
+                let statusColor = '#94a3b8'; // default gray
+                if (facility.surveyStatus === 'FIELD_VERIFIED' || facility.locationStatus === 'FIELD_VERIFIED') statusColor = '#10b981';
+                else if (facility.surveyStatus === 'PENDING_REVIEW' || facility.locationStatus === 'PENDING_REVIEW') statusColor = '#f97316';
+                else if (facility.surveyStatus === 'REJECTED' || facility.locationStatus === 'REJECTED') statusColor = '#ef4444';
+                else if (facility.surveyStatus === 'RESURVEY_REQUIRED') statusColor = '#a855f7';
+                else if (facility.surveyStatus === 'REFERENCE_UNVERIFIED' || facility.locationStatus === 'REFERENCE_UNVERIFIED' || !facility.surveyStatus) statusColor = '#eab308';
+                
+                const zIndex = isSelected ? 100 : (isEmergency ? 90 : 10);
 
-                {/* Hover / Selected Tooltip Tag */}
-                {(isHovered || isSelected) && (
-                  <g transform="translate(0, -26)">
-                    <rect
-                      x={-facility.namaFasilitas.length * 4 - 14}
-                      y="-18"
-                      width={facility.namaFasilitas.length * 8 + 28}
-                      height="24"
-                      rx="6"
-                      fill="#0f172a"
-                      opacity="0.95"
-                    />
-                    <text
-                      textAnchor="middle"
-                      y="-2"
-                      fill="#ffffff"
-                      fontSize="10"
-                      fontWeight="bold"
-                      fontFamily="sans-serif"
-                    >
-                      {facility.namaFasilitas}
-                    </text>
-                  </g>
-                )}
-              </g>
-            );
-          })}
+                return (
+                  <AdvancedMarker
+                    key={facility.fasilitasId}
+                    position={{lat: facility.latitude, lng: facility.longitude}}
+                    zIndex={zIndex}
+                    onClick={() => onSelectFacility(facility)}
+                    onMouseEnter={() => setHoveredFacility(facility)}
+                    onMouseLeave={() => setHoveredFacility(null)}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      {(isSelected || isEmergency) && (
+                        <div className={`absolute w-12 h-12 rounded-full opacity-30 animate-ping ${isEmergency ? 'bg-red-500' : 'bg-indigo-600'}`}></div>
+                      )}
+                      <div 
+                        className={`w-6 h-6 rounded-full border-2 shadow-md flex items-center justify-center transition-transform ${isSelected ? 'scale-125' : ''}`}
+                        style={{ backgroundColor: isEmergency ? '#dc2626' : (isSelected ? '#123B5D' : '#ffffff'), borderColor: isEmergency ? '#fee2e2' : statusColor }}
+                      >
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isEmergency ? '#ffffff' : statusColor }}></div>
+                      </div>
+                      
+                      {(isHovered || isSelected) && (
+                        <div className="absolute top-[-30px] whitespace-nowrap bg-slate-900 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg z-50">
+                          {facility.namaFasilitas}
+                        </div>
+                      )}
+                    </div>
+                  </AdvancedMarker>
+                );
+              })}
 
-          {/* Coordinate Picker Pin (if active) */}
-          {pickerPin && (
-            <g
-              transform={`translate(${latLngToSvgPoint(pickerPin.lat, pickerPin.lng).x}, ${
-                latLngToSvgPoint(pickerPin.lat, pickerPin.lng).y
-              })`}
-            >
-              <circle r="14" fill="#f59e0b" opacity="0.4" className="animate-ping" />
-              <circle r="8" fill="#d97706" stroke="#ffffff" strokeWidth="2" />
-              <text y="-14" textAnchor="middle" fill="#d97706" fontSize="10" fontWeight="bold">
-                Titik Terpilih ({pickerPin.lat}, {pickerPin.lng})
-              </text>
-            </g>
-          )}
-        </svg>
+              {/* User Live GPS Marker */}
+              {userGpsLocation && (
+                <AdvancedMarker position={{lat: userGpsLocation.lat, lng: userGpsLocation.lng}} zIndex={999}>
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-14 h-14 rounded-full bg-blue-500 opacity-20 animate-ping"></div>
+                    <div className="absolute w-8 h-8 rounded-full bg-blue-500 opacity-30"></div>
+                    <div className="w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-lg"></div>
+                    <div className="absolute top-[-24px] whitespace-nowrap text-blue-600 text-[10px] font-bold text-shadow-sm">
+                      Posisi Anda (±{userGpsLocation.accuracy}m)
+                    </div>
+                  </div>
+                </AdvancedMarker>
+              )}
+
+              {/* Picker Pin */}
+              {pickerPin && (
+                <AdvancedMarker position={{lat: pickerPin.lat, lng: pickerPin.lng}} zIndex={999}>
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute w-10 h-10 rounded-full bg-amber-500 opacity-40 animate-ping"></div>
+                    <div className="w-4 h-4 rounded-full bg-amber-600 border-2 border-white shadow-lg"></div>
+                    <div className="absolute top-[-24px] whitespace-nowrap text-amber-700 text-[10px] font-bold">
+                      Titik Terpilih
+                    </div>
+                  </div>
+                </AdvancedMarker>
+              )}
+            </Map>
+          </div>
+        </APIProvider>
+
 
         {/* HUD Info Bar (Bottom Left) */}
         <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200 shadow-lg text-xs space-y-2 max-w-sm pointer-events-auto">
