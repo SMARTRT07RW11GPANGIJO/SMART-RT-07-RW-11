@@ -58,7 +58,7 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
     latitude: -7.9018,
     longitude: 112.5975,
     akurasiLokasi: 3,
-    locationStatus: 'VERIFIED',
+    locationStatus: 'FIELD_VERIFIED',
     status: 'AKTIF',
     kondisi: 'BAIK',
     conditionScore: 5,
@@ -99,7 +99,7 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
     latitude: -7.9023,
     longitude: 112.5982,
     akurasiLokasi: 4,
-    locationStatus: 'VERIFIED',
+    locationStatus: 'FIELD_VERIFIED',
     status: 'AKTIF',
     kondisi: 'TIDAK_LAYAK',
     conditionScore: 0,
@@ -138,7 +138,7 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
     latitude: -7.9031,
     longitude: 112.5991,
     akurasiLokasi: 5,
-    locationStatus: 'VERIFIED',
+    locationStatus: 'FIELD_VERIFIED',
     status: 'AKTIF',
     kondisi: 'RUSAK_SEDANG',
     conditionScore: 2,
@@ -177,7 +177,7 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
     latitude: -7.9026,
     longitude: 112.5986,
     akurasiLokasi: 2,
-    locationStatus: 'VERIFIED',
+    locationStatus: 'FIELD_VERIFIED',
     status: 'AKTIF',
     kondisi: 'BAIK',
     conditionScore: 5,
@@ -216,7 +216,7 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
     latitude: -7.9027,
     longitude: 112.5983,
     akurasiLokasi: 3,
-    locationStatus: 'VERIFIED',
+    locationStatus: 'FIELD_VERIFIED',
     status: 'AKTIF',
     kondisi: 'CUKUP_BAIK',
     conditionScore: 4,
@@ -255,7 +255,7 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
     latitude: -7.9038,
     longitude: 112.5979,
     akurasiLokasi: 4,
-    locationStatus: 'VERIFIED',
+    locationStatus: 'FIELD_VERIFIED',
     status: 'AKTIF',
     kondisi: 'BAIK',
     conditionScore: 5,
@@ -339,7 +339,7 @@ class FacilityService {
           latitude: f.latitude,
           longitude: f.longitude,
           source: (f.coordinateSource || 'SURVEYED') as GeoSource,
-          verificationStatus: (f.surveyStatus || 'VERIFIED') as VerificationStatus,
+          verificationStatus: (f.surveyStatus || 'FIELD_VERIFIED') as VerificationStatus,
           accuracyMeters: f.accuracyMeters || f.akurasiLokasi || 4,
           accuracyGrade: (f.accuracyGrade || 'HIGH_PRECISION') as GPSAccuracyGrade,
           capturedAt: f.createdAt,
@@ -546,7 +546,7 @@ class FacilityService {
 
     // 2. Offline Fail-Closed Check
     if (!this.backendOnline || !actor.isBackendConnected) {
-      this.logAudit(actor, 'CREATE_FACILITY', 'FASILITAS', 'PENDING', 'AUTHORIZED', 'FAILED', undefined, undefined, 'Offline fail-closed rejected write');
+      this.logAudit(actor, 'CREATE_FACILITY', 'FASILITAS', 'PENDING_REVIEW', 'AUTHORIZED', 'FAILED', undefined, undefined, 'Offline fail-closed rejected write');
       return {
         success: false,
         error: 'Backend belum terhubung. Perubahan belum tersimpan ke server.',
@@ -1142,7 +1142,7 @@ class FacilityService {
       status: surveyData.status || (existingFacility ? existingFacility.status : 'AKTIF'),
       prioritas: surveyData.prioritas || (existingFacility ? existingFacility.tingkatPrioritas : 'NORMAL'),
       source: 'SURVEYED',
-      verificationStatus: 'PENDING',
+      verificationStatus: 'PENDING_REVIEW',
       surveyStatus: 'PENDING_REVIEW',
       capturedAt: now,
       capturedBy: actor.userId,
@@ -1187,7 +1187,7 @@ class FacilityService {
       existingGeo.accuracyMeters = accuracyMeters;
       existingGeo.accuracyGrade = accuracyInfo.grade;
       existingGeo.source = 'SURVEYED';
-      existingGeo.verificationStatus = 'PENDING';
+      existingGeo.verificationStatus = 'PENDING_REVIEW';
       existingGeo.capturedAt = now;
       existingGeo.capturedBy = actor.nama;
       existingGeo.updatedAt = now;
@@ -1203,7 +1203,7 @@ class FacilityService {
         latitude,
         longitude,
         source: 'SURVEYED',
-        verificationStatus: 'PENDING',
+        verificationStatus: 'PENDING_REVIEW',
         accuracyMeters,
         accuracyGrade: accuracyInfo.grade,
         capturedAt: now,
@@ -1257,6 +1257,9 @@ class FacilityService {
     }
 
     const survey = this.geoSurveys.find((s) => s.surveyId === surveyId);
+    if (survey && survey.capturedBy === actor.userId) {
+      return { success: false, error: "SURVEY TIDAK DAPAT DIPROSES OLEH SURVEYOR YANG SAMA (Separation of Duties).", code: "SELF_APPROVAL_REJECTED" };
+    }
     if (!survey) {
       return { success: false, error: 'Data survey lapangan tidak ditemukan.', code: 'NOT_FOUND' };
     }
@@ -1272,8 +1275,8 @@ class FacilityService {
     }
 
     const now = new Date().toISOString();
-    survey.verificationStatus = 'VERIFIED';
-    survey.surveyStatus = 'VERIFIED';
+    survey.verificationStatus = 'FIELD_VERIFIED';
+    survey.surveyStatus = 'FIELD_VERIFIED';
     survey.reviewedBy = actor.nama;
     survey.reviewerId = actor.userId;
     survey.reviewerName = actor.nama;
@@ -1284,7 +1287,7 @@ class FacilityService {
     // Update underlying GeoObject
     const targetGeo = this.geoObjects.find((g) => g.geoId === survey.geoId);
     if (targetGeo) {
-      targetGeo.verificationStatus = 'VERIFIED';
+      targetGeo.verificationStatus = 'FIELD_VERIFIED';
       targetGeo.verifiedBy = actor.nama;
       targetGeo.verifiedAt = now;
       targetGeo.updatedAt = now;
@@ -1299,8 +1302,8 @@ class FacilityService {
         facility.accuracyMeters = survey.accuracyMeters;
         facility.accuracyGrade = survey.accuracyGrade;
         facility.coordinateSource = 'SURVEYED';
-        facility.surveyStatus = 'VERIFIED';
-        facility.locationStatus = 'VERIFIED';
+        facility.surveyStatus = 'FIELD_VERIFIED';
+        facility.locationStatus = 'FIELD_VERIFIED';
         facility.lastSurveyedAt = survey.capturedAt;
         facility.lastSurveyedBy = survey.capturedByName;
         facility.staleStatus = 'FRESH';
@@ -1313,7 +1316,7 @@ class FacilityService {
     }
 
     this.saveGeoState();
-    this.logAudit(actor, 'VERIFY_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'VERIFIED', `Survey ${surveyId} diverifikasi resmi oleh ${actor.nama}.`);
+    this.logAudit(actor, 'VERIFY_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING_REVIEW', 'FIELD_VERIFIED', `Survey ${surveyId} diverifikasi resmi oleh ${actor.nama}.`);
 
     return { success: true, data: survey };
   }
@@ -1338,6 +1341,9 @@ class FacilityService {
     }
 
     const survey = this.geoSurveys.find((s) => s.surveyId === surveyId);
+    if (survey && survey.capturedBy === actor.userId) {
+      return { success: false, error: "SURVEY TIDAK DAPAT DIPROSES OLEH SURVEYOR YANG SAMA (Separation of Duties).", code: "SELF_APPROVAL_REJECTED" };
+    }
     if (!survey) {
       return { success: false, error: 'Data survey tidak ditemukan.', code: 'NOT_FOUND' };
     }
@@ -1360,7 +1366,7 @@ class FacilityService {
     }
 
     this.saveGeoState();
-    this.logAudit(actor, 'REJECT_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'REJECTED', `Survey ditolak: ${rejectionReason}`);
+    this.logAudit(actor, 'REJECT_SURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING_REVIEW', 'REJECTED', `Survey ditolak: ${rejectionReason}`);
 
     return { success: true, data: survey };
   }
@@ -1385,6 +1391,9 @@ class FacilityService {
     }
 
     const survey = this.geoSurveys.find((s) => s.surveyId === surveyId);
+    if (survey && survey.capturedBy === actor.userId) {
+      return { success: false, error: "SURVEY TIDAK DAPAT DIPROSES OLEH SURVEYOR YANG SAMA (Separation of Duties).", code: "SELF_APPROVAL_REJECTED" };
+    }
     if (!survey) {
       return { success: false, error: 'Data survey tidak ditemukan.', code: 'NOT_FOUND' };
     }
@@ -1400,7 +1409,7 @@ class FacilityService {
     survey.reviewNote = survey.reviewNotes;
 
     this.saveGeoState();
-    this.logAudit(actor, 'REQUEST_RESURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING', 'RESURVEY_REQUIRED', `Diminta survey ulang on-site: ${reason}`);
+    this.logAudit(actor, 'REQUEST_RESURVEY', 'FASILITAS', surveyId, 'AUTHORIZED', 'SUCCESS', 'PENDING_REVIEW', 'RESURVEY_REQUIRED', `Diminta survey ulang on-site: ${reason}`);
 
     return { success: true, data: survey };
   }
@@ -1471,7 +1480,7 @@ class FacilityService {
 
   public getGeoSurveys(actor: FacilityActorSession): GeoSurvey[] {
     if (!this.hasPermission(actor.role, 'VIEW_INTERNAL')) {
-      return this.geoSurveys.filter((s) => s.verificationStatus === 'VERIFIED');
+      return this.geoSurveys.filter((s) => s.verificationStatus === 'FIELD_VERIFIED');
     }
     return this.geoSurveys;
   }
@@ -1498,7 +1507,7 @@ class FacilityService {
 
   public getUnverifiedGeoObjects(actor: FacilityActorSession): GeoObject[] {
     if (!this.hasPermission(actor.role, 'VIEW_INTERNAL')) return [];
-    return this.geoObjects.filter((g) => g.verificationStatus !== 'VERIFIED');
+    return this.geoObjects.filter((g) => g.verificationStatus !== 'FIELD_VERIFIED');
   }
 
   public getStaleFacilities(actor: FacilityActorSession): FasilitasLingkungan[] {
@@ -1566,7 +1575,7 @@ class FacilityService {
         latitude: lat || undefined,
         longitude: lng || undefined,
         source: 'IMPORTED', // STRICT: Tagged as IMPORTED & UNVERIFIED
-        verificationStatus: 'UNVERIFIED',
+        verificationStatus: 'REFERENCE_UNVERIFIED',
         accuracyMeters: props.accuracy || 10,
         accuracyGrade: 'ACCEPTABLE',
         capturedAt: now,
@@ -1608,7 +1617,7 @@ class FacilityService {
         status: f.status,
         tingkatPrioritas: f.tingkatPrioritas,
         source: f.coordinateSource || 'SURVEYED',
-        surveyStatus: f.surveyStatus || 'VERIFIED',
+        surveyStatus: f.surveyStatus || 'FIELD_VERIFIED',
         accuracyMeters: f.accuracyMeters || 4,
         lastSurveyedAt: f.lastSurveyedAt,
         lastSurveyedBy: f.lastSurveyedBy,

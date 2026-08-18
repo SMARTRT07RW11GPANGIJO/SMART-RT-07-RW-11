@@ -396,7 +396,7 @@ export const RT07_REFERENCE_BOUNDARY = {
   rwNumber: '11',
   areaName: 'Perumahan Griya Permata Alam (GPA) Ngijo RT 07 RW 11',
   source: 'REFERENCE' as const,
-  verificationStatus: 'UNVERIFIED' as const,
+  verificationStatus: 'REFERENCE_UNVERIFIED' as const,
   notes: 'Batas estimasi referensi spasial lingkungan. Wajib diverifikasi melalui survey GPS batas wilayah.',
   polygon: [
     [-7.9015, 112.5968],
@@ -416,7 +416,7 @@ export const RT07_REFERENCE_ROADS = [
     name: 'Jl. Permata Raya (Akses Utama)',
     type: 'JALAN_UTAMA',
     source: 'REFERENCE' as const,
-    verificationStatus: 'VERIFIED' as const,
+    verificationStatus: 'FIELD_VERIFIED' as const,
     points: [
       [-7.9016, 112.5970],
       [-7.9020, 112.5980],
@@ -429,7 +429,7 @@ export const RT07_REFERENCE_ROADS = [
     name: 'Gang 1 Blok A (Paving)',
     type: 'GANG',
     source: 'REFERENCE' as const,
-    verificationStatus: 'VERIFIED' as const,
+    verificationStatus: 'FIELD_VERIFIED' as const,
     points: [
       [-7.9018, 112.5975],
       [-7.9028, 112.5973]
@@ -440,7 +440,7 @@ export const RT07_REFERENCE_ROADS = [
     name: 'Gang 2 Blok B (Paving)',
     type: 'GANG',
     source: 'REFERENCE' as const,
-    verificationStatus: 'VERIFIED' as const,
+    verificationStatus: 'FIELD_VERIFIED' as const,
     points: [
       [-7.9022, 112.5983],
       [-7.9032, 112.5981]
@@ -451,7 +451,7 @@ export const RT07_REFERENCE_ROADS = [
     name: 'Gang 3 Blok C (Paving)',
     type: 'GANG',
     source: 'REFERENCE' as const,
-    verificationStatus: 'VERIFIED' as const,
+    verificationStatus: 'FIELD_VERIFIED' as const,
     points: [
       [-7.9026, 112.5991],
       [-7.9036, 112.5989]
@@ -465,7 +465,7 @@ export const RT07_REFERENCE_DRAINAGE = [
     name: 'Saluran Drainase Utama Jl. Permata Raya',
     type: 'SALURAN_PRIMER',
     source: 'REFERENCE' as const,
-    verificationStatus: 'UNVERIFIED' as const,
+    verificationStatus: 'REFERENCE_UNVERIFIED' as const,
     points: [
       [-7.9016, 112.5971],
       [-7.9021, 112.5981],
@@ -478,7 +478,7 @@ export const RT07_REFERENCE_DRAINAGE = [
     name: 'Drainase Sekunder Gang 1 Blok A',
     type: 'SALURAN_SEKUNDER',
     source: 'REFERENCE' as const,
-    verificationStatus: 'UNVERIFIED' as const,
+    verificationStatus: 'REFERENCE_UNVERIFIED' as const,
     points: [
       [-7.9019, 112.5976],
       [-7.9029, 112.5974]
@@ -489,7 +489,7 @@ export const RT07_REFERENCE_DRAINAGE = [
     name: 'Drainase Sekunder Gang 2 Blok B',
     type: 'SALURAN_SEKUNDER',
     source: 'REFERENCE' as const,
-    verificationStatus: 'UNVERIFIED' as const,
+    verificationStatus: 'REFERENCE_UNVERIFIED' as const,
     points: [
       [-7.9023, 112.5984],
       [-7.9033, 112.5982]

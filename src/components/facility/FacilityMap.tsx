@@ -76,7 +76,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<FacilityCategory | 'ALL'>('ALL');
   const [conditionFilter, setConditionFilter] = useState<FacilityCondition | 'ALL'>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<FacilityPriority | 'ALL'>('ALL');
-  const [verificationFilter, setVerificationFilter] = useState<'ALL' | 'VERIFIED' | 'PENDING' | 'UNVERIFIED'>('ALL');
+  const [verificationFilter, setVerificationFilter] = useState<'ALL' | 'FIELD_VERIFIED' | 'PENDING_REVIEW' | 'REFERENCE_UNVERIFIED'>('ALL');
   const [hoveredFacility, setHoveredFacility] = useState<FasilitasLingkungan | null>(null);
   const [pickerPin, setPickerPin] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -186,7 +186,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
       if (conditionFilter !== 'ALL' && f.kondisi !== conditionFilter) return false;
       if (priorityFilter !== 'ALL' && f.tingkatPrioritas !== priorityFilter) return false;
       if (verificationFilter !== 'ALL') {
-        const status = f.surveyStatus || f.locationStatus || 'VERIFIED';
+        const status = f.surveyStatus || f.locationStatus || 'FIELD_VERIFIED';
         if (status !== verificationFilter) return false;
       }
       if (searchQuery.trim()) {
@@ -545,7 +545,14 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
             const isSelected = selectedFacility?.fasilitasId === facility.fasilitasId;
             const isHovered = hoveredFacility?.fasilitasId === facility.fasilitasId;
             const isEmergency = facility.tingkatPrioritas === 'DARURAT';
-            const conditionColor = CONDITION_METADATA[facility.kondisi]?.dotColor || '#10b981';
+            
+            let statusColor = '#94a3b8'; // default gray
+            if (facility.surveyStatus === 'FIELD_VERIFIED' || facility.locationStatus === 'FIELD_VERIFIED') statusColor = '#10b981'; // green
+            else if (facility.surveyStatus === 'PENDING_REVIEW' || facility.locationStatus === 'PENDING_REVIEW') statusColor = '#f97316'; // orange
+            else if (facility.surveyStatus === 'REJECTED' || facility.locationStatus === 'REJECTED') statusColor = '#ef4444'; // red
+            else if (facility.surveyStatus === 'RESURVEY_REQUIRED') statusColor = '#a855f7'; // purple
+            else if (facility.surveyStatus === 'REFERENCE_UNVERIFIED' || facility.locationStatus === 'REFERENCE_UNVERIFIED' || !facility.surveyStatus) statusColor = '#eab308'; // yellow
+            
             const accMeters = facility.accuracyMeters || facility.akurasiLokasi || 4;
             const staleInfo = calculateStaleStatus(facility.lastSurveyedAt);
 
@@ -565,9 +572,9 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
                 {showAccuracyRadius && (
                   <circle
                     r={Math.max(10, Math.min(45, accMeters * 3))}
-                    fill={conditionColor}
+                    fill={statusColor}
                     opacity={isSelected ? '0.25' : '0.12'}
-                    stroke={conditionColor}
+                    stroke={statusColor}
                     strokeWidth="1"
                     strokeDasharray="3,3"
                   />
@@ -587,7 +594,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
                 <circle
                   r={isSelected ? '16' : '12'}
                   fill={isEmergency ? '#dc2626' : isSelected ? '#123B5D' : '#ffffff'}
-                  stroke={isEmergency ? '#fee2e2' : conditionColor}
+                  stroke={isEmergency ? '#fee2e2' : statusColor}
                   strokeWidth={isSelected ? '3.5' : '2.5'}
                   className="shadow-md"
                 />
@@ -595,7 +602,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
                 {/* Inner Icon Dot / Status Indicator */}
                 <circle
                   r="4.5"
-                  fill={isEmergency ? '#ffffff' : conditionColor}
+                  fill={isEmergency ? '#ffffff' : statusColor}
                 />
 
                 {/* Stale Data Indicator Dot (top right of marker) */}
@@ -667,7 +674,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
             </span>
             {(() => {
               const total = facilities.filter(f => f.status !== 'DIHAPUS').length;
-              const verified = facilities.filter(f => f.status !== 'DIHAPUS' && (f.surveyStatus === 'VERIFIED' || f.locationStatus === 'VERIFIED')).length;
+              const verified = facilities.filter(f => f.status !== 'DIHAPUS' && (f.surveyStatus === 'FIELD_VERIFIED' || f.locationStatus === 'FIELD_VERIFIED')).length;
               const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
               const trustLevel = pct >= 80 ? 'HIGH' : pct >= 50 ? 'MEDIUM' : 'LOW';
               const badgeStyle = pct >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : pct >= 50 ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-rose-100 text-rose-800 border-rose-300';
@@ -684,16 +691,19 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
             <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">LEGENDA STATUS DATA:</span>
             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-slate-600">
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> 🟢 Data Terverifikasi
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> 🟢 Field Verified
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> 🟡 Menunggu Verifikasi
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" /> 🟠 Pending Review
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> 🔵 Data Referensi
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block" /> 🟡 Reference Unverified
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block" /> ⚪ Belum Diverifikasi
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> 🔴 Rejected
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> 🟣 Resurvey Required
               </div>
             </div>
           </div>
@@ -772,8 +782,16 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px]">Status Validasi</span>
-                <span className="font-bold text-emerald-700">
-                  {selectedFacility.surveyStatus || 'TERVERIFIKASI'}
+                <span className={`font-bold text-[10px] ${
+                  (selectedFacility.surveyStatus === 'FIELD_VERIFIED' || selectedFacility.locationStatus === 'FIELD_VERIFIED') 
+                    ? 'text-emerald-600'
+                    : 'text-amber-600'
+                }`}>
+                  {(selectedFacility.surveyStatus === 'FIELD_VERIFIED' || selectedFacility.locationStatus === 'FIELD_VERIFIED') 
+                    ? 'REAL-WORLD VERIFIED' 
+                    : (selectedFacility.surveyStatus === 'REFERENCE_UNVERIFIED' || selectedFacility.locationStatus === 'REFERENCE_UNVERIFIED' || !selectedFacility.surveyStatus)
+                    ? 'REFERENCE — BELUM DIVERIFIKASI LAPANGAN'
+                    : selectedFacility.surveyStatus?.replace(/_/g, ' ') || 'TERVERIFIKASI'}
                 </span>
               </div>
               <div>

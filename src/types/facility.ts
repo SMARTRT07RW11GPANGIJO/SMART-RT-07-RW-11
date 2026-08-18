@@ -40,7 +40,7 @@ export type FacilityPriority =
   | 'TINGGI'
   | 'DARURAT';
 
-export type LocationVerificationStatus = 'VERIFIED' | 'UNVERIFIED' | 'PENDING' | 'REJECTED';
+export type LocationVerificationStatus = 'FIELD_VERIFIED' | 'REFERENCE_UNVERIFIED' | 'PENDING_REVIEW' | 'REJECTED';
 
 export type GeoSource =
   | 'SURVEYED'
@@ -49,20 +49,18 @@ export type GeoSource =
   | 'UNVERIFIED';
 
 export type VerificationStatus =
-  | 'UNVERIFIED'
-  | 'PENDING'
-  | 'VERIFIED'
+  | 'REFERENCE_UNVERIFIED'
+  | 'PENDING_REVIEW'
+  | 'FIELD_VERIFIED'
   | 'REJECTED';
 
 export type FieldSurveyStatus =
-  | 'REFERENCE'
-  | 'PENDING_SURVEY'
-  | 'SURVEY_CAPTURED'
+  | 'REFERENCE_UNVERIFIED'
+  | 'SURVEY_IN_PROGRESS'
   | 'PENDING_REVIEW'
-  | 'VERIFIED'
+  | 'FIELD_VERIFIED'
   | 'REJECTED'
-  | 'RESURVEY_REQUIRED'
-  | 'CHANGE_REQUESTED';
+  | 'RESURVEY_REQUIRED';
 
 export type GPSPrecisionStatus =
   | 'HIGH_PRECISION'    // <= 5m
