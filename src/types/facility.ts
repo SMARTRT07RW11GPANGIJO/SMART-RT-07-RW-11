@@ -40,7 +40,7 @@ export type FacilityPriority =
   | 'TINGGI'
   | 'DARURAT';
 
-export type LocationVerificationStatus = 'FIELD_VERIFIED' | 'REFERENCE_UNVERIFIED' | 'PENDING_REVIEW' | 'REJECTED';
+export type LocationVerificationStatus = 'FIELD_VERIFIED' | 'REFERENCE_UNVERIFIED' | 'PENDING_REVIEW' | 'RESURVEY_REQUIRED' | 'REJECTED';
 
 export type GeoSource =
   | 'SURVEYED'
@@ -52,6 +52,7 @@ export type VerificationStatus =
   | 'REFERENCE_UNVERIFIED'
   | 'PENDING_REVIEW'
   | 'FIELD_VERIFIED'
+  | 'RESURVEY_REQUIRED'
   | 'REJECTED';
 
 export type FieldSurveyStatus =
@@ -98,15 +99,182 @@ export type PhotoCategory =
   | 'SURROUNDING'
   | 'IDENTIFICATION';
 
+export type GeoBaseCertificationState =
+  | 'NOT_CERTIFIED'
+  | 'PILOT_CERTIFIED'
+  | 'PARTIALLY_VERIFIED'
+  | 'FULLY_CERTIFIED';
+
+export type FieldDataAcceptanceStatus =
+  | 'NOT_ACCEPTED'
+  | 'PARTIALLY_ACCEPTED'
+  | 'PILOT_ACCEPTED'
+  | 'FIELD_DATA_ACCEPTED';
+
+export interface RealWorldEvidencePackageStatus {
+  gpsEvidence: boolean;
+  timestampEvidence: boolean;
+  surveyorIdentity: boolean;
+  photoEvidence: boolean;
+  fieldChecklist: boolean;
+  geofenceResult: boolean;
+  surveyRecord: boolean;
+  reviewerDecision: boolean;
+  auditRecord: boolean;
+  integrityHash: boolean;
+  allComplete: boolean;
+}
+
+export interface CertificationMetrics {
+  totalScope: number;
+  surveyRequired: number;
+  surveyInProgress: number;
+  pendingReview: number;
+  fieldVerified: number;
+  resurveyRequired: number;
+  rejected: number;
+  remaining: number;
+}
+
+export interface GeoBaseScopeItem {
+  facilityId: string;
+  facilityCode: string;
+  facilityCategory: FacilityCategory;
+  facilityName: string;
+  referenceCoordinate: { latitude: number; longitude: number };
+  surveyCoordinate?: { latitude: number; longitude: number; accuracyMeters?: number };
+  verifiedCoordinate?: { latitude: number; longitude: number; accuracyMeters?: number };
+  surveyStatus: FieldSurveyStatus;
+  verificationStatus: VerificationStatus;
+  hasPhysicalSurvey: boolean;
+  hasPhotoEvidence: boolean;
+  hasChecklist: boolean;
+  hasAuditRecord: boolean;
+  hasValidHash: boolean;
+  verifiedBy?: string;
+  verifiedAt?: string;
+}
+
+export interface GeoBaseCertificationScope {
+  totalScope: number;
+  referenceUnverifiedCount: number;
+  pendingReviewCount: number;
+  fieldVerifiedCount: number;
+  resurveyRequiredCount: number;
+  rejectedCount: number;
+  scopeItems: GeoBaseScopeItem[];
+}
+
+export interface GeoBaseCertificationEvaluation {
+  certificationStatus: GeoBaseCertificationState;
+  softwareStatus: 'PRODUCTION READY';
+  layer1SoftwareStatus: 'SOFTWARE_READY';
+  layer2FieldDataStatus: FieldDataAcceptanceStatus;
+  layer3CertificationStatus: GeoBaseCertificationState;
+  totalScope: number;
+  referenceUnverified: number;
+  surveyRequired: number;
+  surveyInProgress: number;
+  pendingReview: number;
+  resurveyRequired: number;
+  rejected: number;
+  fieldVerified: number;
+  fieldVerifiedRate: number; // percentage 0-100
+  evidencePackage: RealWorldEvidencePackageStatus;
+  gpsEvidencePass: boolean;
+  photoEvidencePass: boolean;
+  geofencePass: boolean;
+  checklistPass: boolean;
+  rbacPass: boolean;
+  idorPass: boolean;
+  auditPass: boolean;
+  sha256Pass: boolean;
+  geoJsonPass: boolean;
+  documentEnginePass: boolean;
+  letterheadPass: boolean;
+  automatedTestsPassCount: number;
+  totalAutomatedTests: number;
+  evaluatedAt: string;
+  evaluatedBy: string;
+  canFullyCertify: boolean;
+  blockingReasons: string[];
+}
+
+export interface AutomatedCertificationTestResult {
+  testId: string; // TEST-CERT-001 to TEST-CERT-030
+  name: string;
+  category: 'INTEGRITY' | 'SECURITY' | 'GPS' | 'WORKFLOW' | 'FIREWALL' | 'SYSTEM';
+  status: 'PENDING' | 'PASS' | 'FAIL';
+  message?: string;
+}
+
 export interface FieldSurveyChecklist {
-  locationMatch: boolean;
-  physicalFound: boolean;
-  conditionMatch: boolean;
-  photoAvailable: boolean;
-  gpsAccurate: boolean;
-  insideRt: boolean;
-  notDuplicate: boolean;
-  dataComplete: boolean;
+  physicalFound: boolean;       // 1. Objek benar-benar ada di lokasi
+  locationMatch: boolean;       // 2. Lokasi sesuai kondisi lapangan
+  gpsObtained: boolean;         // 3. Koordinat GPS berhasil diperoleh
+  gpsAccurate: boolean;         // 4. Akurasi GPS dapat diterima
+  notDuplicate: boolean;        // 5. Objek tidak merupakan duplikasi
+  conditionMatch: boolean;      // 6. Kondisi fisik telah diperiksa
+  photoAvailable: boolean;      // 7. Foto bukti telah diambil
+  onSiteSurvey: boolean;        // 8. Survey dilakukan langsung di lokasi
+}
+
+export interface CertificationRecord {
+  verificationId: string;       // CERT-YYYYMMDD-XXXXXX
+  verifiedBy: string;
+  verifiedByRole: string;
+  verifiedAt: string;
+  verificationDecision: 'FIELD_VERIFIED' | 'REJECTED' | 'RESURVEY_REQUIRED';
+  verificationNotes: string;
+  surveyId: string;
+  facilityId?: string;
+  coordinateHash: string;
+  photoChecksum: string[];
+  auditId: string;
+}
+
+export interface PilotSurveyReport {
+  generatedAt: string;
+  generatedBy: string;
+  totalTargetFacilities: number;
+  totalSurveyed: number;
+  totalSuccess: number;
+  totalFailed: number;
+  averageAccuracyMeters: number;
+  totalOutsideBoundary: number;
+  totalResurveyRequired: number;
+  totalFieldVerified: number;
+  totalPhotosCollected: number;
+  pilotFacilityResults: {
+    facilityId: string;
+    namaFasilitas: string;
+    kategori: FacilityCategory;
+    surveyStatus: FieldSurveyStatus;
+    accuracyMeters: number;
+    photoCount: number;
+    notes: string;
+    insideBoundary: boolean;
+  }[];
+  overallAuditHash?: string;
+  fieldIssues: string[];
+  recommendations: string[];
+}
+
+export interface GeoBaseGateStatus {
+  softwareStatus: 'PRODUCTION READY';
+  fieldSurveyStatus: 'READY / ACTIVE';
+  realWorldDataStatus: 'PENDING' | 'PARTIALLY_VERIFIED' | 'VERIFIED';
+  referenceDataStatus: 'EXPLICITLY UNVERIFIED';
+  geobaseCertification: 'NOT CERTIFIED' | 'PILOT CERTIFIED' | 'FULLY CERTIFIED';
+  aiDataAccess: 'LOCKED UNTIL VERIFIED' | 'ACTIVE_FOR_VERIFIED';
+  analytics: 'LOCKED UNTIL VERIFIED' | 'ACTIVE_FOR_VERIFIED';
+  financialDecisionData: 'LOCKED UNTIL VERIFIED' | 'ACTIVE_FOR_VERIFIED';
+  totalFacilities: number;
+  referenceUnverifiedCount: number;
+  pendingReviewCount: number;
+  fieldVerifiedCount: number;
+  resurveyRequiredCount: number;
+  rejectedCount: number;
 }
 
 export type DataStaleStatus = 'FRESH' | 'AGING' | 'STALE';
@@ -134,12 +302,15 @@ export type FundingSource =
 
 export interface GeoEvidence {
   evidenceId: string;
+  surveyId?: string;
   geoId?: string;
   fasilitasId?: string;
   fileData: string; // Base64 data URL or remote URL
   fileName: string;
   fileMimeType: string;
   fileSizeBytes: number;
+  checksum?: string;
+  category?: PhotoCategory;
   latitude?: number;
   longitude?: number;
   accuracyMeters?: number;
@@ -158,19 +329,28 @@ export interface GeoEvidence {
 
 export interface GeoHistory {
   geoHistoryId: string;
+  historyId?: string;
   geoId: string;
-  oldGeometry: {
+  facilityId?: string;
+  eventType?: 'CREATE' | 'SURVEY_SUBMITTED' | 'SURVEY_APPROVED' | 'SURVEY_REJECTED' | 'RESURVEY_REQUESTED' | 'GEO_IMPORTED' | 'UPDATE_COORDINATE' | 'RESET';
+  oldValue?: string;
+  newValue?: string;
+  oldGeometry?: {
     latitude?: number;
     longitude?: number;
     coordinates?: [number, number][];
   };
-  newGeometry: {
+  newGeometry?: {
     latitude?: number;
     longitude?: number;
     coordinates?: [number, number][];
   };
+  performedBy?: string;
   changedAt: string;
+  timestamp?: string;
   changedBy: string;
+  requestId?: string;
+  hash?: string;
   reason: string;
 }
 
@@ -281,6 +461,8 @@ export interface GeoSurvey {
   surveyId: string; // SURVEY-YYYYMMDD-XXXXXX
   surveyCode?: string;
   requestId: string; // REQ-YYYYMMDD-XXXXXX
+  surveyorId?: string;
+  timestamp?: string;
   geoId?: string;
   fasilitasId?: string;
   namaFasilitas: string;

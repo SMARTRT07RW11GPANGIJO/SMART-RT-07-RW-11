@@ -24,7 +24,8 @@ import {
   FacilityPriority,
   FacilityActorSession,
   GeoEvidence,
-  PhotoCategory
+  PhotoCategory,
+  FieldSurveyChecklist
 } from '../../types/facility';
 import {
   FACILITY_CATEGORIES,
@@ -77,16 +78,16 @@ export const FieldSurveyModal: React.FC<FieldSurveyModalProps> = ({
   const [photoEvidence, setPhotoEvidence] = useState<GeoEvidence[]>([]);
   const [selectedPhotoCategory, setSelectedPhotoCategory] = useState<PhotoCategory>('FRONT');
 
-  // Survey Checklist State
-  const [checklist, setChecklist] = useState({
-    locationMatch: true,
+  // Survey Checklist State (8 Master Verification Items)
+  const [checklist, setChecklist] = useState<FieldSurveyChecklist>({
     physicalFound: true,
+    locationMatch: true,
+    gpsObtained: false,
+    gpsAccurate: true,
+    notDuplicate: true,
     conditionMatch: true,
     photoAvailable: false,
-    gpsAccurate: true,
-    insideRt: true,
-    notDuplicate: true,
-    dataComplete: true
+    onSiteSurvey: true
   });
 
   // Submitting State
@@ -134,15 +135,16 @@ export const FieldSurveyModal: React.FC<FieldSurveyModalProps> = ({
     });
   }, [accuracyMeters, isInsideBoundary, photoEvidence.length, checklist]);
 
-  // Sync photoAvailable to checklist
+  // Sync automated checks into checklist
   useEffect(() => {
     setChecklist((prev) => ({
       ...prev,
       photoAvailable: photoEvidence.length > 0,
-      insideRt: isInsideBoundary,
-      gpsAccurate: (accuracyMeters ?? 99) <= 25
+      gpsObtained: latitude !== null && longitude !== null,
+      gpsAccurate: (accuracyMeters ?? 99) <= 25,
+      onSiteSurvey: isInsideBoundary
     }));
-  }, [photoEvidence.length, isInsideBoundary, accuracyMeters]);
+  }, [photoEvidence.length, isInsideBoundary, accuracyMeters, latitude, longitude]);
 
   // Pre-fill on open or change
   useEffect(() => {
@@ -248,6 +250,7 @@ export const FieldSurveyModal: React.FC<FieldSurveyModalProps> = ({
         fileName: file.name,
         fileMimeType: file.type,
         fileSizeBytes: file.size,
+        category: selectedPhotoCategory,
         fileData: base64,
         latitude: latitude || undefined,
         longitude: longitude || undefined,
@@ -595,7 +598,7 @@ export const FieldSurveyModal: React.FC<FieldSurveyModalProps> = ({
                   onChange={(e) => setChecklist({ ...checklist, physicalFound: e.target.checked })}
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="font-medium text-slate-700">Objek fisik ditemukan di lokasi</span>
+                <span className="font-medium text-slate-700">1. Objek fisik ditemukan di lokasi</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
@@ -605,17 +608,27 @@ export const FieldSurveyModal: React.FC<FieldSurveyModalProps> = ({
                   onChange={(e) => setChecklist({ ...checklist, locationMatch: e.target.checked })}
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="font-medium text-slate-700">Posisi sesuai lingkungan sekitar</span>
+                <span className="font-medium text-slate-700">2. Posisi sesuai lingkungan sekitar</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={checklist.conditionMatch}
-                  onChange={(e) => setChecklist({ ...checklist, conditionMatch: e.target.checked })}
+                  checked={checklist.gpsObtained}
+                  onChange={(e) => setChecklist({ ...checklist, gpsObtained: e.target.checked })}
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="font-medium text-slate-700">Kondisi fisik telah dinilai jujur</span>
+                <span className="font-medium text-slate-700">3. Koordinat GPS perangkat terekam</span>
+              </label>
+
+              <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checklist.gpsAccurate}
+                  onChange={(e) => setChecklist({ ...checklist, gpsAccurate: e.target.checked })}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium text-slate-700">4. Akurasi GPS memenuhi SOP (&le; 25m)</span>
               </label>
 
               <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
@@ -625,7 +638,37 @@ export const FieldSurveyModal: React.FC<FieldSurveyModalProps> = ({
                   onChange={(e) => setChecklist({ ...checklist, notDuplicate: e.target.checked })}
                   className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="font-medium text-slate-700">Bukan duplikasi fasilitas lain</span>
+                <span className="font-medium text-slate-700">5. Bukan duplikasi fasilitas lain</span>
+              </label>
+
+              <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checklist.conditionMatch}
+                  onChange={(e) => setChecklist({ ...checklist, conditionMatch: e.target.checked })}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium text-slate-700">6. Kondisi fisik dinilai objektif</span>
+              </label>
+
+              <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checklist.photoAvailable}
+                  onChange={(e) => setChecklist({ ...checklist, photoAvailable: e.target.checked })}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium text-slate-700">7. Bukti foto fisik tersedia (Min. 1)</span>
+              </label>
+
+              <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checklist.onSiteSurvey}
+                  onChange={(e) => setChecklist({ ...checklist, onSiteSurvey: e.target.checked })}
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium text-slate-700">8. Survei langsung on-site RT 07</span>
               </label>
             </div>
           </div>
