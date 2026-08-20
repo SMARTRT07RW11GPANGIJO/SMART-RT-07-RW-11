@@ -859,6 +859,57 @@ Aturan Utama:
 });
 
 // ====================================================
+// SMART RT AI AGENT + WHATSAPP CONVERSATIONAL GATEWAY
+// ====================================================
+app.post('/api/whatsapp/webhook', async (req: Request, res: Response) => {
+  try {
+    const { WhatsAppAIAdapter } = require('./src/services/whatsapp/whatsAppAIAdapter');
+    const webhookPayload = {
+      headers: (req.headers || {}) as Record<string, string>,
+      body: req.body,
+      rawBody: JSON.stringify(req.body || {}),
+      timestamp: Date.now()
+    };
+    const result = await WhatsAppAIAdapter.handleWebhook(webhookPayload);
+    res.json({
+      success: result.success,
+      reply: result.replyText,
+      senderPhone: result.senderPhone,
+      executionStatus: result.executionStatus,
+      mutationExecuted: result.mutationExecuted
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/whatsapp/health', async (req: Request, res: Response) => {
+  try {
+    const { WhatsAppProviderRegistry } = require('./src/services/whatsapp/whatsAppProvider');
+    res.json({
+      success: true,
+      service: 'SMART_RT_WHATSAPP_CONVERSATIONAL_GATEWAY_v1.0',
+      status: 'HEALTHY',
+      channel: 'WHATSAPP',
+      provider: WhatsAppProviderRegistry.getProviderStatus(),
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/whatsapp/test-suite/run', async (req: Request, res: Response) => {
+  try {
+    const { WhatsAppTestRunnerService } = require('./src/services/whatsapp/whatsAppTestRunnerService');
+    const report = await WhatsAppTestRunnerService.runAllTests();
+    res.json({ success: true, ...report });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ====================================================
 // TAHAP 8I — AI TOOLS & AUTOMATION REST ENDPOINTS
 // ====================================================
 app.get('/api/ai/tools', (req: Request, res: Response) => {

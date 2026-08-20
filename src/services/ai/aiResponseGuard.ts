@@ -62,12 +62,12 @@ export class AIResponseGuard {
       auditEvent: params.confirmationPayload
         ? 'AI_MUTATION_REQUESTED'
         : params.error
-        ? 'AI_PERMISSION_DENIED'
+        ? (params.error.code === 'SECURITY_BLOCKED' ? 'AI_PROMPT_INJECTION_BLOCK' : 'AI_PERMISSION_DENIED')
         : 'AI_RESPONSE',
       executionStatus: params.confirmationPayload
         ? 'REQUIRES_CONFIRMATION'
         : params.error
-        ? 'DENIED'
+        ? (params.error.code === 'SECURITY_BLOCKED' ? 'BLOCKED' : 'DENIED')
         : 'SUCCESS'
     };
 

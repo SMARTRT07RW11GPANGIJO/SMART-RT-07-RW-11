@@ -129,32 +129,37 @@ export class AIAuditService {
   }
 
   public static logEvent(params: {
-    requestId: string;
-    userId: string;
-    role: UserRole;
-    channel: string;
+    requestId?: string;
+    userId?: string;
+    role?: UserRole;
+    channel?: string;
     event: AISecurityEvent;
-    intent: AIIntent;
+    intent?: AIIntent;
     toolUsed?: string;
-    status: 'SUCCESS' | 'DENIED' | 'BLOCKED' | 'WARNING' | 'ERROR';
-    details: string;
+    status?: 'SUCCESS' | 'DENIED' | 'BLOCKED' | 'WARNING' | 'ERROR';
+    details?: string;
     clientIp?: string;
-    durationMs: number;
+    durationMs?: number;
+    actor?: any;
+    action?: string;
+    resource?: string;
+    reason?: string;
   }): AIAuditRecord {
+    const actor = params.actor;
     const record: AIAuditRecord = {
       logId: `AILOG-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
       timestamp: new Date().toISOString(),
-      requestId: params.requestId,
-      userId: params.userId || 'ANONYMOUS',
-      role: params.role,
-      channel: params.channel,
+      requestId: params.requestId || actor?.requestId || `REQ-${Date.now()}`,
+      userId: params.userId || actor?.userId || 'ANONYMOUS',
+      role: params.role || actor?.role || 'PUBLIC',
+      channel: params.channel || actor?.channel || 'WEB_CHAT',
       event: params.event,
-      intent: params.intent,
-      toolUsed: params.toolUsed,
-      status: params.status,
-      details: params.details,
-      clientIp: params.clientIp || '127.0.0.1',
-      durationMs: params.durationMs
+      intent: params.intent || 'GENERAL_INFORMATION',
+      toolUsed: params.toolUsed || params.resource,
+      status: params.status || 'SUCCESS',
+      details: params.details || params.reason || params.action || 'AI Event logged',
+      clientIp: params.clientIp || actor?.ipAddress || '127.0.0.1',
+      durationMs: params.durationMs || 0
     };
 
     this.logs.unshift(record);

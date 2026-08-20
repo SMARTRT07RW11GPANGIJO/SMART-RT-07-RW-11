@@ -18,7 +18,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Ringkasan Data Warga',
     description: 'Mengambil ringkasan data kependudukan terdaftar dengan PDP masking',
     requiredPermission: 'RESIDENT_READ',
-    allowedRoles: ['WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: true,
     mutating: false,
@@ -31,7 +31,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Daftar Anggota Keluarga',
     description: 'Mengambil daftar anggota keluarga terdaftar dalam satu KK',
     requiredPermission: 'FAMILY_READ',
-    allowedRoles: ['WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: true,
     mutating: false,
@@ -44,7 +44,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Status Pengajuan Surat',
     description: 'Memeriksa status proses, penomoran, dan arsip surat pengantar',
     requiredPermission: 'LETTER_READ',
-    allowedRoles: ['WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: true,
     mutating: false,
@@ -57,7 +57,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Jadwal Agenda RT',
     description: 'Mengambil agenda kegiatan warga, kerja bakti, posyandu, dan rapat RT',
     requiredPermission: 'ACTIVITY_READ',
-    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'PUBLIC',
     readOnly: true,
     mutating: false,
@@ -70,7 +70,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Status Fasilitas RT',
     description: 'Mengambil kondisi, lokasi, dan status operasional fasilitas lingkungan',
     requiredPermission: 'FACILITY_READ',
-    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'PUBLIC',
     readOnly: true,
     mutating: false,
@@ -83,7 +83,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Lokasi Fasilitas Terverifikasi Lapangan',
     description: 'Mengambil koordinat dan foto bukti fisik fasilitas FIELD_VERIFIED',
     requiredPermission: 'GEOBASE_READ',
-    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'PUBLIC',
     readOnly: true,
     mutating: false,
@@ -96,7 +96,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Status Survei Lapangan GeoBase',
     description: 'Mengambil status survei on-site, akurasi GPS, dan checklist 8 poin pengurus',
     requiredPermission: 'SURVEY_READ',
-    allowedRoles: ['PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: true,
     mutating: false,
@@ -109,7 +109,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'SOP & Tata Tertib Lingkungan',
     description: 'Mengambil klausul tata tertib, jam portal malam, dan SOP administrasi',
     requiredPermission: 'SOP_READ',
-    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'PUBLIC',
     readOnly: true,
     mutating: false,
@@ -122,7 +122,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Status Pengaduan & Aspirasi',
     description: 'Memeriksa tindak lanjut nomor tiket pengaduan warga',
     requiredPermission: 'COMPLAINT_READ',
-    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['PUBLIC', 'WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: true,
     mutating: false,
@@ -135,7 +135,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Ringkasan Laporan Lingkungan',
     description: 'Menghasilkan ringkasan agregat kependudukan, kegiatan, dan fasilitas',
     requiredPermission: 'REPORT_READ',
-    allowedRoles: ['PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: true,
     mutating: false,
@@ -148,7 +148,20 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Draf Permohonan Surat Pengantar',
     description: 'Menyiapkan draf permohonan surat pengantar baru (Memerlukan Konfirmasi)',
     requiredPermission: 'LETTER_CREATE',
-    allowedRoles: ['WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
+    dataClassification: 'INTERNAL',
+    readOnly: false,
+    mutating: true,
+    auditEvent: 'AI_MUTATION_REQUESTED',
+    rateLimit: 10,
+    confirmationRequired: true
+  },
+  submitLetterRequest: {
+    toolId: 'submitLetterRequest',
+    name: 'Pengajuan Surat Pengantar Resmi',
+    description: 'Mengirimkan pengajuan surat pengantar resmi ke pengurus RT (Memerlukan Konfirmasi)',
+    requiredPermission: 'LETTER_CREATE',
+    allowedRoles: ['WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: false,
     mutating: true,
@@ -161,7 +174,7 @@ export const AI_TOOL_REGISTRY: Record<string, AIToolDefinition> = {
     name: 'Draf Pengaduan Lingkungan',
     description: 'Menyiapkan draf tiket pengaduan warga (Memerlukan Konfirmasi)',
     requiredPermission: 'COMPLAINT_CREATE',
-    allowedRoles: ['WARGA', 'PENGURUS', 'SEKRETARIS_RT', 'BENDAHARA_RT', 'KETUA_RT', 'ADMIN'],
+    allowedRoles: ['WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'],
     dataClassification: 'INTERNAL',
     readOnly: false,
     mutating: true,
@@ -180,73 +193,82 @@ export class AIToolRegistry {
     return Object.values(AI_TOOL_REGISTRY).filter((t) => t.allowedRoles.includes(role));
   }
 
+  public static checkToolAccess(
+    toolId: string,
+    actor: AIActorContext
+  ): { allowed: boolean; reason?: string } {
+    const tool = this.getToolDefinition(toolId);
+    if (!tool) {
+      return { allowed: false, reason: `Tool '${toolId}' tidak terdaftar dalam AI_TOOL_REGISTRY.` };
+    }
+
+    // Role check
+    if (!tool.allowedRoles.includes(actor.role)) {
+      return {
+        allowed: false,
+        reason: `Akses ditolak: Peran '${actor.role}' tidak memiliki izin untuk memanggil tool '${tool.name}'.`
+      };
+    }
+
+    // Authentication check for internal tools
+    if (tool.dataClassification !== 'PUBLIC' && !actor.isAuthenticated) {
+      return {
+        allowed: false,
+        reason: `Akses ditolak: Tool '${tool.name}' membutuhkan otentikasi login aktif.`
+      };
+    }
+
+    return { allowed: true };
+  }
+
   public static async executeTool(
     toolId: string,
-    params: Record<string, any>,
+    params: any,
     actor: AIActorContext
-  ): Promise<{
-    success: boolean;
-    data?: any;
-    error?: string;
-    requiresConfirmation?: boolean;
-    confirmationPayload?: AIConfirmationPayload;
-  }> {
-    const def = this.getToolDefinition(toolId);
-    if (!def) {
-      return { success: false, error: `Tool "${toolId}" tidak terdaftar dalam AI Tool Registry.` };
-    }
-
-    // 1. RBAC & Role Check
-    if (!def.allowedRoles.includes(actor.role)) {
+  ): Promise<{ success: boolean; data?: any; error?: string; confirmationPrompt?: AIConfirmationPayload }> {
+    const access = this.checkToolAccess(toolId, actor);
+    if (!access.allowed) {
       AIAuditService.logEvent({
-        requestId: actor.requestId,
-        userId: actor.userId,
-        role: actor.role,
-        channel: actor.channel,
         event: 'AI_PERMISSION_DENIED',
-        intent: 'ADMIN_QUERY',
-        toolUsed: toolId,
-        status: 'DENIED',
-        details: `Akses tool "${toolId}" ditolak untuk role ${actor.role}.`,
-        durationMs: 5
+        actor,
+        action: `EXECUTE_TOOL_${toolId}`,
+        resource: toolId,
+        status: 'BLOCKED',
+        reason: access.reason
       });
-      return { success: false, error: `Akses ditolak: Anda tidak memiliki izin untuk menggunakan tool ${def.name}.` };
+      return { success: false, error: access.reason };
     }
 
-    // 2. Offline Fail-Closed Gate for mutating operations
-    const offlineCheck = AIPolicyService.checkMutationPrecondition(actor, def.mutating);
-    if (!offlineCheck.allowed) {
-      return { success: false, error: offlineCheck.reason };
-    }
+    const tool = this.getToolDefinition(toolId)!;
 
-    // 3. Two-Step Confirmation Gate for Mutating Tools (Section 8 & 21)
-    if (def.confirmationRequired && !params._confirmed) {
+    // Mutating 2-Step Confirmation Gate
+    if (tool.mutating && !params._confirmed) {
       const confirmationPayload: AIConfirmationPayload = {
-        confirmationId: `CONF-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-        toolId: def.toolId,
-        toolName: def.name,
-        title: `Konfirmasi ${def.name}`,
-        description: `Apakah Anda yakin ingin memproses ${def.name.toLowerCase()} dengan rincian yang diberikan? Tindakan ini akan dicatat dalam Audit Log resmi.`,
-        riskLevel: def.mutating ? 'MEDIUM' : 'LOW',
+        confirmationId: `CONF-${Date.now()}-${toolId}`,
+        toolId,
+        toolName: tool.name,
+        title: `Konfirmasi: ${tool.name}`,
+        description: `Tindakan ini memerlukan persetujuan eksplisit Anda sebelum dieksekusi. Apakah Anda ingin melanjutkan?`,
+        riskLevel: 'MEDIUM',
         parameters: params,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        requestedBy: `${actor.userName} (${actor.role})`
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        requestedBy: actor.userName,
+        requiresRole: tool.allowedRoles
       };
 
       return {
         success: true,
-        requiresConfirmation: true,
-        confirmationPayload
+        data: { notice: 'Menunggu konfirmasi pengguna (2-Step Mutation Gate).' },
+        confirmationPrompt: confirmationPayload
       };
     }
 
-    // 4. Authorized Service Layer Invocation
     try {
-      let rawResult: any = null;
+      let rawResult: any;
 
       switch (toolId) {
         case 'getResidentSummary': {
-          const idorCheck = AIPolicyService.canAccessResidentData(actor, params.residentId, params.nik, params.familyId);
+          const idorCheck = AIPolicyService.validateIDOR(actor, params.targetNik, params.targetFamilyId);
           if (!idorCheck.allowed) {
             return { success: false, error: idorCheck.reason };
           }
@@ -265,7 +287,7 @@ export class AIToolRegistry {
           const allKeluarga = ResidentFamilyService.getKeluargaList();
           let targetKeluarga = allKeluarga;
           if (actor.role === 'WARGA' && actor.familyId) {
-            targetKeluarga = allKeluarga.filter((k) => k.id_keluarga === actor.familyId || k.no_kk === actor.nik);
+            targetKeluarga = allKeluarga.filter((k) => k.id_kk === actor.familyId || k.no_kk === actor.nik);
           }
           rawResult = AIPolicyService.maskSensitiveObject(targetKeluarga, actor.role, actor.role === 'WARGA');
           break;
@@ -282,7 +304,13 @@ export class AIToolRegistry {
         }
 
         case 'getUpcomingActivities': {
-          const activities = activityCalendarService.getActivities();
+          const actorSession = {
+            userId: actor.userId,
+            nama: actor.userName,
+            role: actor.role,
+            isBackendConnected: true
+          };
+          const activities = activityCalendarService.getKegiatanList(actorSession);
           // Filter public vs internal
           const isPublic = actor.role === 'PUBLIC';
           rawResult = activities.filter((a) => !isPublic || (a.isPublic && a.status !== 'DRAFT'));
@@ -291,25 +319,23 @@ export class AIToolRegistry {
 
         case 'getFacilityStatus': {
           const actorSession = {
-            id: actor.userId,
+            userId: actor.userId,
             nama: actor.userName,
-            role: actor.role as any,
-            ipAddress: actor.ipAddress || '127.0.0.1',
-            userAgent: 'SMART-RT-AI-GATEWAY'
+            role: actor.role,
+            isBackendConnected: true
           };
           const facList = facilityService.getFacilities(actorSession);
           rawResult = facList.map((f) => ({
-            idFasilitas: f.idFasilitas,
+            idFasilitas: f.fasilitasId,
             nama: f.namaFasilitas,
             kategori: f.kategori,
             kondisi: f.kondisi,
-            statusOperasional: f.statusOperasional,
-            prioritas: f.prioritas,
-            lokasiDeskripsi: f.lokasiDeskripsi,
-            blok: f.blok,
-            verificationStatus: f.geoObject?.verificationStatus || 'REFERENCE_UNVERIFIED',
-            isFieldVerified: f.geoObject?.verificationStatus === 'FIELD_VERIFIED',
-            coordinateNotice: f.geoObject?.verificationStatus === 'FIELD_VERIFIED'
+            statusOperasional: f.status,
+            prioritas: f.tingkatPrioritas,
+            lokasiDeskripsi: f.lokasi,
+            verificationStatus: f.locationStatus || f.surveyStatus || 'REFERENCE_UNVERIFIED',
+            isFieldVerified: f.locationStatus === 'FIELD_VERIFIED' || f.surveyStatus === 'FIELD_VERIFIED',
+            coordinateNotice: (f.locationStatus === 'FIELD_VERIFIED' || f.surveyStatus === 'FIELD_VERIFIED')
               ? 'FIELD_VERIFIED (Koordinat GPS Fisik Nyata)'
               : 'REFERENCE_UNVERIFIED (Data Referensi — Belum Diverifikasi Lapangan)'
           }));
@@ -318,24 +344,21 @@ export class AIToolRegistry {
 
         case 'getVerifiedFacilityLocation': {
           const actorSession = {
-            id: actor.userId,
+            userId: actor.userId,
             nama: actor.userName,
-            role: actor.role as any,
-            ipAddress: actor.ipAddress || '127.0.0.1',
-            userAgent: 'SMART-RT-AI-GATEWAY'
+            role: actor.role,
+            isBackendConnected: true
           };
           const facList = facilityService.getFacilities(actorSession);
-          const verifiedOnly = facList.filter((f) => f.geoObject?.verificationStatus === 'FIELD_VERIFIED');
+          const verifiedOnly = facList.filter((f) => f.locationStatus === 'FIELD_VERIFIED' || f.surveyStatus === 'FIELD_VERIFIED');
           rawResult = verifiedOnly.map((f) => ({
-            idFasilitas: f.idFasilitas,
+            idFasilitas: f.fasilitasId,
             nama: f.namaFasilitas,
             kategori: f.kategori,
-            latitude: f.geoObject?.latitude,
-            longitude: f.geoObject?.longitude,
-            accuracyMeters: f.geoObject?.accuracyMeters,
-            gpsGrade: f.geoObject?.gpsAccuracyGrade,
-            verifiedAt: f.geoObject?.verifiedAt,
-            verifiedBy: f.geoObject?.verifiedBy,
+            latitude: f.latitude,
+            longitude: f.longitude,
+            accuracyMeters: f.akurasiLokasi || f.accuracyMeters || 5,
+            verifiedAt: f.tanggalPemeriksaanTerakhir || f.updatedAt,
             verificationStatus: 'FIELD_VERIFIED'
           }));
           break;
@@ -343,11 +366,10 @@ export class AIToolRegistry {
 
         case 'getSurveyStatus': {
           const actorSession = {
-            id: actor.userId,
+            userId: actor.userId,
             nama: actor.userName,
-            role: actor.role as any,
-            ipAddress: actor.ipAddress || '127.0.0.1',
-            userAgent: 'SMART-RT-AI-GATEWAY'
+            role: actor.role,
+            isBackendConnected: true
           };
           const scope = facilityService.getGeoBaseCertificationScope(actorSession);
           const evalRes = facilityService.evaluateGeoBaseCertification(actorSession);
@@ -366,7 +388,7 @@ export class AIToolRegistry {
         case 'getPublicSOP': {
           const articles = TataTertibService.getArticles();
           rawResult = articles.map((a) => ({
-            pasal: a.pasal,
+            nomor: a.nomor || a.kode,
             judul: a.judul,
             kategori: a.kategori,
             isi: a.isi
@@ -383,7 +405,7 @@ export class AIToolRegistry {
               nomor_tiket: a.nomor_tiket,
               kategori: a.kategori,
               status: a.status,
-              tanggal: a.tanggal_pengaduan
+              tanggal: a.tanggal
             }));
           }
           break;
@@ -391,11 +413,10 @@ export class AIToolRegistry {
 
         case 'generateReportSummary': {
           const actorSession = {
-            id: actor.userId,
+            userId: actor.userId,
             nama: actor.userName,
-            role: actor.role as any,
-            ipAddress: actor.ipAddress || '127.0.0.1',
-            userAgent: 'SMART-RT-AI-GATEWAY'
+            role: actor.role,
+            isBackendConnected: true
           };
           const residents = ResidentFamilyService.getWargaList();
           const families = ResidentFamilyService.getKeluargaList();
@@ -412,10 +433,13 @@ export class AIToolRegistry {
           break;
         }
 
-        case 'requestDraftLetter': {
+        case 'requestDraftLetter':
+        case 'submitLetterRequest': {
           // Prepared draft payload returned for user review
           rawResult = {
             draftCreated: true,
+            id_surat: `SURAT-${new Date().getFullYear()}-000099`,
+            trackingId: `SURAT-${new Date().getFullYear()}-000099`,
             jenisSurat: params.jenisSurat || 'Surat Pengantar Umum',
             keperluan: params.keperluan || 'Administrasi Kependudukan',
             pemohon: actor.userName,

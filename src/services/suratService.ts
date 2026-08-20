@@ -138,14 +138,34 @@ export const generateRequestId = (): string => {
   return `REQ-${dateStr}-${rand}`;
 };
 
+const DEFAULT_SEED_SURAT: SuratPengantar[] = [
+  {
+    id_surat: 'SURAT-2026-000001',
+    nomor_surat: '001/RT07-RW11/VIII/2026',
+    jenis_surat: 'Surat Domisili',
+    id_warga: 'WRG-001',
+    nama_pemohon: 'Ahmad Subagyo',
+    nik_pemohon: '3507120101850001',
+    no_kk: '3507120101150001',
+    blok_rumah: 'Blok D-04',
+    keperluan: 'Persyaratan administrasi perbankan',
+    tanggal_pengajuan: '2026-08-15',
+    status: 'SELESAI',
+    tanggal_disetujui: '2026-08-16',
+    qr_code_hash: 'VERIFY-SURAT-2026-000001-OK'
+  }
+];
+
 export const generateNextSuratId = (): string => {
   const year = new Date().getFullYear();
   let seq = 1;
   try {
-    const stored = localStorage.getItem(STORAGE_KEY_SEQUENCE);
-    if (stored) seq = parseInt(stored, 10) + 1;
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(STORAGE_KEY_SEQUENCE);
+      if (stored) seq = parseInt(stored, 10) + 1;
+      localStorage.setItem(STORAGE_KEY_SEQUENCE, seq.toString());
+    }
   } catch {}
-  localStorage.setItem(STORAGE_KEY_SEQUENCE, seq.toString());
   return `SURAT-${year}-${String(seq).padStart(6, '0')}`;
 };
 
@@ -188,12 +208,17 @@ export class SuratService {
    */
   static getStoredSuratList(): SuratPengantar[] {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY_SURAT_LIST);
-      if (raw) return JSON.parse(raw);
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem(STORAGE_KEY_SURAT_LIST);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      }
     } catch (e) {
       console.error('[SuratService] Failed to parse stored surat list', e);
     }
-    return [];
+    return DEFAULT_SEED_SURAT;
   }
 
   /**
@@ -201,7 +226,9 @@ export class SuratService {
    */
   static saveSuratList(list: SuratPengantar[]): void {
     try {
-      localStorage.setItem(STORAGE_KEY_SURAT_LIST, JSON.stringify(list));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_SURAT_LIST, JSON.stringify(list));
+      }
     } catch (e) {
       console.error('[SuratService] Failed to save surat list', e);
     }

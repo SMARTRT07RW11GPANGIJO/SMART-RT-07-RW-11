@@ -45,7 +45,28 @@ export class AIIntentService {
     const aduMatch = text.match(/(adu-\d+-\d+)/i);
     if (aduMatch) entities.complaintTicket = aduMatch[1].toUpperCase();
 
-    // 1. RESIDENT / PROFILE QUERY
+    // 1. COMPLAINT / CITIZEN REPORT QUERY (PRIORITY OVER GENERAL FACILITY INQUIRY)
+    if (
+      text.includes('lapor') ||
+      text.includes('laporkan') ||
+      text.includes('pengaduan') ||
+      text.includes('aduan') ||
+      text.includes('keluhan') ||
+      text.includes('masalah lingkungan') ||
+      text.includes('saluran mampet') ||
+      text.includes('lampu mati') ||
+      text.includes('pohon tumbang')
+    ) {
+      return {
+        intent: 'COMPLAINT_QUERY',
+        confidence: 0.95,
+        matchedKeywords: ['lapor', 'pengaduan', 'keluhan'],
+        extractedEntities: entities,
+        clarificationRequired: false
+      };
+    }
+
+    // 2. RESIDENT / PROFILE QUERY
     if (
       text.includes('profil saya') ||
       text.includes('data saya') ||
@@ -53,6 +74,7 @@ export class AIIntentService {
       text.includes('nik saya') ||
       text.includes('kartu keluarga saya') ||
       text.includes('status kependudukan') ||
+      text.includes('data kependudukan') ||
       text.includes('data warga')
     ) {
       return {
@@ -64,7 +86,7 @@ export class AIIntentService {
       };
     }
 
-    // 2. FAMILY QUERY
+    // 3. FAMILY QUERY
     if (
       text.includes('anggota keluarga') ||
       text.includes('data keluarga') ||
@@ -82,24 +104,28 @@ export class AIIntentService {
       };
     }
 
-    // 3. LETTER STATUS QUERY
+    // 4. LETTER STATUS QUERY
     if (
       text.includes('status surat') ||
       text.includes('surat saya') ||
       text.includes('cek surat') ||
+      text.includes('cek status surat') ||
+      text.includes('nomor surat') ||
+      text.includes('surat nomor') ||
+      text.includes('470/') ||
       text.includes('sudah disetujui') ||
       text.includes('unduh surat')
     ) {
       return {
         intent: 'LETTER_STATUS_QUERY',
-        confidence: 0.94,
+        confidence: 0.96,
         matchedKeywords: ['status surat', 'cek surat'],
         extractedEntities: entities,
         clarificationRequired: false
       };
     }
 
-    // 4. LETTER CREATION / INQUIRY QUERY
+    // 5. LETTER CREATION / INQUIRY QUERY
     if (
       text.includes('buat surat') ||
       text.includes('ajukan surat') ||
@@ -118,7 +144,7 @@ export class AIIntentService {
       };
     }
 
-    // 5. FIELD SURVEY QUERY
+    // 6. FIELD SURVEY QUERY
     if (
       text.includes('survei lapangan') ||
       text.includes('surveyor') ||
@@ -136,7 +162,7 @@ export class AIIntentService {
       };
     }
 
-    // 6. GEOSPATIAL / GIS QUERY
+    // 7. GEOSPATIAL / GIS QUERY
     if (
       text.includes('koordinat') ||
       text.includes('peta rt') ||
@@ -155,7 +181,7 @@ export class AIIntentService {
       };
     }
 
-    // 7. FACILITY QUERY
+    // 8. FACILITY QUERY
     if (
       text.includes('fasilitas') ||
       text.includes('pos kamling') ||
@@ -166,6 +192,7 @@ export class AIIntentService {
       text.includes('balai rw') ||
       text.includes('tempat sampah') ||
       text.includes('lapangan') ||
+      text.includes('helipad') ||
       text.includes('kondisi fasilitas')
     ) {
       return {
@@ -177,7 +204,7 @@ export class AIIntentService {
       };
     }
 
-    // 8. ACTIVITY / CALENDAR QUERY
+    // 9. ACTIVITY / CALENDAR QUERY
     if (
       text.includes('kegiatan') ||
       text.includes('agenda') ||
@@ -198,30 +225,12 @@ export class AIIntentService {
       };
     }
 
-    // 9. COMPLAINT QUERY
-    if (
-      text.includes('aduan') ||
-      text.includes('pengaduan') ||
-      text.includes('laporkan') ||
-      text.includes('keluhan') ||
-      text.includes('masalah lingkungan') ||
-      text.includes('saluran mampet') ||
-      text.includes('lampu mati')
-    ) {
-      return {
-        intent: 'COMPLAINT_QUERY',
-        confidence: 0.91,
-        matchedKeywords: ['pengaduan', 'laporkan', 'keluhan'],
-        extractedEntities: entities,
-        clarificationRequired: false
-      };
-    }
-
     // 10. FINANCE QUERY
     if (
       text.includes('iuran') ||
       text.includes('tagihan') ||
       text.includes('kas rt') ||
+      text.includes('saldo') ||
       text.includes('pembayaran') ||
       text.includes('qris') ||
       text.includes('omplongan') ||
@@ -230,7 +239,7 @@ export class AIIntentService {
       return {
         intent: 'FINANCE_QUERY',
         confidence: 0.92,
-        matchedKeywords: ['iuran', 'kas rt', 'tagihan'],
+        matchedKeywords: ['iuran', 'kas rt', 'saldo'],
         extractedEntities: entities,
         clarificationRequired: false
       };
@@ -241,14 +250,17 @@ export class AIIntentService {
       text.includes('tata tertib') ||
       text.includes('sop') ||
       text.includes('peraturan') ||
+      text.includes('aturan') ||
       text.includes('jam malam') ||
       text.includes('portal') ||
-      text.includes('tamu menginap') ||
+      text.includes('tamu') ||
+      text.includes('bertamu') ||
+      text.includes('menginap') ||
       text.includes('keamanan')
     ) {
       return {
         intent: 'POLICY_QUERY',
-        confidence: 0.94,
+        confidence: 0.95,
         matchedKeywords: ['tata tertib', 'sop', 'peraturan'],
         extractedEntities: entities,
         clarificationRequired: false
@@ -257,7 +269,7 @@ export class AIIntentService {
 
     // 12. REPORT / EXECUTIVE SUMMARY QUERY
     if (
-      text.includes('laporan rt') ||
+      text.includes('laporan') ||
       text.includes('ringkasan') ||
       text.includes('rekapitulasi') ||
       text.includes('statistik') ||
@@ -265,35 +277,54 @@ export class AIIntentService {
     ) {
       return {
         intent: 'REPORT_QUERY',
-        confidence: 0.90,
+        confidence: 0.95,
         matchedKeywords: ['laporan', 'ringkasan', 'statistik'],
         extractedEntities: entities,
         clarificationRequired: false
       };
     }
 
-    // 13. ADMIN QUERY
+    // 13. ADMIN QUERY / RT LEADERSHIP
     if (
       text.includes('pengurus') ||
       text.includes('ketua rt') ||
+      text.includes('pimpinan') ||
+      text.includes('jabatan') ||
+      text.includes('jabatannya') ||
       text.includes('kontak pengurus') ||
       text.includes('struktur organisasi') ||
       text.includes('admin')
     ) {
       return {
         intent: 'ADMIN_QUERY',
-        confidence: 0.89,
-        matchedKeywords: ['pengurus', 'ketua rt'],
+        confidence: 0.95,
+        matchedKeywords: ['pengurus', 'ketua rt', 'jabatan'],
         extractedEntities: entities,
         clarificationRequired: false
       };
     }
 
-    // 14. GENERAL COMMUNITY INFORMATION
+    // 14. GENERAL COMMUNITY INFORMATION & RT IDENTITY
     if (
       text.includes('profil rt') ||
       text.includes('alamat rt') ||
-      text.includes('lokasi gpa') ||
+      text.includes('lokasi') ||
+      text.includes('wilayah') ||
+      text.includes('lingkungan') ||
+      text.includes('perumahan') ||
+      text.includes('gpa') ||
+      text.includes('ngijo') ||
+      text.includes('karangploso') ||
+      text.includes('malang') ||
+      text.includes('kecamatan') ||
+      text.includes('kabupaten') ||
+      text.includes('organisasi') ||
+      text.includes('rukun tetangga') ||
+      text.includes('rukun warga') ||
+      text.includes('tempat penerbitan') ||
+      text.includes('tempat surat') ||
+      text.includes('rt 07') ||
+      text.includes('rw 11') ||
       text.includes('tentang rt') ||
       text.includes('halo') ||
       text.includes('assalamu') ||
@@ -303,8 +334,8 @@ export class AIIntentService {
     ) {
       return {
         intent: 'GENERAL_INFORMATION',
-        confidence: 0.88,
-        matchedKeywords: ['profil rt', 'halo', 'bantuan'],
+        confidence: 0.92,
+        matchedKeywords: ['profil rt', 'wilayah', 'rt 07'],
         extractedEntities: entities,
         clarificationRequired: false
       };
