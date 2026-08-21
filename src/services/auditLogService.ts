@@ -310,24 +310,33 @@ const INITIAL_AUDIT_SEED: AuditLog[] = [
   }
 ];
 
+// In-memory fallback for CLI and SSR
+let inMemoryAuditLogs: AuditLog[] = [...INITIAL_AUDIT_SEED];
+
 export const getStoredAuditLogs = (): AuditLog[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_AUDIT_LOGS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT_SEED));
-      return INITIAL_AUDIT_SEED;
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_AUDIT_LOGS);
+      if (!raw) {
+        localStorage.setItem(STORAGE_KEY_AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT_SEED));
+        return INITIAL_AUDIT_SEED;
+      }
+      return JSON.parse(raw);
+    } catch {
+      return inMemoryAuditLogs;
     }
-    return JSON.parse(raw);
-  } catch {
-    return INITIAL_AUDIT_SEED;
   }
+  return inMemoryAuditLogs;
 };
 
 export const saveStoredAuditLogs = (logs: AuditLog[]): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY_AUDIT_LOGS, JSON.stringify(logs.slice(0, 200)));
-  } catch {
-    // ignore
+  inMemoryAuditLogs = [...logs];
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEY_AUDIT_LOGS, JSON.stringify(logs.slice(0, 200)));
+    } catch {
+      // ignore
+    }
   }
 };
 

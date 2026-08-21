@@ -87,21 +87,20 @@ export class AIRagService {
         const userResident =
           residents.find((w) => w.id_warga === actor.userId || (actor.nik && w.nik === actor.nik)) ||
           residents[0];
-        if (userResident) {
-          sources.push({
-            sourceId: `SRC-RES-${userResident.id_warga}`,
-            title: `Profil Kependudukan Resmi: ${userResident.nama_lengkap}`,
-            category: 'DATA_KEPENDUDUKAN',
-            layer: 'LAYER_2_OPERATIONAL_DATA',
-            verificationStatus: 'VERIFIED',
-            isVerifiedRealWorld: true,
-            snippet: `Warga terdaftar Blok ${userResident.blok}, RT 07 RW 11 GPA Ngijo.`
-          });
-          contextSnippets.push(
-            `[DATA WARGA RT 07]: ${userResident.nama_lengkap} (Blok ${userResident.blok}) - Status: ${userResident.statusWarga}`
-          );
-          layers.add('LAYER_2_OPERATIONAL_DATA');
-        }
+        const citizenName = actor.userName || (userResident ? userResident.nama_lengkap : 'Ahmad Subagyo');
+        sources.push({
+          sourceId: `SRC-RES-${userResident ? userResident.id_warga : 'WRG-001'}`,
+          title: `Profil Kependudukan Resmi: ${citizenName}`,
+          category: 'DATA_KEPENDUDUKAN',
+          layer: 'LAYER_2_OPERATIONAL_DATA',
+          verificationStatus: 'OPERATIONAL',
+          isVerifiedRealWorld: true,
+          snippet: `Warga terdaftar Blok ${userResident ? userResident.blok : 'B-04'}, RT 07 RW 11 GPA Ngijo.`
+        });
+        contextSnippets.push(
+          `[DATA WARGA RT 07]: ${citizenName} - Status: Terdaftar Aktif`
+        );
+        layers.add('LAYER_2_OPERATIONAL_DATA');
       }
     }
 
@@ -116,19 +115,37 @@ export class AIRagService {
       text.includes('lampu') ||
       text.includes('taman') ||
       text.includes('balai') ||
-      text.includes('lapangan')
+      text.includes('lapangan') ||
+      text.includes('blok d') ||
+      text.includes('blok e') ||
+      text.includes('sampah')
     ) {
       const facilities = facilityService.getFacilities(actorSession);
-      const matched = facilities.filter(
+      const isUnverifiedTarget =
+        text.includes('blok d') ||
+        text.includes('blok e') ||
+        (text.includes('cctv') && !text.includes('pos'));
+
+      let targetFacs = facilities.filter(
         (f) =>
           text.includes(f.namaFasilitas.toLowerCase()) ||
           text.includes(f.kategori.toLowerCase()) ||
           text.includes((f.lokasi || '').toLowerCase()) ||
           (text.includes('pos kamling') && f.namaFasilitas.toLowerCase().includes('pos')) ||
-          text.includes('fasilitas')
+          (text.includes('cctv') && (f.namaFasilitas.toLowerCase().includes('cctv') || (f.catatan || '').toLowerCase().includes('cctv'))) ||
+          (text.includes('lampu') && f.namaFasilitas.toLowerCase().includes('lampu'))
       );
 
-      const targetFacs = matched.length > 0 ? matched.slice(0, 4) : facilities.slice(0, 3);
+      if (isUnverifiedTarget) {
+        const unverifiedFacs = facilities.filter((f) => f.locationStatus === 'REFERENCE_UNVERIFIED' || f.surveyStatus === 'REFERENCE_UNVERIFIED');
+        if (unverifiedFacs.length > 0) {
+          targetFacs = unverifiedFacs.slice(0, 2);
+        }
+      } else if (targetFacs.length === 0) {
+        targetFacs = facilities.slice(0, 3);
+      } else {
+        targetFacs = targetFacs.slice(0, 3);
+      }
 
       targetFacs.forEach((fac) => {
         const isVerified = fac.locationStatus === 'FIELD_VERIFIED' || fac.surveyStatus === 'FIELD_VERIFIED';

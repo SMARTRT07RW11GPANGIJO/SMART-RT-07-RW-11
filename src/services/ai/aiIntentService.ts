@@ -47,15 +47,19 @@ export class AIIntentService {
 
     // 1. COMPLAINT / CITIZEN REPORT QUERY (PRIORITY OVER GENERAL FACILITY INQUIRY)
     if (
-      text.includes('lapor') ||
-      text.includes('laporkan') ||
-      text.includes('pengaduan') ||
-      text.includes('aduan') ||
-      text.includes('keluhan') ||
-      text.includes('masalah lingkungan') ||
-      text.includes('saluran mampet') ||
-      text.includes('lampu mati') ||
-      text.includes('pohon tumbang')
+      !text.includes('laporan') &&
+      (
+        text.includes('lapor ') ||
+        text.includes('laporkan') ||
+        text.includes('pengaduan') ||
+        text.includes('aduan') ||
+        text.includes('keluhan') ||
+        text.includes('masalah lingkungan') ||
+        text.includes('saluran mampet') ||
+        text.includes('lampu mati') ||
+        text.includes('pohon tumbang') ||
+        text.startsWith('lapor')
+      )
     ) {
       return {
         intent: 'COMPLAINT_QUERY',

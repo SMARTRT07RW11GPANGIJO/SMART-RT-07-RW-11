@@ -8,6 +8,8 @@ import { AIToolRegistry } from './aiToolRegistry';
 import { AIRagService } from './aiRagService';
 import { AIResponseGuard } from './aiResponseGuard';
 import { AIAuditService } from './aiAuditService';
+import { ResidentFamilyService } from '../residentFamilyService';
+import { SuratService } from '../suratService';
 import { INTENT_ROLE_REQUIREMENTS, AI_CONFIG } from '../../config/ai/aiConfig';
 
 export class AIAgentGateway {
@@ -285,7 +287,7 @@ export class AIAgentGateway {
       if (w) {
         generatedMessage =
           `Berikut ringkasan data kependudukan terdaftar:\n\n` +
-          `• **Nama:** ${w.nama_lengkap || actor.userName || 'Ahmad Subagyo'}\n` +
+          `• **Nama:** ${actor.userName || w.nama_lengkap || 'Ahmad Subagyo'}\n` +
           `• **NIK:** ${w.nik}\n` +
           `• **No. KK:** ${w.no_kk}\n` +
           `• **Alamat:** Perum GPA Blok ${w.blok}, RT 07 RW 11\n` +

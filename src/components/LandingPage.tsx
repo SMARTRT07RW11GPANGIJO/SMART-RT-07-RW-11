@@ -25,6 +25,7 @@ interface LandingProps {
   setTab: (tab: string) => void;
   openLetterModal: () => void;
   openComplaintModal: () => void;
+  openLoginModal?: () => void;
   announcements: Pengumuman[];
   agendas: AgendaKegiatan[];
   transactions: TransaksiKeuangan[];
@@ -34,6 +35,7 @@ export const LandingPage: React.FC<LandingProps> = ({
   setTab,
   openLetterModal,
   openComplaintModal,
+  openLoginModal,
   announcements,
   agendas,
   transactions

@@ -46,11 +46,53 @@ import { AdminLaunchDashboard } from './components/AdminLaunchDashboard';
 import { FacilityDashboard } from './components/facility/FacilityDashboard';
 import { RitaAssistantWidget } from './components/RitaAssistantWidget';
 import { AIAssistantPage } from './pages/AIAssistant';
+import { IdentityAuthService } from './services/identityAuthService';
+import { AuthoritativeSessionContext } from './security/authorization';
+import { LoginModal } from './components/LoginModal';
+import { FirstLoginChangePasswordModal } from './components/FirstLoginChangePasswordModal';
 
 export default function App() {
-  const [currentRole, setRole] = useState<UserRole>('PUBLIC');
+  const [sessionContext, setSessionContext] = useState<AuthoritativeSessionContext | null>(() => {
+    return IdentityAuthService.getActiveSession();
+  });
+  const [currentRole, setRole] = useState<UserRole>(() => {
+    const active = IdentityAuthService.getActiveSession();
+    return active ? active.role : 'PUBLIC';
+  });
   const [currentTab, setTab] = useState<string>('landing');
   const [activeSubTab, setActiveSubTab] = useState<string>('overview');
+  const [loginModalOpen, setLoginModalOpen] = useState<boolean>(false);
+  const [forcePasswordChangeModalOpen, setForcePasswordChangeModalOpen] = useState<boolean>(false);
+
+  // Sync role with session changes
+  const handleLoginSuccess = (session: AuthoritativeSessionContext, isFirstLogin: boolean) => {
+    setSessionContext(session);
+    setRole(session.role);
+    if (isFirstLogin || session.forcePasswordChange) {
+      setForcePasswordChangeModalOpen(true);
+    } else {
+      addToast('success', 'Berhasil Masuk', `Selamat datang, ${session.namaLengkap || session.userId}!`);
+      setTab('dashboard');
+    }
+  };
+
+  const handlePasswordChanged = (updatedSession: AuthoritativeSessionContext) => {
+    setSessionContext(updatedSession);
+    setRole(updatedSession.role);
+    setForcePasswordChangeModalOpen(false);
+    addToast('success', 'Akun Terverifikasi & Aktif', 'Password baru berhasil disimpan. Selamat datang di Portal RT 07!');
+    setTab('dashboard');
+  };
+
+  const handleLogout = () => {
+    if (sessionContext?.sessionId) {
+      IdentityAuthService.logout(sessionContext.sessionId);
+    }
+    setSessionContext(null);
+    setRole('PUBLIC');
+    setTab('landing');
+    addToast('info', 'Sesi Berakhir', 'Anda telah berhasil keluar dari akun.');
+  };
 
   // Master States
   const [wargaList, setWargaList] = useState<Warga[]>(INITIAL_WARGA);
@@ -227,6 +269,9 @@ export default function App() {
           refreshDigitalDocs();
           setArchiveModalOpen(true);
         }}
+        openLoginModal={() => setLoginModalOpen(true)}
+        onLogout={handleLogout}
+        sessionContext={sessionContext}
         openSecurityModal={() => setSecurityModalOpen(true)}
         openSystemModal={() => setSystemModalOpen(true)}
         openMonitorModal={() => setMonitorModalOpen(true)}
@@ -254,6 +299,7 @@ export default function App() {
             setTab={setTab}
             openLetterModal={() => setLetterModalOpen(true)}
             openComplaintModal={() => setComplaintModalOpen(true)}
+            openLoginModal={() => setLoginModalOpen(true)}
             announcements={pengumumanList}
             agendas={agendaList}
             transactions={transaksiList}
@@ -589,6 +635,22 @@ export default function App() {
         }}
         addToast={addToast}
       />
+
+      {/* MODAL LOGIN RESMI WARGA & PENGURUS */}
+      <LoginModal
+        isOpen={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* SECURITY GATE: MANDATORY FIRST LOGIN PASSWORD CHANGE */}
+      {sessionContext && (
+        <FirstLoginChangePasswordModal
+          isOpen={forcePasswordChangeModalOpen}
+          session={sessionContext}
+          onPasswordChanged={handlePasswordChanged}
+        />
+      )}
 
     </div>
   );

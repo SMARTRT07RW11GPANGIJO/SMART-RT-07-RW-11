@@ -433,275 +433,347 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* Main Layout: Desktop Sidebar Navigation & Main Display Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Desktop Navigation Sidebar */}
-        <div className="hidden lg:block lg:col-span-3 space-y-1.5 bg-white p-3.5 rounded-3xl border border-slate-200 shadow-sm h-fit">
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
-            Navigasi Modul Portal
-          </span>
-
-          <button
-            onClick={() => setActiveSubTab('overview')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-              activeSubTab === 'overview' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4 text-[#D4A72C]" />
-            Overview Dashboard
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('warga')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-              activeSubTab === 'warga' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Users className="w-4 h-4 text-[#2E7D52]" />
-              <span>Data Warga RT</span>
-            </div>
-            <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-black">
-              {wargaList.length}
+        {/* Desktop Navigation Sidebar (Structured by Core Domains) */}
+        <div className="hidden lg:block lg:col-span-3 space-y-4 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm h-fit">
+          
+          {/* Group 1: Data & Operasional Utama */}
+          <div className="space-y-1">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
+              🏛️ DATA & OPERASIONAL
             </span>
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('keluarga')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-              activeSubTab === 'keluarga' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Home className="w-4 h-4 text-amber-600" />
-              <span>Data Keluarga / KK</span>
-            </div>
-            <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-black">
-              {keluargaList.length}
-            </span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('overview')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'overview' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4 text-[#D4A72C]" />
+              Overview Dashboard
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('surat')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-              activeSubTab === 'surat' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <FileText className="w-4 h-4 text-sky-500" />
-              <span>Administrasi Surat</span>
-            </div>
-            {pendingSuratCount > 0 && (
-              <span className="bg-[#C62828] text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
-                {pendingSuratCount}
+            <button
+              onClick={() => setActiveSubTab('warga')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'warga' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Users className="w-4 h-4 text-[#2E7D52]" />
+                <span>Data Warga RT</span>
+              </div>
+              <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-black">
+                {wargaList.length}
               </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('keluarga')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'keluarga' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Home className="w-4 h-4 text-amber-600" />
+                <span>Data Keluarga / KK</span>
+              </div>
+              <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-black">
+                {keluargaList.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('surat')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'surat' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <FileText className="w-4 h-4 text-sky-500" />
+                <span>Administrasi Surat</span>
+              </div>
+              {pendingSuratCount > 0 && (
+                <span className="bg-[#C62828] text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                  {pendingSuratCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('pengaduan')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'pengaduan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-[#C62828]" />
+                <span>Pengaduan Warga</span>
+              </div>
+              {activeAduanCount > 0 && (
+                <span className="bg-[#C62828] text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                  {activeAduanCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('agenda')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'agenda' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Calendar className="w-4 h-4 text-[#2E7D52]" />
+                <span>Kalender Kegiatan RT</span>
+              </div>
+              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+                v1.0
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('fasilitas')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'fasilitas' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <MapPin className="w-4 h-4 text-[#D4A72C]" />
+                <span>Fasilitas Lingkungan & GIS</span>
+              </div>
+              <span className="bg-[#123B5D] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
+                v1.0
+              </span>
+            </button>
+          </div>
+
+          {/* Group 2: Keuangan & Amanat Warga (Terisolasi) */}
+          <div className="space-y-1 pt-2 border-t border-slate-100">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
+              💰 KEUANGAN TERISOLASI
+            </span>
+
+            <button
+              onClick={() => setActiveSubTab('keuangan')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'keuangan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Wallet className="w-4 h-4 text-[#2E7D52]" />
+              <span>Kas RT (Operasional)</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('iuran')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'iuran' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <CreditCard className="w-4 h-4 text-emerald-600" />
+                <span>Iuran Bulanan Warga</span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                Rp 50rb
+              </span>
+            </button>
+
+            {openOmplonganModal && (
+              <button
+                onClick={openOmplonganModal}
+                className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-gradient-to-r from-red-700 via-[#123B5D] to-[#2E7D52] text-white shadow-sm hover:opacity-95"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm">🇮🇩</span>
+                  <span>Omplongan Agustusan</span>
+                </div>
+                <span className="bg-red-500/30 border border-white/30 text-[9px] px-1.5 py-0.5 rounded font-black text-amber-200">
+                  KHUSUS
+                </span>
+              </button>
             )}
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('keuangan')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-              activeSubTab === 'keuangan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <Wallet className="w-4 h-4 text-[#2E7D52]" />
-            Keuangan & Kas RT
-          </button>
-
-          {openOmplonganModal && (
-            <button
-              onClick={openOmplonganModal}
-              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-gradient-to-r from-red-700 via-[#123B5D] to-[#2E7D52] text-white shadow-sm hover:opacity-95"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-sm">🇮🇩</span>
-                <span>Omplongan Agustusan</span>
-              </div>
-              <span className="bg-red-500/30 border border-white/30 text-[9px] px-1.5 py-0.5 rounded font-black text-amber-200">
-                BARU
-              </span>
-            </button>
-          )}
-
-          {openDeathFundModal && (
-            <button
-              onClick={openDeathFundModal}
-              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-gradient-to-r from-teal-800 to-emerald-900 text-white shadow-sm hover:from-teal-700 hover:to-emerald-800 border border-teal-500/40"
-            >
-              <div className="flex items-center gap-2.5">
-                <span className="text-sm">🕊️</span>
-                <span>Dana Kematian RT 07</span>
-              </div>
-              <span className="bg-teal-950/80 border border-teal-300/40 text-[9px] px-1.5 py-0.5 rounded font-black text-teal-200">
-                PROD
-              </span>
-            </button>
-          )}
-
-          {openGoogleSheetsModal && (
-            <button
-              onClick={openGoogleSheetsModal}
-              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-800/90 text-white shadow-sm hover:bg-emerald-700"
-            >
-              <div className="flex items-center gap-2.5">
-                <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
-                <span>Google Sheets & Drive</span>
-              </div>
-              <span className="bg-emerald-950/60 border border-emerald-400/40 text-[9px] px-1.5 py-0.5 rounded font-black text-emerald-200">
-                SYNC
-              </span>
-            </button>
-          )}
-
-          <button
-            onClick={() => setActiveSubTab('iuran')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-              activeSubTab === 'iuran' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <CreditCard className="w-4 h-4 text-emerald-600" />
-              <span>Iuran Bulanan Warga</span>
-            </div>
-            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-              Rp 50rb/bln
-            </span>
-          </button>
-
-          <button
-            onClick={() => openTataTertibModal ? openTataTertibModal() : null}
-            className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-sm"
-          >
-            <div className="flex items-center gap-2.5">
-              <BookOpen className="w-4 h-4 text-emerald-700" />
-              <span>📜 Tata Tertib Warga</span>
-            </div>
-            <span className="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-              v1.1
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('pengaduan')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-              activeSubTab === 'pengaduan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-[#C62828]" />
-              <span>Pengaduan Warga</span>
-            </div>
-            {activeAduanCount > 0 && (
-              <span className="bg-[#C62828] text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                {activeAduanCount}
-              </span>
+            {openDeathFundModal && (
+              <button
+                onClick={openDeathFundModal}
+                className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-gradient-to-r from-teal-800 to-emerald-900 text-white shadow-sm hover:from-teal-700 hover:to-emerald-800 border border-teal-500/40"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm">🕊️</span>
+                  <span>Dana Kematian RT 07</span>
+                </div>
+                <span className="bg-teal-950/80 border border-teal-300/40 text-[9px] px-1.5 py-0.5 rounded font-black text-teal-200">
+                  SOSIAL
+                </span>
+              </button>
             )}
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('pengumuman')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-              activeSubTab === 'pengumuman' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <Megaphone className="w-4 h-4 text-purple-600" />
-            Pengumuman & Broadcast
-          </button>
+            <button
+              onClick={() => openTataTertibModal ? openTataTertibModal() : null}
+              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-sm"
+            >
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="w-4 h-4 text-emerald-700" />
+                <span>Tata Tertib Warga</span>
+              </div>
+              <span className="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                12 Bab
+              </span>
+            </button>
+          </div>
 
-          <button
-            onClick={() => setActiveSubTab('agenda')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-              activeSubTab === 'agenda' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Calendar className="w-4 h-4 text-[#2E7D52]" />
-              <span>Kalender Kegiatan RT</span>
-            </div>
-            <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
-              v1.0
+          {/* Group 3: Komunikasi & Tata Kelola */}
+          <div className="space-y-1 pt-2 border-t border-slate-100">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
+              ⚙️ TATA KELOLA & SISTEM
             </span>
-          </button>
 
-          <button
-            onClick={() => setActiveSubTab('fasilitas')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-              activeSubTab === 'fasilitas' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <MapPin className="w-4 h-4 text-[#D4A72C]" />
-              <span>Fasilitas Lingkungan & GIS</span>
-            </div>
-            <span className="bg-[#123B5D] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
-              v1.0
-            </span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('pengumuman')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'pengumuman' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Megaphone className="w-4 h-4 text-purple-600" />
+              Pengumuman & Broadcast
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('pengurus')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-              activeSubTab === 'pengurus' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <Users className="w-4 h-4 text-indigo-600" />
-            Profil Pengurus & ID Card
-          </button>
+            <button
+              onClick={() => setActiveSubTab('pengurus')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'pengurus' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Users className="w-4 h-4 text-indigo-600" />
+              Profil Pengurus & ID Card
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('profil')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-              activeSubTab === 'profil' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <UserCheck className="w-4 h-4 text-emerald-600" />
-            Profil Saya & KK Digital
-          </button>
+            <button
+              onClick={() => setActiveSubTab('profil')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'profil' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <UserCheck className="w-4 h-4 text-emerald-600" />
+              Profil Saya & KK Digital
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('warga-view')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-50 text-emerald-900 border border-emerald-300 hover:bg-emerald-100 shadow-xs`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Eye className="w-4 h-4 text-[#2E7D52]" />
-              <span>📱 Tampilan Warga v2.0</span>
-            </div>
-            <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
-              LIVE
-            </span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('warga-view')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-50 text-emerald-900 border border-emerald-300 hover:bg-emerald-100 shadow-xs`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Eye className="w-4 h-4 text-[#2E7D52]" />
+                <span>📱 Tampilan Warga v2.0</span>
+              </div>
+              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
+                LIVE
+              </span>
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('audit')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-              activeSubTab === 'audit' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <History className="w-4 h-4 text-slate-500" />
-            Audit Log Sistem
-          </button>
+            <button
+              onClick={() => setActiveSubTab('audit')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'audit' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <History className="w-4 h-4 text-slate-500" />
+              Audit Log Sistem
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('pengaturan')}
-            className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-              activeSubTab === 'pengaturan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-            }`}
-          >
-            <Settings className="w-4 h-4 text-[#D4A72C]" />
-            Google Sheets & GAS Sync
-          </button>
+            <button
+              onClick={() => setActiveSubTab('pengaturan')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'pengaturan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Settings className="w-4 h-4 text-[#D4A72C]" />
+              Google Sheets & GAS Sync
+            </button>
+
+            {openGoogleSheetsModal && (
+              <button
+                onClick={openGoogleSheetsModal}
+                className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-800/90 text-white shadow-sm hover:bg-emerald-700 mt-1"
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+                  <span>Buka Spreadsheet Database</span>
+                </div>
+                <span className="bg-emerald-950/60 border border-emerald-400/40 text-[9px] px-1.5 py-0.5 rounded font-black text-emerald-200">
+                  SHEETS
+                </span>
+              </button>
+            )}
+          </div>
+
         </div>
 
         {/* Content Display Area */}
-        <div className="lg:col-span-9 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm min-h-[600px]">
+        <div className="lg:col-span-9 bg-white p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm min-h-[600px] space-y-6">
           
+          {/* Mobile & Tablet Horizontal Sub-Tab Navigation Bar */}
+          <div className="lg:hidden bg-slate-50 p-2.5 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-bold text-slate-600">Pilih Modul Aktif:</span>
+              <span className="text-[10px] bg-[#123B5D] text-[#D4A72C] font-black px-2 py-0.5 rounded-full uppercase">
+                {activeSubTab}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+              {[
+                { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+                { id: 'warga', label: 'Warga', icon: Users, badge: wargaList.length },
+                { id: 'keluarga', label: 'Keluarga', icon: Home, badge: keluargaList.length },
+                { id: 'surat', label: 'Surat', icon: FileText, badge: pendingSuratCount > 0 ? pendingSuratCount : undefined },
+                { id: 'keuangan', label: 'Kas RT', icon: Wallet },
+                { id: 'iuran', label: 'Iuran', icon: CreditCard },
+                { id: 'pengaduan', label: 'Pengaduan', icon: AlertTriangle, badge: activeAduanCount > 0 ? activeAduanCount : undefined },
+                { id: 'agenda', label: 'Agenda', icon: Calendar },
+                { id: 'fasilitas', label: 'GIS Fasilitas', icon: MapPin },
+                { id: 'pengumuman', label: 'Pengumuman', icon: Megaphone },
+                { id: 'pengurus', label: 'Pengurus', icon: Users },
+                { id: 'profil', label: 'Profil', icon: UserCheck },
+                { id: 'warga-view', label: 'View Warga', icon: Eye },
+                { id: 'audit', label: 'Audit', icon: History },
+                { id: 'pengaturan', label: 'GAS Sync', icon: Settings }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeSubTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSubTab(tab.id)}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      isActive
+                        ? 'bg-[#123B5D] text-white shadow-sm'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#D4A72C]' : 'text-slate-500'}`} />
+                    <span>{tab.label}</span>
+                    {tab.badge !== undefined && (
+                      <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-black ${
+                        isActive ? 'bg-white text-[#123B5D]' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* SubTab 1: OVERVIEW DASHBOARD */}
           {activeSubTab === 'overview' && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="font-bold text-lg text-[#123B5D]">Statistik Utama Ekosistem RT 07</h3>
                   <p className="text-xs text-slate-500">Perum GPA Ngijo, Karangploso • Data Terverifikasi Real-Time</p>
                 </div>
-                <span className="bg-emerald-100 text-[#2E7D52] font-bold text-xs px-3 py-1 rounded-full border border-emerald-300 flex items-center gap-1.5">
+                <span className="bg-emerald-100 text-[#2E7D52] font-bold text-xs px-3 py-1 rounded-full border border-emerald-300 flex items-center gap-1.5 self-start sm:self-center">
                   <Activity className="w-3.5 h-3.5" /> Sistem Online
                 </span>
               </div>
@@ -769,6 +841,90 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <AlertTriangle className="w-5 h-5 text-[#C62828]" />
                   </div>
                   <span className="text-[11px] text-rose-700 font-medium">Bulan Ini</span>
+                </div>
+              </div>
+
+              {/* TIGA PILAR POS KEUANGAN WARGA (ISOLATION LOCK VISUAL GUARANTEE) */}
+              <div className="bg-gradient-to-r from-slate-50 via-emerald-50/40 to-slate-50 p-5 rounded-3xl border border-slate-200 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-200/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[#2E7D52]" />
+                    <h4 className="font-bold text-sm text-[#123B5D]">Tiga Pos Keuangan RT 07 (Amanat Terisolasi)</h4>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2.5 py-0.5 rounded-full border border-slate-200">
+                    🔒 Zero-Aggregate Ledger Isolation
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                  {/* Pos 1: Kas Operasional RT */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-emerald-200 space-y-2 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#123B5D] flex items-center gap-1.5">
+                        <Wallet className="w-4 h-4 text-[#2E7D52]" /> Kas Operasional RT
+                      </span>
+                      <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">Rutin</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Biaya kebersihan, sampah, keamanan, dan pemeliharaan fasilitas umum.
+                    </p>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                      <span className="text-slate-500 font-medium">Saldo Aktif:</span>
+                      <span className="font-black text-[#2E7D52]">Rp {saldoKas.toLocaleString('id-ID')}</span>
+                    </div>
+                  </div>
+
+                  {/* Pos 2: Omplongan Agustusan */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-red-200 space-y-2 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#123B5D] flex items-center gap-1.5">
+                        <span className="text-sm">🇮🇩</span> Omplongan HUT RI
+                      </span>
+                      <span className="text-[9px] bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded-full">Khusus</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Kegiatan peringatan kemerdekaan RI, panggung gembira & lomba warga.
+                    </p>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                      <span className="text-slate-500 font-medium">Status Buku:</span>
+                      {openOmplonganModal ? (
+                        <button
+                          onClick={openOmplonganModal}
+                          className="font-bold text-red-700 hover:underline flex items-center gap-0.5"
+                        >
+                          Buka Rekap →
+                        </button>
+                      ) : (
+                        <span className="font-bold text-slate-700">Terbuka</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pos 3: Dana Kematian RT */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-teal-200 space-y-2 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#123B5D] flex items-center gap-1.5">
+                        <span className="text-sm">🕊️</span> Dana Kematian
+                      </span>
+                      <span className="text-[9px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded-full">Sosial</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Santunan duka cita dan bantuan pemulasaraan jenazah keluarga duka.
+                    </p>
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                      <span className="text-slate-500 font-medium">Status Buku:</span>
+                      {openDeathFundModal ? (
+                        <button
+                          onClick={openDeathFundModal}
+                          className="font-bold text-teal-700 hover:underline flex items-center gap-0.5"
+                        >
+                          Buka Portal →
+                        </button>
+                      ) : (
+                        <span className="font-bold text-slate-700">Terbuka</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

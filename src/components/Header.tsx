@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserRole } from '../types/rt';
+import { AuthoritativeSessionContext } from '../security/authorization';
 import { 
   Building2, 
   ShieldCheck, 
@@ -21,7 +22,10 @@ import {
   Terminal,
   GraduationCap,
   Rocket,
-  FileSpreadsheet
+  FileSpreadsheet,
+  LogIn,
+  LogOut,
+  KeyRound
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -34,6 +38,9 @@ interface HeaderProps {
   openArchModal: () => void;
   openWaModal: () => void;
   openArchiveModal: () => void;
+  openLoginModal?: () => void;
+  onLogout?: () => void;
+  sessionContext?: AuthoritativeSessionContext | null;
   openSecurityModal?: () => void;
   openSystemModal?: () => void;
   openMonitorModal?: () => void;
@@ -65,6 +72,9 @@ export const Header: React.FC<HeaderProps> = ({
   openArchModal,
   openWaModal,
   openArchiveModal,
+  openLoginModal,
+  onLogout,
+  sessionContext,
   openSecurityModal,
   openSystemModal,
   openMonitorModal,
@@ -433,26 +443,64 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
 
           {/* Quick Actions & Role Switcher */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2.5">
             <button
               onClick={openLetterModal}
-              className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow border border-[#D4A72C]/30 flex items-center gap-1.5"
+              className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow border border-[#D4A72C]/30 flex items-center gap-1.5 cursor-pointer"
             >
               <FileText className="w-3.5 h-3.5" />
               AJUKAN SURAT
             </button>
 
+            {/* Real Identity Authentication Button or Authenticated Pill */}
+            {sessionContext && sessionContext.isValid && currentRole !== 'PUBLIC' ? (
+              <div className="flex items-center gap-2 bg-[#0A2338] border border-emerald-500/40 rounded-xl px-2.5 py-1.5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#2E7D52] flex items-center justify-center font-bold text-white text-xs border border-[#D4A72C]">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-[11px] font-bold text-white leading-tight max-w-[130px] truncate">
+                      {sessionContext.namaLengkap || sessionContext.userId}
+                    </span>
+                    <span className="block text-[9px] font-mono text-emerald-400 leading-none">
+                      {sessionContext.role === 'WARGA' && sessionContext.nomorKK 
+                        ? `KK: ${sessionContext.nomorKK.slice(0, 4)}••••${sessionContext.nomorKK.slice(-4)}`
+                        : sessionContext.role}
+                    </span>
+                  </div>
+                </div>
+
+                {onLogout && (
+                  <button
+                    onClick={onLogout}
+                    title="Keluar / Logout"
+                    className="p-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 hover:text-white border border-rose-800/60 transition-colors ml-1 cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              openLoginModal && (
+                <button
+                  onClick={openLoginModal}
+                  className="bg-gradient-to-r from-[#123B5D] to-[#0A2338] hover:from-[#0A2338] hover:to-[#051421] text-[#D4A72C] hover:text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow border border-[#D4A72C]/60 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  MASUK / LOGIN
+                </button>
+              )
+            )}
+
             {/* Role Switcher for Testing */}
             <div className="relative group">
-              <div className="bg-[#0A2338] border border-slate-600 px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
-                <User className="w-3.5 h-3.5 text-[#D4A72C]" />
-                <div className="text-left">
-                  <span className="block text-[10px] text-slate-400 leading-none">Role Simulasi:</span>
-                  <span className="font-bold text-white leading-none">{currentRole}</span>
-                </div>
+              <div className="bg-[#0A2338] border border-slate-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs text-slate-200 cursor-pointer">
+                <span className="text-[10px] text-slate-400 leading-none">Role:</span>
+                <span className="font-bold text-[#D4A72C] leading-none text-[11px]">{currentRole}</span>
               </div>
-              <div className="absolute right-0 mt-1 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1 hidden group-hover:block z-50 text-slate-800 text-xs">
-                <div className="px-3 py-1 font-bold text-slate-400 text-[10px] uppercase border-b border-slate-100">Pilih Role Simulasi</div>
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 hidden group-hover:block z-50 text-slate-800 text-xs">
+                <div className="px-3 py-1 font-bold text-slate-400 text-[10px] uppercase border-b border-slate-100">Simulasi / Override Role</div>
                 <button onClick={() => setRole('PUBLIC')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='PUBLIC'?'text-[#2E7D52] font-bold':''}`}>PUBLIC (Warga Umum)</button>
                 <button onClick={() => setRole('WARGA')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='WARGA'?'text-[#2E7D52] font-bold':''}`}>WARGA TERVERIFIKASI</button>
                 <button onClick={() => setRole('PENGURUS')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='PENGURUS'?'text-[#2E7D52] font-bold':''}`}>PENGURUS RT</button>
@@ -545,6 +593,48 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 📜 TATA TERTIB
               </button>
+            )}
+          </div>
+
+          {/* Mobile Login / User Profile */}
+          <div className="pb-2 border-b border-slate-800">
+            {sessionContext && sessionContext.isValid && currentRole !== 'PUBLIC' ? (
+              <div className="flex items-center justify-between bg-slate-900/90 border border-emerald-500/40 rounded-xl p-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-[#2E7D52] flex items-center justify-center font-bold text-white text-xs border border-[#D4A72C]">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="block text-xs font-bold text-white">
+                      {sessionContext.namaLengkap || sessionContext.userId}
+                    </span>
+                    <span className="block text-[10px] font-mono text-emerald-400">
+                      {sessionContext.role === 'WARGA' && sessionContext.nomorKK 
+                        ? `KK: ${sessionContext.nomorKK.slice(0, 4)}••••${sessionContext.nomorKK.slice(-4)}`
+                        : sessionContext.role}
+                    </span>
+                  </div>
+                </div>
+                {onLogout && (
+                  <button
+                    onClick={() => { onLogout(); setMobileMenuOpen(false); }}
+                    className="px-2.5 py-1.5 rounded-lg bg-rose-950 text-rose-300 text-[11px] font-bold border border-rose-800 flex items-center gap-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Keluar
+                  </button>
+                )}
+              </div>
+            ) : (
+              openLoginModal && (
+                <button
+                  onClick={() => { openLoginModal(); setMobileMenuOpen(false); }}
+                  className="w-full bg-[#D4A72C] text-[#123B5D] font-black text-xs py-2.5 rounded-xl shadow flex items-center justify-center gap-2"
+                >
+                  <LogIn className="w-4 h-4" />
+                  MASUK / LOGIN RESMI WARGA & PENGURUS
+                </button>
+              )
             )}
           </div>
 

@@ -14,6 +14,13 @@ export interface AuthoritativeSessionContext {
   isRevoked?: boolean;
   isUserActive?: boolean;
   issuedAt?: string;
+  expiresAt?: string;
+  keluargaId?: string;
+  nomorKK?: string;
+  namaLengkap?: string;
+  forcePasswordChange?: boolean;
+  isFirstLogin?: boolean;
+  accountStatus?: 'PENDING_ACTIVATION' | 'PASSWORD_CHANGE_REQUIRED' | 'ACTIVE' | 'BLOCKED' | 'SUSPENDED';
 }
 
 /**
