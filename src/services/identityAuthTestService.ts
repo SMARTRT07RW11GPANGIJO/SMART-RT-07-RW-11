@@ -597,12 +597,12 @@ export class IdentityAuthTestService {
       const t0 = Date.now();
       const accounts = IdentityAuthService.initializeAccounts();
       const acc = accounts.get(sampleKK);
-      const isHashed = acc ? acc.passwordHash.startsWith('sha256_') && acc.passwordHash !== 'WargaRT07#Aman2026' : false;
+      const isHashed = acc ? (acc.passwordHash.startsWith('$pbkdf2-sha256$') || acc.passwordHash.startsWith('sha256_')) && acc.passwordHash !== 'WargaRT07#Aman2026' : false;
       results.push({
         testId: 'AUTH-KK-030',
         category: 'PASSWORD_POLICY',
-        name: 'Passwords stored as cryptographic SHA-256 hashes with salt',
-        expected: 'Hashed: true, format: sha256_...',
+        name: 'Passwords stored as cryptographic PBKDF2/SHA-256 hashes with salt',
+        expected: 'Hashed: true, format: $pbkdf2-sha256$ or sha256_...',
         actual: `Hashed: ${isHashed}`,
         status: isHashed ? 'PASS' : 'FAIL',
         durationMs: Date.now() - t0
@@ -613,7 +613,7 @@ export class IdentityAuthTestService {
     {
       const t0 = Date.now();
       const logs = getStoredAuditLogs();
-      const leaked = logs.some(l => l.details.includes('WargaRT07#Aman2026') || l.details.includes('sha256_'));
+      const leaked = logs.some(l => l.details.includes('WargaRT07#Aman2026') || l.details.includes('sha256_') || l.details.includes('$pbkdf2-sha256$'));
       results.push({
         testId: 'AUTH-KK-031',
         category: 'PASSWORD_POLICY',

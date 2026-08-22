@@ -65,12 +65,16 @@ class FacilityInspectionService {
 
   private loadState() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY_INSPECTIONS);
-      if (stored) {
-        this.inspections = JSON.parse(stored);
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(STORAGE_KEY_INSPECTIONS);
+        if (stored) {
+          this.inspections = JSON.parse(stored);
+        } else {
+          this.inspections = [...INITIAL_INSPECTIONS];
+          this.saveState();
+        }
       } else {
         this.inspections = [...INITIAL_INSPECTIONS];
-        this.saveState();
       }
     } catch {
       this.inspections = [...INITIAL_INSPECTIONS];
@@ -79,7 +83,9 @@ class FacilityInspectionService {
 
   private saveState() {
     try {
-      localStorage.setItem(STORAGE_KEY_INSPECTIONS, JSON.stringify(this.inspections));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_INSPECTIONS, JSON.stringify(this.inspections));
+      }
     } catch (e) {
       console.warn('LocalStorage save warning:', e);
     }

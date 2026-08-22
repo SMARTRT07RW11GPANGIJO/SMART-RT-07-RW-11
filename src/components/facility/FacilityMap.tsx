@@ -135,31 +135,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
   const svgContainerRef = useRef<HTMLDivElement>(null);
 
   // Live Location Tracker
-  
-  if (!hasValidKey) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-slate-50 p-8 rounded-3xl border border-slate-200">
-        <div className="text-center max-w-xl bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-          <Compass className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Google Maps API Key Required</h2>
-          <p className="text-sm text-slate-600 mb-6">
-            Sistem GeoBase membutuhkan koneksi ke Google Maps Platform untuk memuat peta digital lingkungan RT 07.
-          </p>
-          <div className="text-left text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
-            <p className="font-bold text-slate-700 mb-2">Langkah Pemasangan:</p>
-            <ol className="list-decimal pl-5 space-y-2 text-slate-600">
-              <li>Dapatkan API Key dari <a href="https://console.cloud.google.com/google/maps-apis/start?utm_campaign=gmp-code-assist-ais" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Google Cloud Console</a>.</li>
-              <li>Buka <strong>Settings</strong> (ikon ⚙️ gear di pojok kanan atas).</li>
-              <li>Pilih menu <strong>Secrets</strong>.</li>
-              <li>Ketik <code className="bg-slate-200 px-1 py-0.5 rounded">GOOGLE_MAPS_PLATFORM_KEY</code> lalu tekan Enter.</li>
-              <li>Tempelkan API Key Anda dan tekan Enter.</li>
-            </ol>
-            <p className="mt-4 text-xs text-slate-500 italic">Aplikasi akan melakukan reload secara otomatis setelah kunci dimasukkan.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const [useVectorFallback, setUseVectorFallback] = useState(!hasValidKey);
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) return;
@@ -401,6 +377,208 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
       <div className="relative w-full overflow-hidden bg-slate-950 min-h-[500px] sm:min-h-[580px]" ref={svgContainerRef}>
         {/* SVG Interactive Canvas */}
         
+        {/* Interactive Map View (Google Maps Platform or GIS Vector Fallback) */}
+        {!hasValidKey || useVectorFallback ? (
+          <div className="absolute inset-0 bg-[#0c1626] select-none">
+            <svg
+              className="w-full h-full cursor-crosshair"
+              viewBox="0 0 1000 700"
+              preserveAspectRatio="xMidYMid meet"
+              onClick={svgPointToLatLng}
+            >
+              {/* Grid Background Pattern */}
+              <defs>
+                <pattern id="gisGrid" width="50" height="50" patternUnits="userSpaceOnUse">
+                  <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#1e293b" strokeWidth="0.5" strokeOpacity="0.6" />
+                </pattern>
+              </defs>
+              <rect width="1000" height="700" fill="url(#gisGrid)" />
+
+              {/* RT 07 Boundary Polygon */}
+              {showBoundary && (
+                <polygon
+                  points={boundarySvgPoints}
+                  fill="#ef4444"
+                  fillOpacity="0.08"
+                  stroke="#ef4444"
+                  strokeWidth="2"
+                  strokeDasharray="6,4"
+                />
+              )}
+
+              {/* RT 07 Reference Road Network */}
+              {showBoundary &&
+                RT07_REFERENCE_ROADS.map((road) => {
+                  const pts = road.points.map((p) => latLngToSvgPoint(p[0], p[1]));
+                  const pathStr = pts.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
+                  return (
+                    <g key={road.roadId}>
+                      <path
+                        d={pathStr}
+                        fill="none"
+                        stroke="#334155"
+                        strokeWidth={road.type === 'MAIN_ROAD' ? '14' : '8'}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d={pathStr}
+                        fill="none"
+                        stroke={road.type === 'MAIN_ROAD' ? '#94a3b8' : '#64748b'}
+                        strokeWidth={road.type === 'MAIN_ROAD' ? '10' : '4'}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </g>
+                  );
+                })}
+
+              {/* Measurement Line */}
+              {measurePoints.length > 0 && (
+                <polyline
+                  points={measurePoints.map((p) => {
+                    const pt = latLngToSvgPoint(p.lat, p.lng);
+                    return `${pt.x},${pt.y}`;
+                  }).join(' ')}
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="3"
+                  strokeDasharray="4,4"
+                />
+              )}
+
+              {/* Facility Markers on SVG */}
+              {filteredFacilities.map((facility) => {
+                const pt = latLngToSvgPoint(facility.latitude, facility.longitude);
+                const isSelected = selectedFacility?.fasilitasId === facility.fasilitasId;
+                const isHovered = hoveredFacility?.fasilitasId === facility.fasilitasId;
+                const isEmergency = facility.tingkatPrioritas === 'DARURAT';
+
+                let statusColor = '#94a3b8';
+                if (facility.surveyStatus === 'FIELD_VERIFIED' || facility.locationStatus === 'FIELD_VERIFIED') statusColor = '#10b981';
+                else if (facility.surveyStatus === 'PENDING_REVIEW' || facility.locationStatus === 'PENDING_REVIEW') statusColor = '#f97316';
+                else if (facility.surveyStatus === 'REJECTED' || facility.locationStatus === 'REJECTED') statusColor = '#ef4444';
+                else if (facility.surveyStatus === 'RESURVEY_REQUIRED') statusColor = '#a855f7';
+                else if (facility.surveyStatus === 'REFERENCE_UNVERIFIED' || facility.locationStatus === 'REFERENCE_UNVERIFIED' || !facility.surveyStatus) statusColor = '#eab308';
+
+                return (
+                  <g
+                    key={facility.fasilitasId}
+                    className="cursor-pointer transition-transform duration-150"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectFacility(facility);
+                    }}
+                    onMouseEnter={() => setHoveredFacility(facility)}
+                    onMouseLeave={() => setHoveredFacility(null)}
+                  >
+                    {/* Accuracy Buffer Circle */}
+                    {showAccuracyRadius && (
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r={Math.max(8, (facility.accuracyMeters || facility.akurasiLokasi || 5) * 1.8)}
+                        fill={statusColor}
+                        fillOpacity="0.12"
+                        stroke={statusColor}
+                        strokeWidth="1"
+                        strokeDasharray="2,2"
+                      />
+                    )}
+
+                    {/* Pulse effect if selected or emergency */}
+                    {(isSelected || isEmergency) && (
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r={isSelected ? 18 : 14}
+                        fill={isEmergency ? '#ef4444' : '#6366f1'}
+                        fillOpacity="0.3"
+                        className="animate-pulse"
+                      />
+                    )}
+
+                    {/* Outer Ring */}
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={isSelected ? 10 : 7}
+                      fill={isSelected ? '#123B5D' : '#ffffff'}
+                      stroke={isEmergency ? '#dc2626' : statusColor}
+                      strokeWidth="2.5"
+                    />
+
+                    {/* Center Dot */}
+                    <circle
+                      cx={pt.x}
+                      cy={pt.y}
+                      r={isSelected ? 4 : 3}
+                      fill={isEmergency ? '#ffffff' : statusColor}
+                    />
+
+                    {/* Text Label on hover or selected */}
+                    {(isHovered || isSelected) && (
+                      <g transform={`translate(${pt.x}, ${pt.y - 14})`}>
+                        <rect
+                          x="-60"
+                          y="-16"
+                          width="120"
+                          height="18"
+                          rx="4"
+                          fill="#0f172a"
+                          fillOpacity="0.95"
+                          stroke="#334155"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x="0"
+                          y="-4"
+                          textAnchor="middle"
+                          fill="#f8fafc"
+                          fontSize="9"
+                          fontWeight="bold"
+                        >
+                          {facility.namaFasilitas.length > 18
+                            ? facility.namaFasilitas.substring(0, 16) + '...'
+                            : facility.namaFasilitas}
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* User Live GPS Marker */}
+              {userGpsLocation && (() => {
+                const pt = latLngToSvgPoint(userGpsLocation.lat, userGpsLocation.lng);
+                return (
+                  <g transform={`translate(${pt.x}, ${pt.y})`}>
+                    <circle r="22" fill="#3b82f6" fillOpacity="0.2" className="animate-pulse" />
+                    <circle r="12" fill="#3b82f6" fillOpacity="0.3" />
+                    <circle r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
+                    <text x="0" y="-14" textAnchor="middle" fill="#60a5fa" fontSize="9" fontWeight="bold">
+                      Posisi Anda (±{userGpsLocation.accuracy}m)
+                    </text>
+                  </g>
+                );
+              })()}
+
+              {/* Coordinate Picker Pin */}
+              {pickerPin && (() => {
+                const pt = latLngToSvgPoint(pickerPin.lat, pickerPin.lng);
+                return (
+                  <g transform={`translate(${pt.x}, ${pt.y})`}>
+                    <circle r="16" fill="#f59e0b" fillOpacity="0.3" className="animate-ping" />
+                    <circle r="6" fill="#d97706" stroke="#ffffff" strokeWidth="2" />
+                    <text x="0" y="-12" textAnchor="middle" fill="#fbbf24" fontSize="9" fontWeight="bold">
+                      Titik Terpilih
+                    </text>
+                  </g>
+                );
+              })()}
+            </svg>
+          </div>
+        ) : (
         <APIProvider apiKey={API_KEY} version="weekly">
           <div className="absolute inset-0">
             <Map
@@ -548,6 +726,7 @@ export const FacilityMap: React.FC<FacilityMapProps> = ({
             </Map>
           </div>
         </APIProvider>
+        )}
 
 
         {/* HUD Info Bar (Bottom Left) */}

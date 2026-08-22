@@ -373,15 +373,19 @@ export function sanitizeDataForAI<T>(data: T): T {
 }
 
 // 6. AI Audit Logging Engine
+let inMemoryAIAuditLogs: AIAuditEntry[] = [];
+
 export function getAIAuditLogs(): AIAuditEntry[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_AI_AUDIT_LOGS_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('Failed to parse AI Audit Logs:', e);
-    return [];
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(STORAGE_AI_AUDIT_LOGS_KEY);
+      if (!raw) return [];
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
   }
+  return inMemoryAIAuditLogs;
 }
 
 export function logAIAuditEntry(entryData: Omit<AIAuditEntry, 'id' | 'timestamp'>): AIAuditEntry {
@@ -396,10 +400,14 @@ export function logAIAuditEntry(entryData: Omit<AIAuditEntry, 'id' | 'timestamp'
   };
 
   const updated = [newEntry, ...currentLogs];
-  try {
-    localStorage.setItem(STORAGE_AI_AUDIT_LOGS_KEY, JSON.stringify(updated.slice(0, 200))); // Keep last 200
-  } catch (e) {
-    console.error('Failed to save AI Audit Entry:', e);
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_AI_AUDIT_LOGS_KEY, JSON.stringify(updated.slice(0, 200))); // Keep last 200
+    } catch {
+      // ignore
+    }
+  } else {
+    inMemoryAIAuditLogs = updated.slice(0, 200);
   }
 
   return newEntry;

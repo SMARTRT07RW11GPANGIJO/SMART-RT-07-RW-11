@@ -374,6 +374,18 @@ const INITIAL_FACILITIES: FasilitasLingkungan[] = [
   }
 ];
 
+export type CreateFacilityInput = Partial<FasilitasLingkungan> & {
+  namaFasilitas: string;
+  kategori: FacilityCategory;
+  lokasi: string;
+  latitude: number;
+  longitude: number;
+  status: FacilityStatus;
+  kondisi: FacilityCondition;
+  tingkatPrioritas: FacilityPriority;
+  tanggalPendataan: string;
+};
+
 class FacilityService {
   private facilities: FasilitasLingkungan[] = [];
   private geoObjects: GeoObject[] = [];
@@ -394,34 +406,88 @@ class FacilityService {
 
   private loadState() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY_FACILITIES);
-      if (stored) {
-        this.facilities = JSON.parse(stored);
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(STORAGE_KEY_FACILITIES);
+        if (stored) {
+          this.facilities = JSON.parse(stored);
+        } else {
+          this.facilities = [...INITIAL_FACILITIES];
+          this.saveState();
+        }
+
+        const storedAudit = localStorage.getItem(STORAGE_KEY_AUDIT);
+        if (storedAudit) {
+          this.auditLogs = JSON.parse(storedAudit);
+        }
+
+        const storedLinks = localStorage.getItem(STORAGE_KEY_EVENT_LINKS);
+        if (storedLinks) {
+          this.eventLinks = JSON.parse(storedLinks);
+        }
+
+        const storedComplaints = localStorage.getItem(STORAGE_KEY_COMPLAINTS);
+        if (storedComplaints) {
+          this.complaints = JSON.parse(storedComplaints);
+        }
+
+        const storedGeo = localStorage.getItem(STORAGE_KEY_GEO_OBJECTS);
+        if (storedGeo) {
+          this.geoObjects = JSON.parse(storedGeo);
+        } else {
+          // Bootstrap GeoObjects from initial facilities as REFERENCE_UNVERIFIED
+          this.geoObjects = this.facilities.map((f) => ({
+            geoId: `GEO-${f.fasilitasId}`,
+            objectType: 'FACILITY',
+            geometryType: 'POINT',
+            name: f.namaFasilitas,
+            latitude: f.latitude,
+            longitude: f.longitude,
+            source: (f.coordinateSource || 'REFERENCE') as GeoSource,
+            verificationStatus: (f.surveyStatus || 'REFERENCE_UNVERIFIED') as VerificationStatus,
+            accuracyMeters: f.accuracyMeters || f.akurasiLokasi || 15,
+            accuracyGrade: (f.accuracyGrade || 'LOW_PRECISION') as GPSAccuracyGrade,
+            capturedAt: f.createdAt,
+            capturedBy: f.createdBy,
+            verifiedAt: undefined,
+            verifiedBy: undefined,
+            notes: f.catatan,
+            qualityScore: f.qualityScore || 3,
+            staleStatus: f.staleStatus || 'FRESH',
+            lastSurveyedAt: undefined,
+            lastSurveyedBy: undefined,
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt,
+            version: f.version
+          }));
+          this.saveGeoState();
+        }
+
+        const storedSurveys = localStorage.getItem(STORAGE_KEY_GEO_SURVEYS);
+        if (storedSurveys) {
+          this.geoSurveys = JSON.parse(storedSurveys);
+        }
+
+        const storedEvidence = localStorage.getItem(STORAGE_KEY_GEO_EVIDENCE);
+        if (storedEvidence) {
+          this.geoEvidence = JSON.parse(storedEvidence);
+        }
+
+        const storedHistory = localStorage.getItem(STORAGE_KEY_GEO_HISTORY);
+        if (storedHistory) {
+          this.geoHistory = JSON.parse(storedHistory);
+        }
+
+        const storedBoundary = localStorage.getItem(STORAGE_KEY_RT_BOUNDARY);
+        if (storedBoundary) {
+          this.rtBoundary = JSON.parse(storedBoundary);
+        }
+
+        const storedCert = localStorage.getItem(STORAGE_KEY_CERTIFICATION_RECORDS);
+        if (storedCert) {
+          this.certificationRecords = JSON.parse(storedCert);
+        }
       } else {
         this.facilities = [...INITIAL_FACILITIES];
-        this.saveState();
-      }
-
-      const storedAudit = localStorage.getItem(STORAGE_KEY_AUDIT);
-      if (storedAudit) {
-        this.auditLogs = JSON.parse(storedAudit);
-      }
-
-      const storedLinks = localStorage.getItem(STORAGE_KEY_EVENT_LINKS);
-      if (storedLinks) {
-        this.eventLinks = JSON.parse(storedLinks);
-      }
-
-      const storedComplaints = localStorage.getItem(STORAGE_KEY_COMPLAINTS);
-      if (storedComplaints) {
-        this.complaints = JSON.parse(storedComplaints);
-      }
-
-      const storedGeo = localStorage.getItem(STORAGE_KEY_GEO_OBJECTS);
-      if (storedGeo) {
-        this.geoObjects = JSON.parse(storedGeo);
-      } else {
-        // Bootstrap GeoObjects from initial facilities as REFERENCE_UNVERIFIED
         this.geoObjects = this.facilities.map((f) => ({
           geoId: `GEO-${f.fasilitasId}`,
           objectType: 'FACILITY',
@@ -446,32 +512,6 @@ class FacilityService {
           updatedAt: f.updatedAt,
           version: f.version
         }));
-        this.saveGeoState();
-      }
-
-      const storedSurveys = localStorage.getItem(STORAGE_KEY_GEO_SURVEYS);
-      if (storedSurveys) {
-        this.geoSurveys = JSON.parse(storedSurveys);
-      }
-
-      const storedEvidence = localStorage.getItem(STORAGE_KEY_GEO_EVIDENCE);
-      if (storedEvidence) {
-        this.geoEvidence = JSON.parse(storedEvidence);
-      }
-
-      const storedHistory = localStorage.getItem(STORAGE_KEY_GEO_HISTORY);
-      if (storedHistory) {
-        this.geoHistory = JSON.parse(storedHistory);
-      }
-
-      const storedBoundary = localStorage.getItem(STORAGE_KEY_RT_BOUNDARY);
-      if (storedBoundary) {
-        this.rtBoundary = JSON.parse(storedBoundary);
-      }
-
-      const storedCert = localStorage.getItem(STORAGE_KEY_CERTIFICATION_RECORDS);
-      if (storedCert) {
-        this.certificationRecords = JSON.parse(storedCert);
       }
     } catch {
       this.facilities = [...INITIAL_FACILITIES];
@@ -480,10 +520,12 @@ class FacilityService {
 
   private saveState() {
     try {
-      localStorage.setItem(STORAGE_KEY_FACILITIES, JSON.stringify(this.facilities));
-      localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(this.auditLogs));
-      localStorage.setItem(STORAGE_KEY_EVENT_LINKS, JSON.stringify(this.eventLinks));
-      localStorage.setItem(STORAGE_KEY_COMPLAINTS, JSON.stringify(this.complaints));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_FACILITIES, JSON.stringify(this.facilities));
+        localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(this.auditLogs));
+        localStorage.setItem(STORAGE_KEY_EVENT_LINKS, JSON.stringify(this.eventLinks));
+        localStorage.setItem(STORAGE_KEY_COMPLAINTS, JSON.stringify(this.complaints));
+      }
     } catch (e) {
       console.warn('LocalStorage save warning:', e);
     }
@@ -491,12 +533,14 @@ class FacilityService {
 
   private saveGeoState() {
     try {
-      localStorage.setItem(STORAGE_KEY_GEO_OBJECTS, JSON.stringify(this.geoObjects));
-      localStorage.setItem(STORAGE_KEY_GEO_SURVEYS, JSON.stringify(this.geoSurveys));
-      localStorage.setItem(STORAGE_KEY_GEO_EVIDENCE, JSON.stringify(this.geoEvidence));
-      localStorage.setItem(STORAGE_KEY_GEO_HISTORY, JSON.stringify(this.geoHistory));
-      localStorage.setItem(STORAGE_KEY_RT_BOUNDARY, JSON.stringify(this.rtBoundary));
-      localStorage.setItem(STORAGE_KEY_CERTIFICATION_RECORDS, JSON.stringify(this.certificationRecords));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_GEO_OBJECTS, JSON.stringify(this.geoObjects));
+        localStorage.setItem(STORAGE_KEY_GEO_SURVEYS, JSON.stringify(this.geoSurveys));
+        localStorage.setItem(STORAGE_KEY_GEO_EVIDENCE, JSON.stringify(this.geoEvidence));
+        localStorage.setItem(STORAGE_KEY_GEO_HISTORY, JSON.stringify(this.geoHistory));
+        localStorage.setItem(STORAGE_KEY_RT_BOUNDARY, JSON.stringify(this.rtBoundary));
+        localStorage.setItem(STORAGE_KEY_CERTIFICATION_RECORDS, JSON.stringify(this.certificationRecords));
+      }
     } catch (e) {
       console.warn('Geo state save warning:', e);
     }
@@ -596,8 +640,8 @@ class FacilityService {
     return this.facilities
       .filter((f) => f.status !== 'DIHAPUS')
       .map((f) => {
-        if (!isInternal && actor.role.toUpperCase() === 'WARGA') {
-          // Public Privacy Masking
+        if (!isInternal) {
+          // Public & Regular Resident Privacy Masking
           return {
             ...f,
             catatan: undefined, // internal remarks hidden
@@ -614,7 +658,7 @@ class FacilityService {
     if (!facility) return null;
 
     const isInternal = this.hasPermission(actor.role, 'VIEW_INTERNAL');
-    if (!isInternal && actor.role.toUpperCase() === 'WARGA') {
+    if (!isInternal) {
       return {
         ...facility,
         catatan: undefined,
@@ -628,7 +672,7 @@ class FacilityService {
   // CREATE FACILITY
   public createFacility(
     actor: FacilityActorSession,
-    data: Omit<FasilitasLingkungan, 'fasilitasId' | 'kodeFasilitas' | 'createdAt' | 'createdBy' | 'updatedAt' | 'updatedBy' | 'version' | 'jumlahFoto'>,
+    data: CreateFacilityInput,
     requestId: string
   ): { success: boolean; data?: FasilitasLingkungan; error?: string; code?: string; backendConnected?: boolean } {
     // 1. Concurrency / Idempotency Check
@@ -725,6 +769,20 @@ class FacilityService {
       ...data,
       fasilitasId,
       kodeFasilitas,
+      subkategori: data.subkategori || 'UMUM',
+      deskripsi: data.deskripsi || '',
+      alamatSingkat: data.alamatSingkat || data.lokasi || '',
+      akurasiLokasi: data.akurasiLokasi || 10,
+      locationStatus: data.locationStatus || 'REFERENCE_UNVERIFIED',
+      coordinateSource: data.coordinateSource || 'REFERENCE',
+      surveyStatus: data.surveyStatus || 'REFERENCE_UNVERIFIED',
+      penanggungJawabNama: data.penanggungJawabNama || '',
+      penanggungJawabId: data.penanggungJawabId || '',
+      sumberDana: data.sumberDana || 'SWADAYA_WARGA',
+      isPublic: data.isPublic !== undefined ? data.isPublic : true,
+      linkedEventIds: data.linkedEventIds || [],
+      complaintCount: data.complaintCount || 0,
+      fotoTambahan: data.fotoTambahan || [],
       conditionScore: score,
       jumlahFoto: (data.fotoUtama ? 1 : 0) + (data.fotoTambahan ? data.fotoTambahan.length : 0),
       createdAt: nowIso,
@@ -735,7 +793,31 @@ class FacilityService {
     };
 
     this.facilities.unshift(newFacility);
+
+    // Synchronize GeoObject
+    this.geoObjects.unshift({
+      geoId: `GEO-${fasilitasId}`,
+      objectType: 'FACILITY',
+      geometryType: 'POINT',
+      name: newFacility.namaFasilitas,
+      latitude: newFacility.latitude,
+      longitude: newFacility.longitude,
+      source: 'REFERENCE',
+      verificationStatus: 'REFERENCE_UNVERIFIED',
+      accuracyMeters: newFacility.akurasiLokasi || 10,
+      accuracyGrade: 'LOW_PRECISION',
+      capturedAt: nowIso,
+      capturedBy: actor.nama,
+      notes: newFacility.catatan,
+      qualityScore: 3,
+      staleStatus: 'FRESH',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      version: 1
+    });
+
     this.saveState();
+    this.saveGeoState();
 
     this.logAudit(
       actor,
@@ -799,6 +881,8 @@ class FacilityService {
       ...data,
       fasilitasId: existing.fasilitasId, // immutable
       kodeFasilitas: existing.kodeFasilitas, // immutable
+      createdAt: existing.createdAt, // immutable
+      createdBy: existing.createdBy, // immutable
       kondisi: updatedCondition,
       conditionScore: score,
       updatedAt: new Date().toISOString(),
@@ -1194,7 +1278,7 @@ class FacilityService {
         return {
           success: false,
           error: `Ukuran berkas foto ${photo.fileName} melebihi batas maksimal 5MB.`,
-          code: 'FILE_TOO_LARGE'
+          code: 'PHOTO_SIZE_EXCEEDED'
         };
       }
       if (photo.fileMimeType && !['image/jpeg', 'image/png', 'image/webp', 'image/jpg'].includes(photo.fileMimeType.toLowerCase())) {
@@ -1274,6 +1358,7 @@ class FacilityService {
       capturedAt: now,
       capturedBy: actor.userId,
       capturedByName: actor.nama,
+      surveyorId: actor.userId,
       insideRtBoundary: insideBoundary,
       distanceFromExpectedPoint: distanceFromExpected,
       expectedPointStatus: expectedStatus,

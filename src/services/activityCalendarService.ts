@@ -177,8 +177,12 @@ class ActivityCalendarService {
   }
 
   private loadFromStorage() {
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+      this.events = [...INITIAL_KEGIATAN];
+      return;
+    }
     try {
-      const stored = localStorage.getItem(STORAGE_KEY_KEGIATAN);
+      const stored = window.localStorage.getItem(STORAGE_KEY_KEGIATAN);
       if (stored) {
         this.events = JSON.parse(stored);
       } else {
@@ -186,12 +190,12 @@ class ActivityCalendarService {
         this.saveToStorage();
       }
 
-      const storedAudit = localStorage.getItem(STORAGE_KEY_AUDIT);
+      const storedAudit = window.localStorage.getItem(STORAGE_KEY_AUDIT);
       if (storedAudit) {
         this.auditLogs = JSON.parse(storedAudit);
       }
 
-      const storedNotifs = localStorage.getItem(STORAGE_KEY_NOTIFS);
+      const storedNotifs = window.localStorage.getItem(STORAGE_KEY_NOTIFS);
       if (storedNotifs) {
         this.notifications = JSON.parse(storedNotifs);
       }
@@ -201,10 +205,13 @@ class ActivityCalendarService {
   }
 
   private saveToStorage() {
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+      return;
+    }
     try {
-      localStorage.setItem(STORAGE_KEY_KEGIATAN, JSON.stringify(this.events));
-      localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(this.auditLogs));
-      localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(this.notifications));
+      window.localStorage.setItem(STORAGE_KEY_KEGIATAN, JSON.stringify(this.events));
+      window.localStorage.setItem(STORAGE_KEY_AUDIT, JSON.stringify(this.auditLogs));
+      window.localStorage.setItem(STORAGE_KEY_NOTIFS, JSON.stringify(this.notifications));
     } catch (e) {
       console.error('Failed to save activity data to local storage', e);
     }
@@ -320,7 +327,7 @@ class ActivityCalendarService {
     const isWargaOrPublic = role === 'WARGA' || role === 'PUBLIC';
 
     if (isWargaOrPublic) {
-      // Warga & Public only see public events and not archived ones
+      // Warga & Public only see public events and not archived / draft / pending ones
       return this.events.filter(
         (e) => e.isPublic && e.status !== 'ARSIP' && e.status !== 'DRAFT' && e.status !== 'MENUNGGU_PERSETUJUAN'
       );
@@ -335,11 +342,34 @@ class ActivityCalendarService {
     if (!event) return null;
 
     const role = actor.role.toUpperCase();
-    if ((role === 'WARGA' || role === 'PUBLIC') && !event.isPublic) {
-      return null; // IDOR protected
+    if (role === 'WARGA' || role === 'PUBLIC') {
+      if (!event.isPublic || event.status === 'DRAFT' || event.status === 'MENUNGGU_PERSETUJUAN' || event.status === 'ARSIP') {
+        if (event.createdBy !== actor.userId && event.penanggungJawabId !== actor.wargaId) {
+          return null; // IDOR protected
+        }
+      }
     }
 
     return event;
+  }
+
+  // OVERLAPPING EVENT DETECTION
+  public checkOverlappingEvents(
+    startDate: string,
+    startTime: string,
+    endDate: string,
+    endTime: string,
+    excludeEventId?: string
+  ): KegiatanRT[] {
+    return this.events.filter((e) => {
+      if (excludeEventId && e.idKegiatan === excludeEventId) return false;
+      if (['DIBATALKAN', 'ARSIP'].includes(e.status)) return false;
+      const eventStart = `${e.tanggalMulai}T${e.waktuMulai || '00:00'}`;
+      const eventEnd = `${e.tanggalSelesai || e.tanggalMulai}T${e.waktuSelesai || '23:59'}`;
+      const targetStart = `${startDate}T${startTime || '00:00'}`;
+      const targetEnd = `${endDate || startDate}T${endTime || '23:59'}`;
+      return targetStart < eventEnd && targetEnd > eventStart;
+    });
   }
 
   // UPCOMING EVENTS (Dashboard support)
@@ -445,19 +475,60 @@ class ActivityCalendarService {
       };
     }
 
-    // 4. Generate Event Record
+    // 4. Input & Date Validation
+    if (!payload.judul || typeof payload.judul !== 'string' || payload.judul.trim().length === 0) {
+      return {
+        success: false,
+        requestId,
+        error: 'Judul kegiatan wajib diisi.',
+        code: 'INVALID_INPUT',
+        backendConnected: true
+      };
+    }
+
+    if (payload.tanggalMulai && payload.tanggalSelesai) {
+      if (payload.tanggalMulai > payload.tanggalSelesai) {
+        return {
+          success: false,
+          requestId,
+          error: 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.',
+          code: 'INVALID_DATE_TIME',
+          backendConnected: true
+        };
+      }
+      if (payload.tanggalMulai === payload.tanggalSelesai && payload.waktuMulai && payload.waktuSelesai) {
+        if (payload.waktuMulai >= payload.waktuSelesai) {
+          return {
+            success: false,
+            requestId,
+            error: 'Waktu selesai harus lebih lambat dari waktu mulai pada hari yang sama.',
+            code: 'INVALID_DATE_TIME',
+            backendConnected: true
+          };
+        }
+      }
+    }
+
+    // 5. Generate Event Record with Mass Assignment Protection
     const nextSeq = this.events.length + 1;
     const seqPadded = nextSeq.toString().padStart(6, '0');
     const idKegiatan = `EVT-2026-${seqPadded}`;
-    const kodeKegiatan = `KEG-RT07-2026-${payload.tanggalMulai.split('-')[1] || '08'}-${nextSeq.toString().padStart(3, '0')}`;
+    const kodeKegiatan = `KEG-RT07-2026-${payload.tanggalMulai?.split('-')[1] || '08'}-${nextSeq.toString().padStart(3, '0')}`;
+
+    const sanitizedJudul = payload.judul.replace(/<[^>]*>?/gm, '').trim();
+    const sanitizedDeskripsi = (payload.deskripsi || '').replace(/<[^>]*>?/gm, '').trim();
+    const sanitizedLokasi = (payload.lokasi || '').replace(/<[^>]*>?/gm, '').trim();
 
     const newEvent: KegiatanRT = {
       ...payload,
+      judul: sanitizedJudul,
+      deskripsi: sanitizedDeskripsi,
+      lokasi: sanitizedLokasi,
       idKegiatan,
       kodeKegiatan,
       status: initialStatus,
       qrCheckInToken: `TOKEN-${idKegiatan}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-      qrTokenExpiresAt: `${payload.tanggalSelesai}T23:59:59.000Z`,
+      qrTokenExpiresAt: `${payload.tanggalSelesai || payload.tanggalMulai}T23:59:59.000Z`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       createdBy: actor.userId,
@@ -1217,6 +1288,79 @@ class ActivityCalendarService {
       backendConnected: true,
       auditId
     };
+  }
+
+  public deleteKegiatan(actor: ActorSession, idKegiatan: string, requestId: string): MutationResponse<KegiatanRT> {
+    if (this.processedRequestIds.has(requestId)) {
+      return {
+        success: false,
+        requestId,
+        error: 'Duplicate request detected.',
+        code: 'DUPLICATE_REQUEST',
+        backendConnected: this.backendOnline
+      };
+    }
+    this.processedRequestIds.add(requestId);
+
+    if (!this.backendOnline || actor.isBackendConnected === false) {
+      return {
+        success: false,
+        requestId,
+        error: 'Backend belum terhubung. Perubahan belum tersimpan ke server.',
+        code: 'NOT_COMMITTED',
+        backendConnected: false
+      };
+    }
+
+    if (!this.hasPermission(actor.role, 'EVENT_DELETE')) {
+      const auditId = this.logAudit(requestId, actor, idKegiatan, 'DELETE_EVENT', 'DENIED', 'DENIED', undefined, undefined, 'Unauthorized delete');
+      return {
+        success: false,
+        requestId,
+        error: 'Akses Ditolak: Hanya Ketua RT atau Admin yang dapat menghapus kegiatan.',
+        code: 'FORBIDDEN',
+        backendConnected: true,
+        auditId
+      };
+    }
+
+    const eventIndex = this.events.findIndex((e) => e.idKegiatan === idKegiatan);
+    if (eventIndex === -1) {
+      return {
+        success: false,
+        requestId,
+        error: 'Kegiatan tidak ditemukan.',
+        code: 'NOT_FOUND',
+        backendConnected: true
+      };
+    }
+
+    const deleted = this.events.splice(eventIndex, 1)[0];
+    this.saveToStorage();
+
+    const auditId = this.logAudit(
+      requestId,
+      actor,
+      idKegiatan,
+      'DELETE_EVENT',
+      'AUTHORIZED',
+      'SUCCESS',
+      deleted.status,
+      'DELETED',
+      `Kegiatan ${deleted.judul} dihapus permanen oleh ${actor.nama || actor.role}`
+    );
+
+    return {
+      success: true,
+      requestId,
+      data: deleted,
+      backendConnected: true,
+      auditId
+    };
+  }
+
+  public publishKegiatan(actor: ActorSession, idKegiatan: string, requestId: string): MutationResponse<KegiatanRT> {
+    return this.approveKegiatan(actor, idKegiatan, requestId);
   }
 
   // Audit Logs Getter

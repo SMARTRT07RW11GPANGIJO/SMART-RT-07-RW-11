@@ -54,12 +54,16 @@ class FacilityMaintenanceService {
 
   private loadState() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY_MAINTENANCE);
-      if (stored) {
-        this.maintenanceList = JSON.parse(stored);
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem(STORAGE_KEY_MAINTENANCE);
+        if (stored) {
+          this.maintenanceList = JSON.parse(stored);
+        } else {
+          this.maintenanceList = [...INITIAL_MAINTENANCE];
+          this.saveState();
+        }
       } else {
         this.maintenanceList = [...INITIAL_MAINTENANCE];
-        this.saveState();
       }
     } catch {
       this.maintenanceList = [...INITIAL_MAINTENANCE];
@@ -68,7 +72,9 @@ class FacilityMaintenanceService {
 
   private saveState() {
     try {
-      localStorage.setItem(STORAGE_KEY_MAINTENANCE, JSON.stringify(this.maintenanceList));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_MAINTENANCE, JSON.stringify(this.maintenanceList));
+      }
     } catch (e) {
       console.warn('LocalStorage save warning:', e);
     }

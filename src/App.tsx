@@ -44,6 +44,7 @@ import { AdminSystemDocumentationDashboard } from './components/AdminSystemDocum
 import { AdminTrainingDashboard } from './components/AdminTrainingDashboard';
 import { AdminLaunchDashboard } from './components/AdminLaunchDashboard';
 import { FacilityDashboard } from './components/facility/FacilityDashboard';
+import { ExecutiveAnalyticsDashboard } from './components/analytics/ExecutiveAnalyticsDashboard';
 import { RitaAssistantWidget } from './components/RitaAssistantWidget';
 import { AIAssistantPage } from './pages/AIAssistant';
 import { IdentityAuthService } from './services/identityAuthService';
@@ -367,6 +368,17 @@ export default function App() {
               currentRole={currentRole}
               currentUserId={`USR-${currentRole}`}
               currentUserName={currentRole === 'KETUA_RT' ? 'Bpk. Eko Sucahyono' : 'Pengurus RT 07'}
+              isBackendConnected={true}
+            />
+          </div>
+        )}
+
+        {(currentTab === 'analitik' || currentTab === 'analytics' || currentTab === 'executive-analytics' || currentTab === 'laporan-rt') && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <ExecutiveAnalyticsDashboard
+              currentRole={currentRole}
+              currentUserId={`USR-${currentRole}`}
+              currentUserName={currentRole === 'KETUA_RT' ? 'Bpk. Eko Sucahyono (Ketua RT)' : 'Pengurus RT 07'}
               isBackendConnected={true}
             />
           </div>

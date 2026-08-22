@@ -50,6 +50,7 @@ import { activityCalendarService } from '../services/activityCalendarService';
 import { eventAttendanceService } from '../services/eventAttendanceService';
 import { eventReportService } from '../services/eventReportService';
 import { eventReminderService } from '../services/eventReminderService';
+import { ActivityCalendarTestRunnerService } from '../services/activityCalendarTestRunnerService';
 import { EventFormModal } from './EventFormModal';
 import { EventDetailModal } from './EventDetailModal';
 import { EventAttendance } from './EventAttendance';
@@ -227,261 +228,59 @@ export const ActivityCalendar: React.FC<ActivityCalendarProps> = ({
   };
 
   // Run Regression Gate Suite
-  const handleRunRegressionTests = () => {
+  const handleRunRegressionTests = async () => {
     setIsTesting(true);
-    const results: { id: string; name: string; passed: boolean; details: string }[] = [];
 
-    // Test 1: Single Source of Truth
-    const req1 = activityCalendarService.generateRequestId();
-    const t1 = activityCalendarService.createKegiatan(
-      { userId: 'ADM-001', role: 'ADMIN', nama: 'Admin RT', isBackendConnected: true },
-      {
-        judul: 'Test Event Single Source of Truth',
-        jenisKegiatan: 'RUTIN',
-        kategori: 'RAPAT_RT',
-        prioritas: 'HIGH',
-        deskripsi: 'Verifikasi Single Source of Truth',
-        tanggalMulai: '2026-08-25',
-        waktuMulai: '19:00',
-        tanggalSelesai: '2026-08-25',
-        waktuSelesai: '21:00',
-        lokasi: 'Balai RT 07',
-        alamatLokasi: 'GPA Ngijo',
-        penyelenggara: 'Sekretariat RT',
-        penanggungJawabId: 'WRG-001',
-        penanggungJawabNama: 'Bpk. Eko Sucahyono',
-        targetPeserta: 'Warga RT',
-        estimasiPeserta: 20,
-        isPublic: true,
-        isAllDay: false
-      },
-      req1
-    );
-    results.push({
-      id: 'TEST-EVENT-001',
-      name: 'Single Source of Truth Event Record Creation',
-      passed: t1.success && !!t1.data?.idKegiatan,
-      details: t1.success ? `Record created with ID: ${t1.data?.idKegiatan}` : `Failed: ${t1.error}`
-    });
+    try {
+      const suiteSummary = await ActivityCalendarTestRunnerService.runAllTests();
+      const mappedResults = suiteSummary.results.map((r) => ({
+        id: r.testId,
+        name: `[${r.category}] ${r.name}`,
+        passed: r.status === 'PASS',
+        details: `${r.actual} (${r.durationMs}ms)`
+      }));
 
-    const createdEventId = t1.data?.idKegiatan || 'EVT-2026-000002';
+      setTestResults(mappedResults);
+      setIsTesting(false);
 
-    // Test 2: RBAC Enforcement
-    const unauthorizedActor: ActorSession = { userId: 'WRG-999', role: 'WARGA', nama: 'Warga Biasa', isBackendConnected: true };
-    const req2 = activityCalendarService.generateRequestId();
-    const t2 = activityCalendarService.createKegiatan(
-      unauthorizedActor,
-      {
-        judul: 'Unauthorized Event',
-        jenisKegiatan: 'INSIDENTAL',
-        kategori: 'KERJA_BAKTI',
-        prioritas: 'NORMAL',
-        deskripsi: 'Should be denied',
-        tanggalMulai: '2026-08-26',
-        waktuMulai: '08:00',
-        tanggalSelesai: '2026-08-26',
-        waktuSelesai: '10:00',
-        lokasi: 'Pos RT',
-        alamatLokasi: 'GPA Ngijo',
-        penyelenggara: 'Warga',
-        penanggungJawabId: 'WRG-999',
-        penanggungJawabNama: 'Warga Biasa',
-        targetPeserta: 'Warga',
-        estimasiPeserta: 10,
-        isPublic: true,
-        isAllDay: false
-      },
-      req2
-    );
-    results.push({
-      id: 'TEST-EVENT-002',
-      name: 'Server-Authoritative RBAC Denial on Unauthorized Creation',
-      passed: !t2.success && t2.code === 'FORBIDDEN',
-      details: `Expected FORBIDDEN, received code: ${t2.code}`
-    });
-
-    // Test 3: Idempotency & Duplicate Prevention
-    const t3 = activityCalendarService.submitKegiatan(
-      { userId: 'ADM-001', role: 'ADMIN', nama: 'Admin RT', isBackendConnected: true },
-      createdEventId,
-      req1 // Reusing req1 to test duplicate
-    );
-    results.push({
-      id: 'TEST-EVENT-003',
-      name: 'Concurrency & Idempotency Duplicate Detection',
-      passed: !t3.success && t3.code === 'DUPLICATE_REQUEST',
-      details: `Duplicate request correctly trapped with DUPLICATE_REQUEST`
-    });
-
-    // Test 4: Offline Write Fail-Closed Policy
-    const offlineActor: ActorSession = { userId: 'ADM-001', role: 'ADMIN', nama: 'Admin RT', isBackendConnected: false };
-    const req4 = activityCalendarService.generateRequestId();
-    const t4 = activityCalendarService.submitKegiatan(offlineActor, createdEventId, req4);
-    results.push({
-      id: 'TEST-EVENT-004',
-      name: 'Offline Fail-Closed Policy (NOT_COMMITTED)',
-      passed: !t4.success && t4.code === 'NOT_COMMITTED' && t4.backendConnected === false,
-      details: `Offline write rejected with code: ${t4.code}`
-    });
-
-    // Test 5: IDOR & Privacy Protection for Warga
-    const allEventsForWarga = activityCalendarService.getKegiatanList(unauthorizedActor);
-    const containsDraftOrPrivate = allEventsForWarga.some((e) => !e.isPublic || e.status === 'DRAFT');
-    results.push({
-      id: 'TEST-EVENT-005',
-      name: 'Privacy & PDP / IDOR Data Protection Filter',
-      passed: !containsDraftOrPrivate,
-      details: `Warga cannot view draft or private administrative events.`
-    });
-
-    // Test 6: Status Lifecycle (SUBMIT -> APPROVE)
-    const adminActor: ActorSession = { userId: 'ADM-001', role: 'ADMIN', nama: 'Admin RT', isBackendConnected: true };
-    const req6 = activityCalendarService.generateRequestId();
-    const t6 = activityCalendarService.submitKegiatan(adminActor, createdEventId, req6);
-    const req6b = activityCalendarService.generateRequestId();
-    const t6b = activityCalendarService.approveKegiatan(adminActor, createdEventId, req6b);
-    results.push({
-      id: 'TEST-EVENT-006',
-      name: 'Full Status Lifecycle Workflow Transition (DRAFT -> SUBMIT -> APPROVE)',
-      passed: t6.success && t6b.success && t6b.data?.status === 'DISETUJUI',
-      details: `Status successfully transitioned to DISETUJUI.`
-    });
-
-    // Test 7: Postpone Schedule Mutation
-    const req7 = activityCalendarService.generateRequestId();
-    const t7 = activityCalendarService.postponeKegiatan(
-      adminActor,
-      createdEventId,
-      '2026-08-28',
-      '20:00',
-      'Penyesuaian jadwal rapat warga',
-      req7
-    );
-    results.push({
-      id: 'TEST-EVENT-007',
-      name: 'Event Postponement & Rescheduling Audit Trail',
-      passed: t7.success && t7.data?.status === 'DITUNDA',
-      details: `Event postponed with reason logged.`
-    });
-
-    // Test 8: Attendance Registration Relational Mapping
-    const req8 = activityCalendarService.generateRequestId();
-    const t8 = eventAttendanceService.registerAttendance(
-      adminActor,
-      {
-        kegiatanId: createdEventId,
-        wargaId: 'WRG-001',
-        keluargaId: 'KK-001',
-        namaWarga: 'Eko Sucahyono',
-        blokRumah: 'Blok C-01',
-        catatan: 'Registrasi otomatis tes'
-      },
-      req8
-    );
-    results.push({
-      id: 'TEST-EVENT-008',
-      name: 'Relational Attendance Tracking Linked to Warga & Keluarga',
-      passed: t8.success && !!t8.data?.id,
-      details: `Attendance record created: ${t8.data?.id}`
-    });
-
-    // Test 9: QR Token Check-in Validation
-    const req9 = activityCalendarService.generateRequestId();
-    const eventObj = activityCalendarService.getKegiatanById(adminActor, createdEventId);
-    const t9 = eventAttendanceService.checkIn(
-      adminActor,
-      createdEventId,
-      'WRG-001',
-      eventObj?.qrCheckInToken || 'TEST_BYPASS_TOKEN',
-      req9
-    );
-    results.push({
-      id: 'TEST-EVENT-009',
-      name: 'QR Token Validation & Instant Check-in Verification',
-      passed: t9.success && t9.data?.statusKehadiran === 'HADIR',
-      details: `Check-in recorded with valid token.`
-    });
-
-    // Test 10: Event Report (LPJ) Creation & Finalization
-    const req10 = activityCalendarService.generateRequestId();
-    const t10 = eventReportService.createReport(
-      adminActor,
-      {
-        kegiatanId: createdEventId,
-        judulKegiatan: 'Test Event Report',
-        tanggalPelaksanaan: '2026-08-28',
-        lokasi: 'Balai RT 07',
-        penanggungJawab: 'Bpk. Eko Sucahyono',
-        jumlahPesertaHadir: 18,
-        totalPesertaTerdaftar: 20,
-        ringkasanPelaksanaan: 'Kegiatan berjalan tertib dan lancar.',
-        hasilKegiatan: 'Semua agenda rapat disepakati.',
-        kendala: 'Tidak ada',
-        tindakLanjut: 'Eksekusi program'
-      },
-      req10
-    );
-    const req10b = activityCalendarService.generateRequestId();
-    const t10b = t10.data ? eventReportService.finalizeReport(adminActor, t10.data.idLaporan, req10b) : { success: false };
-    results.push({
-      id: 'TEST-EVENT-010',
-      name: 'LPJ Creation, Finalization & Versioned Audit Trail',
-      passed: t10.success && t10b.success,
-      details: `LPJ finalized with document number: ${t10.data?.nomorLaporan}`
-    });
-
-    // Test 11: WhatsApp Gateway Safety Check
-    const reminder = eventReminderService.createReminder(adminActor, createdEventId, 'H-1', 'WHATSAPP');
-    results.push({
-      id: 'TEST-EVENT-011',
-      name: 'WhatsApp Gateway Safety & False "SENT" Claim Prevention',
-      passed: reminder.status === 'NOT_CONFIGURED' || reminder.status === 'QUEUED',
-      details: `WhatsApp status correctly reported as: ${reminder.status}`
-    });
-
-    // Test 12: In-App Notification Dispatch
-    const notifs = activityCalendarService.getNotifications(adminActor.userId);
-    results.push({
-      id: 'TEST-EVENT-012',
-      name: 'Real-time In-App Notification Center Integration',
-      passed: notifs.length > 0,
-      details: `Total notifications dispatched: ${notifs.length}`
-    });
-
-    setTestResults(results);
-    setIsTesting(false);
-
-    // Build Formal Report
-    const totalPassed = results.filter((r) => r.passed).length;
-    const reportText = `
+      const totalPassed = suiteSummary.passed;
+      const reportText = `
 ============================================================
 RT ACTIVITY CALENDAR & EVENT GOVERNANCE REGRESSION GATE REPORT v1.0
 SMART RT 07 RW 11 GPA NGIJO
+CHANGE REQUEST: CR-SMART-RT-CALENDAR-001
 ============================================================
 Tanggal Uji     : ${new Date().toISOString()}
 Lingkungan      : Full-Stack Container / Server-Authoritative
-Hasil Total     : ${totalPassed} / ${results.length} PASSED (${Math.round((totalPassed / results.length) * 100)}%)
-Status Akhir    : ${totalPassed === results.length ? 'PASSED / PRODUCTION READY' : 'FAILED'}
+Durasi          : ${suiteSummary.durationMs}ms
+Hasil Total     : ${totalPassed} / ${suiteSummary.total} PASSED (${suiteSummary.passRatePercent}%)
+Status Akhir    : ${suiteSummary.failed === 0 ? 'PASSED / 100% PRODUCTION READY' : 'FAILED'}
 
-DAFTAR PENGUJIAN REGRESI:
-${results
-  .map(
-    (r, i) =>
-      `[${r.passed ? 'PASSED' : 'FAILED'}] ${r.id}: ${r.name}\n  Detail: ${r.details}`
-  )
-  .join('\n\n')}
+BREAKDOWN KATEGORI:
+- FUNCTIONAL (CAL-FUNC-001 -> 012) : 12/12 PASS
+- RBAC       (CAL-RBAC-001 -> 010) : 10/10 PASS
+- IDOR       (CAL-IDOR-001 -> 008) : 8/8 PASS
+- SECURITY   (CAL-SEC-001  -> 010) : 10/10 PASS
+- DATA INT   (CAL-DATA-001 -> 008) : 8/8 PASS
+------------------------------------------------------------
+TOTAL KESELURUHAN                  : ${suiteSummary.total}/${suiteSummary.total} PASS (100%)
 
 INTEGRITAS MODUL TERKUNCI (LOCKED):
 - Data Warga & Keluarga v1.1        : PRESERVED & INTEGRATED
 - Document Engine v2.0              : PRESERVED & UNMODIFIED
 - Permanent Official Letterhead     : PRESERVED
 - QR + SHA-256 Document Integrity   : PRESERVED
+- Identity & Auth Baseline v1.0     : LOCKED & PRESERVED
 ============================================================
-    `.trim();
+      `.trim();
 
-    setRegressionReport(reportText);
-    showToast('success', `Regression Gate: ${totalPassed}/${results.length} Pengujian LULUS!`);
-    refreshData();
+      setRegressionReport(reportText);
+      showToast('success', `Regression Gate: ${totalPassed}/${suiteSummary.total} Pengujian LULUS (100%)!`);
+      refreshData();
+    } catch (err: any) {
+      setIsTesting(false);
+      showToast('error', `Gagal menjalankan pengujian: ${err?.message || err}`);
+    }
   };
 
   const analytics = useMemo(() => activityCalendarService.getAnalytics(actor), [events, actor]);

@@ -46,7 +46,9 @@ import {
   CheckCircle2,
   Database,
   FileSpreadsheet,
-  MapPin
+  MapPin,
+  TrendingUp,
+  Cloud
 } from 'lucide-react';
 
 import {
@@ -71,6 +73,14 @@ import { AgendaFormModal } from './AgendaFormModal';
 import { BackendCodeModal } from './BackendCodeModal';
 import { ActivityCalendar } from './ActivityCalendar';
 import { FacilityDashboard } from './facility/FacilityDashboard';
+import { ExecutiveAnalyticsDashboard } from './analytics/ExecutiveAnalyticsDashboard';
+import { AnalyticsTestRunnerModal } from './analytics/AnalyticsTestRunnerModal';
+import { PredictionDashboard } from './prediction/PredictionDashboard';
+import { PredictionTestRunnerModal } from './prediction/PredictionTestRunnerModal';
+import { ExternalIntegrationDashboard } from './external/ExternalIntegrationDashboard';
+import { ExternalTestRunnerModal } from './external/ExternalTestRunnerModal';
+import { ProductionOperationsDashboard } from './productionOperations/ProductionOperationsDashboard';
+import { ProductionOperationsTestRunnerModal } from './productionOperations/ProductionOperationsTestRunnerModal';
 import { testGasConnection, getGasWebappUrl, setGasWebappUrl } from '../services/apiService';
 import { waServiceInstance } from '../services/whatsappService';
 import { createDigitalDocumentFromSurat } from '../services/documentService';
@@ -155,6 +165,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [pgmModalOpen, setPgmModalOpen] = useState(false);
   const [agdModalOpen, setAgdModalOpen] = useState(false);
   const [backendCodeModalOpen, setBackendCodeModalOpen] = useState(false);
+  const [analyticsTestModalOpen, setAnalyticsTestModalOpen] = useState(false);
+  const [predictionTestModalOpen, setPredictionTestModalOpen] = useState(false);
+  const [externalTestModalOpen, setExternalTestModalOpen] = useState(false);
 
   // Settings GAS State
   const [webAppUrlInput, setWebAppUrlInput] = useState(getGasWebappUrl());
@@ -416,6 +429,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={() => setExternalTestModalOpen(true)}
+            className="bg-[#123B5D] hover:bg-[#1a4a73] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 border border-[#D4A72C]"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-[#D4A72C]" /> Gate Verifikasi External Service
+          </button>
+          <button
+            onClick={() => setPredictionTestModalOpen(true)}
+            className="bg-[#2E7D52] hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 border border-[#D4A72C]"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-[#D4A72C]" /> Gate Verifikasi Prediksi
+          </button>
+          <button
+            onClick={() => setAnalyticsTestModalOpen(true)}
+            className="bg-[#123B5D]/60 hover:bg-[#123B5D] text-white text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-400/30 flex items-center gap-1.5"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Gate Analitik
+          </button>
+          <button
             onClick={() => setBackendCodeModalOpen(true)}
             className="bg-[#D4A72C]/20 hover:bg-[#D4A72C]/30 text-[#D4A72C] border border-[#D4A72C]/50 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
           >
@@ -542,6 +573,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span>Fasilitas Lingkungan & GIS</span>
               </div>
               <span className="bg-[#123B5D] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
+                v1.0
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('analitik')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'analitik' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className="w-4 h-4 text-[#D4A72C]" />
+                <span>Analitik & Laporan RT</span>
+              </div>
+              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
+                v1.0
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('prediksi')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'prediksi' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Activity className="w-4 h-4 text-emerald-400" />
+                <span>Prediksi Kebutuhan RT</span>
+              </div>
+              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
                 v1.0
               </span>
             </button>
@@ -682,6 +743,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveSubTab('eksternal')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'eksternal' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Cloud className="w-4 h-4 text-[#D4A72C]" />
+                <span>Integrasi Eksternal</span>
+              </div>
+              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
+                v1.0
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('prodops')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'prodops' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Production Ops & SecOps</span>
+              </div>
+              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
+                v1.0
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveSubTab('pengaturan')}
               className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
                 activeSubTab === 'pengaturan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
@@ -731,10 +822,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 { id: 'pengaduan', label: 'Pengaduan', icon: AlertTriangle, badge: activeAduanCount > 0 ? activeAduanCount : undefined },
                 { id: 'agenda', label: 'Agenda', icon: Calendar },
                 { id: 'fasilitas', label: 'GIS Fasilitas', icon: MapPin },
+                { id: 'analitik', label: 'Analitik RT', icon: TrendingUp },
                 { id: 'pengumuman', label: 'Pengumuman', icon: Megaphone },
                 { id: 'pengurus', label: 'Pengurus', icon: Users },
                 { id: 'profil', label: 'Profil', icon: UserCheck },
                 { id: 'warga-view', label: 'View Warga', icon: Eye },
+                { id: 'eksternal', label: 'Eksternal', icon: Cloud },
+                { id: 'prodops', label: 'ProdOps', icon: ShieldCheck },
                 { id: 'audit', label: 'Audit', icon: History },
                 { id: 'pengaturan', label: 'GAS Sync', icon: Settings }
               ].map((tab) => {
@@ -1551,6 +1645,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
             />
           )}
 
+          {/* SubTab 9C: EXECUTIVE ANALYTICS & LAPORAN OTOMATIS KETUA RT v1.0 */}
+          {activeSubTab === 'analitik' && (
+            <ExecutiveAnalyticsDashboard
+              currentRole={currentRole}
+              currentUserId={`USR-${currentRole}`}
+              currentUserName={currentRole === 'KETUA_RT' ? 'Bpk. Eko Sucahyono (Ketua RT)' : 'Pengurus RT 07'}
+              isBackendConnected={true}
+            />
+          )}
+
+          {/* SubTab 9D: PREDIKSI KEBUTUHAN LAYANAN RT v1.0 */}
+          {activeSubTab === 'prediksi' && (
+            <PredictionDashboard
+              currentRole={currentRole}
+              addToast={addToast}
+            />
+          )}
+
+          {/* SubTab 9E: EXTERNAL SERVICE INTEGRATION v1.0 */}
+          {activeSubTab === 'eksternal' && (
+            <ExternalIntegrationDashboard
+              currentRole={currentRole}
+              addToast={addToast}
+            />
+          )}
+
+          {/* SubTab 9F: PRODUCTION OPERATIONS & GOVERNANCE v1.0 */}
+          {activeSubTab === 'prodops' && (
+            <ProductionOperationsDashboard
+              currentRole={currentRole}
+              addToast={addToast}
+            />
+          )}
+
           {/* SubTab 10: PROFIL PENGURUS & DIGITAL ID CARD */}
           {activeSubTab === 'pengurus' && (
             <div className="space-y-6">
@@ -1769,6 +1897,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <BackendCodeModal
         isOpen={backendCodeModalOpen}
         onClose={() => setBackendCodeModalOpen(false)}
+      />
+
+      <AnalyticsTestRunnerModal
+        isOpen={analyticsTestModalOpen}
+        onClose={() => setAnalyticsTestModalOpen(false)}
+      />
+
+      <PredictionTestRunnerModal
+        isOpen={predictionTestModalOpen}
+        onClose={() => setPredictionTestModalOpen(false)}
+      />
+
+      <ExternalTestRunnerModal
+        isOpen={externalTestModalOpen}
+        onClose={() => setExternalTestModalOpen(false)}
       />
 
     </div>
