@@ -72,11 +72,17 @@ export class OmplonganPdfService {
         break;
     }
 
+    const rawLogo = DOCUMENT_BRANDING.logoKabupaten;
+    const resolvedLogoUrl = typeof window !== 'undefined' && rawLogo.startsWith('/')
+      ? `${window.location.origin}${rawLogo}`
+      : rawLogo;
+
     return `
       <!DOCTYPE html>
       <html lang="id">
       <head>
         <meta charset="UTF-8">
+        <meta name="google" content="notranslate">
         <title>Laporan Keuangan Omplongan Agustusan - SMART RT 07 RW 11</title>
         <style>
           @page {
@@ -215,15 +221,15 @@ export class OmplonganPdfService {
         </style>
       </head>
       <body>
-        <div class="official-letterhead" style="display: flex; align-items: center; justify-content: center; gap: 20px; box-sizing: border-box; width: 100%; min-height: 100px;">
+        <div class="official-letterhead notranslate" translate="no" style="display: flex; align-items: center; justify-content: center; gap: 20px; box-sizing: border-box; width: 100%; min-height: 100px;">
           <div style="width: 82px; height: 98px; min-width: 82px; flex: 0 0 82px; display: flex; align-items: center; justify-content: center;">
-            <img src="${DOCUMENT_BRANDING.logoKabupaten}" alt="${DOCUMENT_BRANDING.logoAlt}" style="width: 82px; height: 98px; object-fit: contain; flex-shrink: 0;" />
+            <img src="${resolvedLogoUrl}" alt="${DOCUMENT_BRANDING.logoAlt}" style="width: 82px; height: 98px; object-fit: contain; flex-shrink: 0;" />
           </div>
-          <div style="text-align: center; flex: 1 1 auto; min-height: 98px; display: flex; flex-direction: column; justify-content: center;">
-            <h1 class="header-title">${DOCUMENT_BRANDING.organizationName}</h1>
-            <div class="header-subtitle">${DOCUMENT_BRANDING.housingName}</div>
-            <div class="header-address" style="font-weight: 700; color: #111827;">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
-            <div class="header-address" style="font-style: italic; color: #333333;">${DOCUMENT_BRANDING.fullAddress}</div>
+          <div style="text-align: center; flex: 1 1 auto; min-height: 98px; display: flex; flex-direction: column; justify-content: center;" class="notranslate" translate="no">
+            <h1 class="header-title notranslate" translate="no">${DOCUMENT_BRANDING.organizationName}</h1>
+            <div class="header-subtitle notranslate" translate="no">${DOCUMENT_BRANDING.housingName}</div>
+            <div class="header-address notranslate" translate="no" style="font-weight: 700; color: #111827;">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
+            <div class="header-address notranslate" translate="no" style="font-style: italic; color: #333333;">${DOCUMENT_BRANDING.fullAddress}</div>
             <div class="doc-badge" style="margin-top: 4px;">🇮🇩 ${payload.kegiatan.namaKegiatan.toUpperCase()} (TAHUN ${payload.kegiatan.tahun})</div>
           </div>
         </div>
@@ -625,11 +631,41 @@ export class OmplonganPdfService {
       alert('Mohon izinkan pop-up browser untuk mencetak laporan.');
       return;
     }
+    printWindow.document.open();
     printWindow.document.write(html);
     printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+
+    const triggerPrint = () => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } catch (err) {
+        console.warn('Print trigger failed in popup window:', err);
+      }
+    };
+
+    const docTarget = printWindow.document;
+    const images = docTarget ? Array.from(docTarget.images) : [];
+    if (images.length === 0) {
+      requestAnimationFrame(() => triggerPrint());
+      return;
+    }
+
+    const decodePromises = images.map((img) => {
+      if (img.complete && img.naturalHeight !== 0) {
+        return (img.decode ? img.decode().catch(() => {}) : Promise.resolve());
+      }
+      return new Promise<void>((resolve) => {
+        const onLoadOrError = () => resolve();
+        img.addEventListener('load', onLoadOrError, { once: true });
+        img.addEventListener('error', onLoadOrError, { once: true });
+      });
+    });
+
+    Promise.all(decodePromises).then(() => {
+      requestAnimationFrame(() => {
+        triggerPrint();
+      });
+    });
   }
 }

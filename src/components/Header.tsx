@@ -110,7 +110,8 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Logo & Brand Identity */}
           <div 
             onClick={() => handleNavClick('landing')}
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-3 cursor-pointer group notranslate"
+            translate="no"
           >
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#2E7D52] to-[#123B5D] p-0.5 border border-[#D4A72C] flex items-center justify-center shadow-md transform group-hover:scale-105 transition-all">
               <div className="w-full h-full bg-[#123B5D] rounded-[10px] flex items-center justify-center relative overflow-hidden">
@@ -120,10 +121,10 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-white tracking-wide leading-tight">SMART RT 07</span>
-                <span className="bg-[#2E7D52] text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#D4A72C]">RW 11</span>
+                <span className="font-bold text-lg text-white tracking-wide leading-tight notranslate" translate="no">SMART RT 07</span>
+                <span className="bg-[#2E7D52] text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#D4A72C] notranslate" translate="no">RW 11</span>
               </div>
-              <p className="text-xs text-slate-300 font-medium tracking-tight">Perum GPA Ngijo, Karangploso</p>
+              <p className="text-xs text-slate-300 font-medium tracking-tight notranslate" translate="no">Perum GPA Ngijo, Karangploso</p>
             </div>
           </div>
 

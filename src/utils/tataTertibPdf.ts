@@ -7,10 +7,33 @@ import { jsPDF } from 'jspdf';
 import { TataTertibArticle, TataTertibConfig } from '../types/tataTertib';
 import { DOCUMENT_BRANDING, getLetterPlace, getChairmanName } from '../config/documentBranding';
 
-export const generateTataTertibPdf = (
+const loadLogoBase64 = async (): Promise<string | null> => {
+  try {
+    const rawPath = DOCUMENT_BRANDING.logoKabupaten;
+    const fullUrl = (typeof window !== 'undefined' && rawPath.startsWith('/'))
+      ? `${window.location.origin}${rawPath}`
+      : rawPath;
+
+    const res = await fetch(fullUrl);
+    if (res.ok) {
+      const blob = await res.blob();
+      return await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch (e) {
+    console.warn('Failed to load logo for Tata Tertib PDF:', e);
+  }
+  return null;
+};
+
+export const generateTataTertibPdf = async (
   article: TataTertibArticle,
   config?: TataTertibConfig
-): void => {
+): Promise<void> => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -21,6 +44,16 @@ export const generateTataTertibPdf = (
   const pageHeight = 297;
   const margin = 20;
   const maxLineWidth = pageWidth - margin * 2;
+
+  // Add Logo on top left of header
+  const logoData = await loadLogoBase64();
+  if (logoData) {
+    try {
+      doc.addImage(logoData, 'PNG', margin, 18, 16, 19.1);
+    } catch (err) {
+      console.warn('doc.addImage failed in Tata Tertib PDF:', err);
+    }
+  }
 
   let cursorY = 20;
 

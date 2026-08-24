@@ -32,23 +32,28 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
     doc.jabatanKetua || DOCUMENT_BRANDING.chairmanTitle
   );
 
-  const qrUrl = doc.qrVerificationUrl || `${window.location.origin}/verify/${doc.documentId}`;
+  const qrUrl = doc.qrVerificationUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/verify/${doc.documentId}`;
   const qrDataUrl = await generateQRCodeDataUrl(qrUrl);
 
-  let logoDataUrl = DOCUMENT_BRANDING.logoKabupaten;
+  const rawLogoPath = DOCUMENT_BRANDING.logoKabupaten;
+  const fullLogoUrl = (typeof window !== 'undefined' && rawLogoPath.startsWith('/'))
+    ? `${window.location.origin}${rawLogoPath}`
+    : rawLogoPath;
+
+  let logoDataUrl = fullLogoUrl;
   try {
-    const resp = await fetch(DOCUMENT_BRANDING.logoKabupaten);
+    const resp = await fetch(fullLogoUrl);
     if (resp.ok) {
       const blob = await resp.blob();
       logoDataUrl = await new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(DOCUMENT_BRANDING.logoKabupaten);
+        reader.onerror = () => resolve(fullLogoUrl);
         reader.readAsDataURL(blob);
       });
     }
   } catch {
-    logoDataUrl = DOCUMENT_BRANDING.logoKabupaten;
+    logoDataUrl = fullLogoUrl;
   }
 
   const formattedDate = new Date(doc.tanggalSurat).toLocaleDateString('id-ID', {
@@ -66,6 +71,7 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
   <html lang="id">
   <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <title>${doc.nomorSurat.replace(/\//g, '_')} - ${doc.jenisSurat}</title>
     <style>
       @page {
@@ -276,15 +282,15 @@ export const renderDocumentHTML = async (doc: DigitalDocument): Promise<string> 
   <body>
     ${doc.status === 'REVOKED' ? '<div class="watermark-status">DOKUMEN DICABUT</div>' : ''}
     
-    <div class="official-letterhead">
+    <div class="official-letterhead notranslate" translate="no">
       <div class="official-logo-container">
         <img src="${logoDataUrl}" alt="${DOCUMENT_BRANDING.logoAlt}" class="official-logo" width="82" height="98" />
       </div>
-      <div class="official-text-block">
-        <div class="official-title">${DOCUMENT_BRANDING.organizationName}</div>
-        <div class="official-subtitle">${DOCUMENT_BRANDING.housingName}</div>
-        <div class="official-district">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
-        <div class="official-address">${DOCUMENT_BRANDING.fullAddress}</div>
+      <div class="official-text-block notranslate" translate="no">
+        <div class="official-title notranslate" translate="no">${DOCUMENT_BRANDING.organizationName}</div>
+        <div class="official-subtitle notranslate" translate="no">${DOCUMENT_BRANDING.housingName}</div>
+        <div class="official-district notranslate" translate="no">${DOCUMENT_BRANDING.district} • ${DOCUMENT_BRANDING.regency}</div>
+        <div class="official-address notranslate" translate="no">${DOCUMENT_BRANDING.fullAddress}</div>
       </div>
     </div>
     <div class="official-header-line"></div>
@@ -368,6 +374,49 @@ export const printOrSavePDF = async (doc: DigitalDocument) => {
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
   const blobUrl = URL.createObjectURL(blob);
 
+  // Helper to ensure all images in target window/iframe are decoded before printing
+  const waitForImagesAndPrint = (targetWindow: Window, onFinished?: () => void) => {
+    const trigger = () => {
+      try {
+        targetWindow.focus();
+        targetWindow.print();
+      } catch (err) {
+        console.warn('Print trigger failed:', err);
+      } finally {
+        if (onFinished) onFinished();
+      }
+    };
+
+    const docTarget = targetWindow.document;
+    if (!docTarget) {
+      trigger();
+      return;
+    }
+
+    const images = Array.from(docTarget.images);
+    if (images.length === 0) {
+      requestAnimationFrame(() => trigger());
+      return;
+    }
+
+    const decodePromises = images.map((img) => {
+      if (img.complete && img.naturalHeight !== 0) {
+        return (img.decode ? img.decode().catch(() => {}) : Promise.resolve());
+      }
+      return new Promise<void>((resolve) => {
+        const onLoadOrError = () => resolve();
+        img.addEventListener('load', onLoadOrError, { once: true });
+        img.addEventListener('error', onLoadOrError, { once: true });
+      });
+    });
+
+    Promise.all(decodePromises).then(() => {
+      requestAnimationFrame(() => {
+        trigger();
+      });
+    });
+  };
+
   // Strategy 1: Try opening clean print window
   try {
     const printWindow = window.open('', '_blank');
@@ -375,14 +424,7 @@ export const printOrSavePDF = async (doc: DigitalDocument) => {
       printWindow.document.open();
       printWindow.document.write(htmlContent);
       printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        try {
-          printWindow.print();
-        } catch (e) {
-          console.warn('Print in popup window failed:', e);
-        }
-      }, 400);
+      waitForImagesAndPrint(printWindow);
       return;
     }
   } catch (e) {
@@ -402,27 +444,21 @@ export const printOrSavePDF = async (doc: DigitalDocument) => {
     document.body.appendChild(printIframe);
 
     const docObj = printIframe.contentWindow?.document;
-    if (docObj) {
+    if (docObj && printIframe.contentWindow) {
       docObj.open();
       docObj.write(htmlContent);
       docObj.close();
 
       await new Promise<void>((resolve) => {
-        setTimeout(() => {
-          try {
-            printIframe.contentWindow?.focus();
-            printIframe.contentWindow?.print();
-            iframePrinted = true;
-          } catch (err) {
-            console.warn('Iframe print failed:', err);
-          }
+        waitForImagesAndPrint(printIframe.contentWindow!, () => {
+          iframePrinted = true;
           setTimeout(() => {
             if (document.body.contains(printIframe)) {
               document.body.removeChild(printIframe);
             }
             resolve();
           }, 1000);
-        }, 500);
+        });
       });
     }
   } catch (err) {

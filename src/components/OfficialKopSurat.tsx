@@ -79,21 +79,21 @@ export const OfficialKopSurat: React.FC<OfficialKopSuratProps> = ({
         </div>
 
         {/* Official Text Block (Centered Text Hierarchy) */}
-        <div className="official-text-block min-h-[98px] flex-[1_1_auto] flex flex-col justify-center text-center box-border select-text">
+        <div className="official-text-block min-h-[98px] flex-[1_1_auto] flex flex-col justify-center text-center box-border select-text notranslate" translate="no">
           {/* Baris 1: Bold, Dominan */}
-          <h1 className={`font-bold text-sm sm:text-lg md:text-xl tracking-tight ${orgColor} uppercase leading-tight font-serif`}>
+          <h1 className={`font-bold text-sm sm:text-lg md:text-xl tracking-tight ${orgColor} uppercase leading-tight font-serif notranslate`} translate="no">
             {DOCUMENT_BRANDING.organizationName}
           </h1>
           {/* Baris 2: Bold, Hijau */}
-          <h2 className={`font-bold text-xs sm:text-base md:text-lg tracking-wide ${housingColor} uppercase leading-tight mt-0.5 font-serif`}>
+          <h2 className={`font-bold text-xs sm:text-base md:text-lg tracking-wide ${housingColor} uppercase leading-tight mt-0.5 font-serif notranslate`} translate="no">
             {DOCUMENT_BRANDING.housingName}
           </h2>
           {/* Baris 3: Bold */}
-          <p className="text-[11px] sm:text-sm md:text-base font-bold text-slate-800 uppercase leading-tight mt-0.5 font-serif">
+          <p className="text-[11px] sm:text-sm md:text-base font-bold text-slate-800 uppercase leading-tight mt-0.5 font-serif notranslate" translate="no">
             {DOCUMENT_BRANDING.district} • {DOCUMENT_BRANDING.regency}
           </p>
           {/* Baris 4: Italic, Ukuran Lebih Kecil */}
-          <p className="text-[10px] sm:text-xs text-slate-600 font-sans italic mt-1 leading-snug">
+          <p className="text-[10px] sm:text-xs text-slate-600 font-sans italic mt-1 leading-snug notranslate" translate="no">
             {DOCUMENT_BRANDING.fullAddress}
           </p>
         </div>

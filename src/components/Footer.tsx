@@ -13,17 +13,17 @@ export const Footer: React.FC<FooterProps> = ({ setTab, openArchModal }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           
           {/* Brand Info */}
-          <div className="space-y-4">
+          <div className="space-y-4 notranslate" translate="no">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#2E7D52] p-0.5 border border-[#D4A72C] flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-bold text-white text-base leading-tight">RT 07 RW 11 GPA NGIJO</h3>
-                <p className="text-xs text-slate-400">Kec. Karangploso, Kab. Malang</p>
+                <h3 className="font-bold text-white text-base leading-tight notranslate" translate="no">RT 07 RW 11 GPA NGIJO</h3>
+                <p className="text-xs text-slate-400 notranslate" translate="no">Kec. Karangploso, Kab. Malang</p>
               </div>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed notranslate" translate="no">
               Ekosistem tata kelola digital terpadu RT 07 RW 11 Perum GPA Ngijo. Mewujudkan pelayanan publik yang mudah, transparan, akuntabel, dan humanis.
             </p>
             <div className="inline-block bg-[#2E7D52]/20 border border-[#2E7D52]/50 text-[#2E7D52] font-semibold text-xs px-3 py-1 rounded-full">
@@ -88,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({ setTab, openArchModal }) => {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
-          <p>© 2026 SMART RT 07 RW 11 Perum GPA Ngijo. Hak Cipta Dilindungi.</p>
+          <p className="notranslate" translate="no">© 2026 SMART RT 07 RW 11 Perum GPA Ngijo. Hak Cipta Dilindungi.</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1 text-slate-400">
               <Shield className="w-3.5 h-3.5 text-[#2E7D52]" /> Google Workspace & GAS Integrated

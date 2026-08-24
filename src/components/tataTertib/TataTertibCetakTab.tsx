@@ -197,14 +197,14 @@ export const TataTertibCetakTab: React.FC<TataTertibCetakTabProps> = ({ articles
           className="bg-white w-full max-w-[210mm] min-h-[297mm] p-8 sm:p-14 shadow-2xl rounded-sm text-slate-900 border border-slate-300 font-serif leading-relaxed"
         >
           {/* Formal Header (KOP RT) */}
-          <div className="text-center pb-4 border-b-4 border-double border-slate-900 mb-6">
-            <h1 className="font-bold text-lg sm:text-xl tracking-wider text-slate-900 uppercase">
+          <div className="text-center pb-4 border-b-4 border-double border-slate-900 mb-6 notranslate" translate="no">
+            <h1 className="font-bold text-lg sm:text-xl tracking-wider text-slate-900 uppercase notranslate" translate="no">
               {config.kopHeaderTitle}
             </h1>
-            <h2 className="font-bold text-sm sm:text-base text-slate-800 uppercase mt-0.5">
+            <h2 className="font-bold text-sm sm:text-base text-slate-800 uppercase mt-0.5 notranslate" translate="no">
               {config.kopSubTitle}
             </h2>
-            <p className="text-xs text-slate-600 mt-1 font-sans">
+            <p className="text-xs text-slate-600 mt-1 font-sans notranslate" translate="no">
               {config.kopLocation}
             </p>
           </div>
