@@ -47,12 +47,7 @@ export const Footer: React.FC<FooterProps> = ({ setTab, openArchModal }) => {
               </li>
               <li>
                 <button onClick={() => setTab('verify')} className="hover:text-white transition-colors">
-                  Verifikasi Surat (\`/verify\`)
-                </button>
-              </li>
-              <li>
-                <button onClick={openArchModal} className="text-[#D4A72C] font-semibold hover:underline flex items-center gap-1">
-                  Spesifikasi & Arsitektur TAHAP 1
+                  Verifikasi Surat
                 </button>
               </li>
             </ul>
@@ -76,7 +71,7 @@ export const Footer: React.FC<FooterProps> = ({ setTab, openArchModal }) => {
             <div className="space-y-2 text-xs">
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#C62828] shrink-0 mt-0.5" />
-                <span>Perum GPA Ngijo Blok C, Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152</span>
+                <span>Perum GPA Ngijo Blok JN 17, Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#D4A72C] shrink-0" />
@@ -84,7 +79,7 @@ export const Footer: React.FC<FooterProps> = ({ setTab, openArchModal }) => {
               </div>
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-[#2E7D52] shrink-0" />
-                <span>WhatsApp RT: 0812-3456-7890</span>
+                <span>WhatsApp Center: 0878-9843-3241</span>
               </div>
             </div>
           </div>

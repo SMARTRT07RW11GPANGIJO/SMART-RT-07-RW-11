@@ -240,14 +240,6 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              onClick={openArchModal}
-              className="px-3 py-2 rounded-lg text-sm font-semibold bg-[#D4A72C]/20 text-[#D4A72C] hover:bg-[#D4A72C]/30 border border-[#D4A72C]/40 transition-all flex items-center gap-1.5"
-            >
-              <BookOpen className="w-4 h-4" />
-              SPESIFIKASI
-            </button>
-
-            <button
               onClick={openWaModal}
               className="px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-700/80 hover:bg-emerald-600 text-white border border-emerald-400/50 shadow transition-all flex items-center gap-1.5"
             >
@@ -549,12 +541,6 @@ export const Header: React.FC<HeaderProps> = ({
               className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'verify' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300'}`}
             >
               VERIFIKASI SURAT
-            </button>
-            <button
-              onClick={() => { openArchModal(); setMobileMenuOpen(false); }}
-              className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#D4A72C]/20 text-[#D4A72C]"
-            >
-              SPESIFIKASI
             </button>
             <button
               onClick={() => { openWaModal(); setMobileMenuOpen(false); }}

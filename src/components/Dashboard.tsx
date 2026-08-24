@@ -509,12 +509,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           >
             <Database className="w-3.5 h-3.5" /> Backend Kode Apps Script (Tahap 2)
           </button>
-          <button
-            onClick={openArchModal}
-            className="bg-[#2E7D52]/30 hover:bg-[#2E7D52]/40 text-emerald-300 border border-[#2E7D52]/60 text-xs font-bold px-3 py-2 rounded-xl transition-all"
-          >
-            Spesifikasi Arsitektur
-          </button>
         </div>
       </div>
 
