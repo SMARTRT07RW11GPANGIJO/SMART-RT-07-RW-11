@@ -206,26 +206,36 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           
           {/* Greeting Info */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="bg-[#20C878]/20 text-[#20C878] text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-[#20C878]/40">
+                WARGA
+              </span>
               <span className="bg-white/15 text-slate-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/20 backdrop-blur-xs flex items-center gap-1">
-                <Building className="w-3 h-3 text-[#D4A72C]" />
+                <Building className="w-3 h-3 text-[#E6B83F]" />
                 SMART RT 07 RW 11 GPA NGIJO
               </span>
               {isOnline ? (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-300 font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Terhubung
+                <span className="flex items-center gap-1.5 text-[10px] text-emerald-300 font-semibold bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#20C878] animate-pulse" /> Layanan Digital Aktif
                 </span>
               ) : (
-                <span className="text-[10px] text-amber-300 font-semibold">Offline</span>
+                <span className="text-[10px] text-amber-300 font-semibold bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-500/30">Offline</span>
               )}
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
-              Assalamu'alaikum, {profile.namaLengkap}
+            <h1 className="text-xl sm:text-2xl font-black text-[#F7FAFC] tracking-tight leading-tight">
+              Selamat Datang di SMART RT 07 RW 11.
             </h1>
+
+            {profile?.namaLengkap && (
+              <p className="text-xs sm:text-sm font-semibold text-[#E6B83F]">
+                Selamat datang, Bapak/Ibu {profile.namaLengkap}.
+              </p>
+            )}
+
             <p className="text-xs text-slate-200 max-w-xl leading-relaxed">
-              Selamat datang di Portal Layanan Mandiri Warga RT 07. Urus surat, cek iuran, dan sampaikan aspirasi dengan cepat dan transparan.
+              Semua layanan warga kini lebih mudah diakses dalam satu portal.
             </p>
           </div>
 

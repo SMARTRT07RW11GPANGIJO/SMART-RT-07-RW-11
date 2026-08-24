@@ -64,20 +64,17 @@ export const LandingPage: React.FC<LandingProps> = ({
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
           
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 bg-[#2E7D52]/30 border border-[#2E7D52] px-3 py-1 rounded-full text-xs font-semibold text-[#D4A72C]">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Portal Resmikan & Ekosistem Digital RT 07 RW 11</span>
+            <div className="inline-flex items-center gap-2 bg-[#20C878]/20 border border-[#20C878]/50 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#E6B83F] shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-[#20C878]" />
+              <span>Satu Portal, Satu Data, Satu Layanan untuk Warga RT 07 RW 11 GPA Ngijo.</span>
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight text-white">
-              Selamat Datang di Portal Digital <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-300 to-white">
-                RT 07 RW 11 GPA NGIJO
-              </span>
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight text-[#F7FAFC]">
+              SMART RT 07 RW 11 GPA NGIJO
             </h1>
 
             <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
-              Pelayanan warga yang mudah, cepat, transparan, dan terintegrasi. Akses surat pengantar resmi, laporan keuangan, pengaduan lingkungan, dan agenda kegiatan langsung dari smartphone Anda.
+              Memudahkan pelayanan warga, memperkuat transparansi, dan menghubungkan seluruh kegiatan lingkungan dalam satu sistem digital.
             </p>
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">

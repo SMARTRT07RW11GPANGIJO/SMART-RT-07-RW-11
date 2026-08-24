@@ -86,6 +86,7 @@ import { waServiceInstance } from '../services/whatsappService';
 import { createDigitalDocumentFromSurat } from '../services/documentService';
 import { WargaDashboardView } from './warga/WargaDashboardView';
 import { AuthoritativeSessionContext } from '../security/authorization';
+import { IdentityAuthService } from '../services/identityAuthService';
 
 interface DashboardProps {
   currentRole: UserRole;
@@ -345,9 +346,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return `${nik.slice(0, 6)}******${nik.slice(-2)}`;
   };
 
+  // Authoritative Session & Role-Based Greeting Configuration (CR-SMART-RT-ROLE-GREETING-001)
+  const authoritativeSession = IdentityAuthService.getActiveSession();
+
+  const getRoleHeaderConfig = () => {
+    switch (currentRole) {
+      case 'ADMIN':
+        return {
+          title: 'SMART RT Control Center',
+          subtitle: 'Kelola sistem, keamanan, integrasi, dan audit secara terkontrol.',
+          roleLabel: 'ADMIN',
+          statusText: 'System Health: Operational',
+          badgeColor: 'bg-indigo-500/20 text-indigo-200 border-indigo-400/40'
+        };
+      case 'KETUA_RT':
+        return {
+          title: 'Pusat Kendali Ketua RT 07.',
+          subtitle: 'Pantau pelayanan, kegiatan, keuangan, fasilitas, dan tata kelola RT dalam satu dashboard.',
+          roleLabel: 'KETUA RT',
+          statusText: 'Kondisi Sistem Normal',
+          badgeColor: 'bg-[#E6B83F]/20 text-[#E6B83F] border-[#E6B83F]/40'
+        };
+      case 'PENGURUS':
+      default:
+        return {
+          title: 'Pusat Kendali Operasional RT 07.',
+          subtitle: 'Kelola pelayanan, kegiatan, data warga, dan administrasi RT secara terintegrasi.',
+          roleLabel: 'PENGURUS RT',
+          statusText: 'Sistem Operasional Aktif',
+          badgeColor: 'bg-[#20C878]/20 text-[#20C878] border-[#20C878]/40'
+        };
+    }
+  };
+
+  const roleHeader = getRoleHeaderConfig();
+
   // Dedicated Mobile-First Responsive Dashboard for WARGA Role or Preview Mode
   if (currentRole === 'WARGA' || activeSubTab === 'warga-view') {
-    const authContext: AuthoritativeSessionContext = {
+    const authContext: AuthoritativeSessionContext = authoritativeSession || {
       sessionId: `SES-WARGA-${Date.now()}`,
       userId: 'WRG-001',
       role: 'WARGA',
@@ -409,25 +445,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Role Banner & System Specs Header */}
-      <div className="bg-[#123B5D] text-white p-5 rounded-3xl shadow-xl border border-[#2E7D52] flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-[#2E7D52] flex items-center justify-center font-bold text-[#D4A72C] border border-[#D4A72C] shadow">
-            <ShieldCheck className="w-6 h-6" />
+      <div className="bg-gradient-to-br from-[#071A2B] via-[#0B2238] to-[#071A2B] text-[#F7FAFC] p-5 sm:p-6 rounded-3xl shadow-xl border border-[#20C878]/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden">
+        {/* Ambient background glows */}
+        <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#20C878]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-[#E6B83F]/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#0B2238] flex items-center justify-center font-bold text-[#E6B83F] border border-[#20C878]/40 shadow-sm shrink-0 mt-1 sm:mt-0">
+            <ShieldCheck className="w-6 h-6 text-[#20C878]" />
           </div>
-          <div>
-            <h2 className="font-bold text-base flex items-center gap-2">
-              PORTAL UTAMA SMART RT 07 RW 11
-              <span className="bg-[#2E7D52] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-[#D4A72C]">
-                ROLE: {currentRole}
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${roleHeader.badgeColor}`}>
+                {roleHeader.roleLabel}
               </span>
-            </h2>
-            <p className="text-xs text-slate-300">
-              Perum GPA Ngijo, Karangploso • Terintegrasi Google Apps Script Backend (Tahap 2)
+              <span className="bg-white/10 text-slate-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs flex items-center gap-1">
+                <Building className="w-3 h-3 text-[#E6B83F]" />
+                SMART RT 07 RW 11 GPA NGIJO
+              </span>
+              <span className="flex items-center gap-1.5 text-[10px] text-emerald-300 font-semibold bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#20C878] animate-pulse" /> {roleHeader.statusText}
+              </span>
+            </div>
+
+            <h1 className="text-xl sm:text-2xl font-black text-[#F7FAFC] tracking-tight leading-tight">
+              {roleHeader.title}
+            </h1>
+
+            {authoritativeSession?.namaLengkap && (
+              <p className="text-xs sm:text-sm font-semibold text-[#E6B83F]">
+                Selamat datang, Bapak/Ibu {authoritativeSession.namaLengkap}.
+              </p>
+            )}
+
+            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+              {roleHeader.subtitle}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative z-10 flex flex-wrap items-center gap-2 self-stretch md:self-auto">
           <button
             onClick={() => setExternalTestModalOpen(true)}
             className="bg-[#123B5D] hover:bg-[#1a4a73] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 border border-[#D4A72C]"
