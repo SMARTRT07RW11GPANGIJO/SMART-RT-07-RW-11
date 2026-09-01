@@ -13,7 +13,7 @@ export interface GASApiResponse<T = any> {
 }
 
 const STORAGE_KEY_WEBAPP_URL = 'SMART_RT_GAS_WEBAPP_URL';
-const DEFAULT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx_SMART_RT07_EXEC/exec';
+const DEFAULT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyN-MBDOxR684rNKeOykI_-67LrM0bWfKyMzmcs9t0ESWYM9MriyYYKRnw-XDVb4JQrsw/exec';
 
 export const isPlaceholderGasUrl = (url: string): boolean => {
   if (!url || typeof url !== 'string') return true;
