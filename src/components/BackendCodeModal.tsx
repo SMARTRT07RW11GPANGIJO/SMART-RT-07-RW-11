@@ -735,7 +735,50 @@ function doPost(e) {
       });
     }
 
-    // Safe default handler for unrecognized actions in Patch #001
+    // P0 PATCH #002: saveWarga Action Router
+    if (action === "saveWarga") {
+      try {
+        if (!payload || typeof payload !== "object") {
+          return jsonResponse({
+            success: false,
+            message: "Payload saveWarga tidak valid.",
+            data: null,
+            errorCode: "INVALID_PAYLOAD"
+          });
+        }
+
+        var result = appendSheetRow("WARGA", payload);
+
+        try {
+          writeAuditLog({
+            action: "CREATE",
+            module: "WARGA",
+            userId: payload.user || "SYSTEM",
+            correlationId: payload.correlationId || "",
+            details: "saveWarga: " + (payload.nama_lengkap || "SUCCESS")
+          });
+        } catch (auditErr) {
+          console.warn("Audit log gagal dicatat:", auditErr);
+        }
+
+        return jsonResponse({
+          success: true,
+          message: "Data warga berhasil disimpan.",
+          data: result || { status: true },
+          errorCode: null
+        });
+
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal menyimpan data warga.",
+          data: null,
+          errorCode: "SAVE_WARGA_FAILED"
+        });
+      }
+    }
+
+    // Safe default handler for unrecognized actions
     return jsonResponse({
       success: false,
       message: "Action belum didukung pada patch ini: " + action,
