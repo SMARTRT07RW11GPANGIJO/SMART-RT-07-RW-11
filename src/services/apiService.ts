@@ -48,6 +48,7 @@ export const testGasConnection = async (url?: string): Promise<GASApiResponse> =
   try {
     const response = await fetch(`${targetUrl}?action=ping`, {
       method: 'GET',
+      redirect: 'follow',
       headers: {
         'Accept': 'application/json'
       }
@@ -86,8 +87,9 @@ export const syncDataWithGAS = async (action: string, payload?: any): Promise<GA
   try {
     const response = await fetch(url, {
       method: 'POST',
+      redirect: 'follow',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/plain;charset=utf-8'
       },
       body: JSON.stringify({
         action,

@@ -654,44 +654,103 @@ function runComprehensiveSecurityTestSuite(executedByRole, executedByName) {
 }`,
 
     UTILS: `/**
- * Utils.gs
+ * Utils.gs / Code.gs
  * Web App Controller & JSON Response Helpers
+ * SMART RT 07 RW 11 GPA NGIJO - P0 PATCH #001: GAS doPost() CONNECTOR
  */
 
 function doGet(e) {
-  var action = e.parameter.action || "ping";
+  var action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "ping";
   if (action === "ping") {
     return jsonResponse({
       success: true,
       message: "SMART RT 07 Backend Apps Script Active!",
+      data: { status: "ACTIVE", version: "1.0-PROD" },
       timestamp: new Date().toISOString()
     });
   }
   if (action === "health") {
     return jsonResponse({
       success: true,
-      status: "healthy",
-      environment: getConfig().APP_ENV,
+      message: "System Healthy",
+      data: getSystemHealth(),
       timestamp: Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd'T'HH:mm:ss'Z'")
     });
   }
-  return jsonResponse({ success: false, error: "Invalid action" });
+  return jsonResponse({
+    success: false,
+    errorCode: "INVALID_ACTION",
+    message: "Action doGet tidak dikenal."
+  });
 }
 
+/**
+ * P0 PATCH #001: POST Endpoint Handler
+ * Menerima request JSON POST dari Vercel / Frontend
+ */
 function doPost(e) {
   try {
-    var contents = JSON.parse(e.postData.contents);
-    var action = contents.action;
-    var payload = contents.payload;
-
-    if (action === "saveWarga") {
-      logAudit(contents.user, "CREATE_WARGA", "Data Warga", payload.id_warga, "SUCCESS", "Menambah data warga");
-      return jsonResponse({ success: true, message: "Warga tersimpan!" });
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse({
+        success: false,
+        message: "Bad Request: Body POST JSON kosong atau tidak valid.",
+        data: null,
+        errorCode: "INVALID_REQUEST"
+      });
     }
 
-    return jsonResponse({ success: true, message: "Action processed: " + action });
+    var contents;
+    try {
+      contents = JSON.parse(e.postData.contents);
+    } catch (parseErr) {
+      return jsonResponse({
+        success: false,
+        message: "Bad Request: Format JSON tidak valid.",
+        data: null,
+        errorCode: "INVALID_JSON"
+      });
+    }
+
+    var action = contents.action;
+    var payload = contents.payload || {};
+
+    if (!action) {
+      return jsonResponse({
+        success: false,
+        message: "Bad Request: Parameter action wajib disertakan.",
+        data: null,
+        errorCode: "MISSING_ACTION"
+      });
+    }
+
+    // P0 PATCH #001: Ping Action Router
+    if (action === "ping") {
+      return jsonResponse({
+        success: true,
+        message: "SMART RT 07 Backend Apps Script Active!",
+        data: {
+          status: "ACTIVE"
+        },
+        errorCode: null
+      });
+    }
+
+    // Safe default handler for unrecognized actions in Patch #001
+    return jsonResponse({
+      success: false,
+      message: "Action belum didukung pada patch ini: " + action,
+      data: null,
+      errorCode: "ACTION_NOT_SUPPORTED"
+    });
   } catch(err) {
-    return jsonResponse({ success: false, error: err.message });
+    // Zero secret leak: mask any potential sensitive strings
+    var safeErrorMsg = err && err.message ? err.message.replace(/([a-zA-Z0-9_\-\.]{20,})/g, "[REDACTED]") : "Internal Server Error";
+    return jsonResponse({
+      success: false,
+      message: "Terjadi kesalahan pada backend Apps Script: " + safeErrorMsg,
+      data: null,
+      errorCode: "SERVER_ERROR"
+    });
   }
 }
 

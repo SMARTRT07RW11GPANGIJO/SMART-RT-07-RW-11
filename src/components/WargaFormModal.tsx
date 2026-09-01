@@ -45,6 +45,8 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
   });
 
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(true);
 
   if (!isOpen) return null;
 
@@ -82,9 +84,16 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setValidationError(null);
+
+    if (!consentAccepted) {
+      setValidationError('Persetujuan pemrosesan data kependudukan dan privasi warga (UU PDP) wajib disetujui.');
+      return;
+    }
 
     // Validation via Service
     const validation = ResidentFamilyService.validateWarga(formData);
@@ -93,22 +102,40 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
       return;
     }
 
-    const newWargaId = `WRG-${Date.now().toString().slice(-4)}`;
-    const newWarga: Warga = {
-      ...formData,
-      id_warga: newWargaId,
-      wargaId: newWargaId,
-      statusWarga: currentStatusWarga,
-      status_warga: currentStatusWarga === 'KONTRAK_SEWA' ? 'Kontrak' : currentStatusWarga === 'KOS' ? 'Kos' : 'Tetap',
-      // Safe cleanup: if TETAP, remove owner fields
-      namaPemilikRumah: isNonTetap ? formData.namaPemilikRumah : undefined,
-      teleponPemilikRumah: isNonTetap ? formData.teleponPemilikRumah : undefined,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Check duplicate NIK against authoritative store
+    if (ResidentFamilyService.isDuplicateNik(formData.nik)) {
+      setValidationError(`NIK ${formData.nik} sudah terdaftar dalam data kependudukan RT 07.`);
+      return;
+    }
 
-    onAddWarga(newWarga);
-    onClose();
+    setIsSubmitting(true);
+
+    try {
+      const newWargaId = `WRG-${Date.now().toString().slice(-4)}`;
+      const newWarga: Warga = {
+        ...formData,
+        id_warga: newWargaId,
+        wargaId: newWargaId,
+        statusWarga: currentStatusWarga,
+        status_warga: currentStatusWarga === 'KONTRAK_SEWA' ? 'Kontrak' : currentStatusWarga === 'KOS' ? 'Kos' : 'Tetap',
+        // Safe cleanup: if TETAP, remove owner fields
+        namaPemilikRumah: isNonTetap ? formData.namaPemilikRumah : undefined,
+        teleponPemilikRumah: isNonTetap ? formData.teleponPemilikRumah : undefined,
+        consentGiven: true,
+        consentTimestamp: new Date().toISOString(),
+        consentVersion: 'v1.0-2026',
+        statusVerifikasi: 'MENUNGGU_VERIFIKASI',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await onAddWarga(newWarga);
+      onClose();
+    } catch (err: any) {
+      setValidationError(err?.message || 'Gagal menyimpan data warga ke sistem.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -447,6 +474,32 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
             </div>
           </div>
 
+          {/* Privacy & Consent Agreement */}
+          <div className="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-[#2E7D52] text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+                UU PDP & PRIVASI
+              </span>
+              <h4 className="font-bold text-xs text-slate-800">
+                Pernyataan & Persetujuan Pemrosesan Data Warga (v1.0-2026)
+              </h4>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Data kependudukan (NIK, KK, Nomor WhatsApp, Status Hunian) disimpan pada Google Sheets SSoT resmi RT 07 RW 11 GPA Ngijo dan hanya diakses oleh Pengurus RT berwenang untuk administrasi surat, iuran, pengaduan, dan validasi kependudukan.
+            </p>
+            <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={consentAccepted}
+                onChange={(e) => setConsentAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded text-[#2E7D52] focus:ring-[#2E7D52] border-slate-300 cursor-pointer"
+              />
+              <span className="text-xs text-slate-700 font-semibold leading-snug">
+                Saya menyatakan data yang diisikan benar dan menyetujui pemrosesan data untuk administrasi SMART RT 07 RW 11 GPA Ngijo.
+              </span>
+            </label>
+          </div>
+
           {/* Form Actions */}
           <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
             <span className="text-[11px] text-slate-400">
@@ -462,9 +515,10 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl font-bold text-white bg-[#2E7D52] hover:bg-[#236340] shadow-sm flex items-center gap-1.5 transition-all"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl font-bold text-white bg-[#2E7D52] hover:bg-[#236340] disabled:bg-slate-400 disabled:cursor-not-allowed shadow-sm flex items-center gap-1.5 transition-all"
               >
-                <CheckCircle className="w-4 h-4" /> Simpan Data Warga
+                <CheckCircle className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Simpan Data Warga'}
               </button>
             </div>
           </div>

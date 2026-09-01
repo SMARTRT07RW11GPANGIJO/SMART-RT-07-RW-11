@@ -11,6 +11,11 @@
 import { AuthoritativeSessionContext, validateSessionContext } from '../security/authorization';
 import { SecurityAuthorizationError } from '../security/securityErrors';
 import { logAIAuditEntry } from '../services/aiAuthorizationService';
+import { Warga, Keluarga } from '../types/rt';
+import { syncDataWithGAS } from '../services/apiService';
+import { writeAuditLog, AUDIT_EVENTS, generateCorrelationId } from '../services/auditLogService';
+import { ResidentFamilyService } from '../services/residentFamilyService';
+import { IdentityAuthService } from '../services/identityAuthService';
 import {
   ResidentDTO,
   LetterDTO,
@@ -467,3 +472,518 @@ export function executeDataTool(
     };
   }
 }
+
+// ============================================================================
+// SSoT REGISTRATION GATEWAY (CR-SMART-RT-REG-AUTH-001)
+// ============================================================================
+
+/**
+ * registerWargaSSoT
+ * Authoritative SSoT Orchestration Gateway for Warga Registration
+ * Enforces transaction order: Validation -> SSoT Write -> SSoT Confirmation -> Cache Commit -> Auth Provisioning -> Audit Completion
+ */
+export async function registerWargaSSoT(
+  warga: Warga,
+  authContext?: AuthoritativeSessionContext
+): Promise<{ success: boolean; message?: string; error?: string; correlationId: string; data?: any; authProvisioned?: boolean }> {
+  const correlationId = generateCorrelationId();
+  const userId = authContext?.userId || 'PUBLIC_REGISTRATION';
+  const role = authContext?.role || 'WARGA';
+
+  // 1. Validation & Duplicate Check Boundary
+  if (!warga || !warga.nik || !warga.nama_lengkap) {
+    return {
+      success: false,
+      error: 'Data warga tidak lengkap. NIK dan Nama Lengkap wajib diisi.',
+      correlationId
+    };
+  }
+
+  if (ResidentFamilyService.isDuplicateNik(warga.nik)) {
+    return {
+      success: false,
+      error: `NIK ${warga.nik} sudah terdaftar dalam data kependudukan RT 07.`,
+      correlationId
+    };
+  }
+
+  // 2. Audit SSoT Write Attempt
+  await writeAuditLog({
+    userId,
+    userName: authContext?.namaLengkap || 'Pendaftaran Warga',
+    role,
+    action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_ATTEMPTED,
+    module: 'REGISTRASI',
+    targetType: 'Warga',
+    targetId: warga.id_warga || warga.nik,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Percobaan pengiriman data warga baru ke Google Sheets SSoT (NIK: ${warga.nik}).`,
+    correlationId
+  });
+
+  try {
+    const payload = {
+      ...warga,
+      correlationId,
+      user: userId
+    };
+
+    // 3. Dispatch to GAS Backend WebApp
+    const gasResponse = await syncDataWithGAS('saveWarga', payload);
+
+    // 4. Response Validation (Fail-closed on any invalid/falsy response)
+    if (!gasResponse || typeof gasResponse !== 'object' || gasResponse.success !== true) {
+      const errorMsg = (gasResponse && (gasResponse.message || gasResponse.error)) || 'Gagal mengirim data ke Google Sheets SSoT';
+
+      // Audit Failure
+      await writeAuditLog({
+        userId,
+        userName: authContext?.namaLengkap || 'Pendaftaran Warga',
+        role,
+        action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_FAILED,
+        module: 'REGISTRASI',
+        targetType: 'Warga',
+        targetId: warga.id_warga || warga.nik,
+        status: 'FAILED',
+        severity: 'WARNING',
+        details: `Gagal commit data warga ke SSoT Google Sheets: ${errorMsg}`,
+        correlationId
+      });
+
+      return {
+        success: false,
+        error: errorMsg,
+        correlationId
+      };
+    }
+
+    // 5. Audit SSoT Write Confirmed
+    await writeAuditLog({
+      userId,
+      userName: authContext?.namaLengkap || 'Pendaftaran Warga',
+      role,
+      action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_CONFIRMED,
+      module: 'REGISTRASI',
+      targetType: 'Warga',
+      targetId: warga.id_warga || warga.nik,
+      status: 'SUCCESS',
+      severity: 'INFO',
+      details: `Data warga ${warga.nama_lengkap} (NIK: ${warga.nik}) terkonfirmasi tersimpan di Google Sheets SSoT.`,
+      correlationId
+    });
+
+    // 6. Commit to Secondary LocalStorage Cache ONLY AFTER SSoT Confirmation
+    const cacheResult = ResidentFamilyService.createWarga(warga, {
+      userId,
+      role
+    });
+
+    // 7. Deterministic Authentication Provisioning ONLY AFTER SSoT Confirmation
+    let authProvisioned = false;
+    const kkNum = warga.nomorKK || warga.no_kk;
+    if (kkNum) {
+      try {
+        const authResult = IdentityAuthService.provisionAccountFromOfficialData(kkNum, undefined, warga);
+        authProvisioned = authResult.success;
+      } catch (authErr) {
+        console.warn('Auth provisioning warning in DAL:', authErr);
+      }
+    }
+
+    // 8. Audit Completion Event
+    await writeAuditLog({
+      userId,
+      userName: authContext?.namaLengkap || 'Pendaftaran Warga',
+      role,
+      action: AUDIT_EVENTS.WARGA_REGISTRATION_PERSISTED,
+      module: 'REGISTRASI',
+      targetType: 'Warga',
+      targetId: warga.id_warga || warga.nik,
+      status: 'SUCCESS',
+      severity: 'INFO',
+      details: `Pendaftaran warga ${warga.nama_lengkap} (NIK: ${warga.nik}) selesai: SSoT confirmed, cache committed, akun otentikasi diprovisi.`,
+      correlationId
+    });
+
+    return {
+      success: true,
+      correlationId,
+      message: gasResponse.message || `Data Warga ${warga.nama_lengkap} berhasil disimpan di Google Sheets SSoT`,
+      data: {
+        ...gasResponse.data,
+        id_warga: warga.id_warga,
+        nik: warga.nik,
+        cacheCommitted: cacheResult.success,
+        authProvisioned
+      },
+      authProvisioned
+    };
+  } catch (err: any) {
+    const errorMsg = err?.message || 'Terjadi kesalahan sistem saat komunikasi dengan SSoT';
+
+    await writeAuditLog({
+      userId,
+      userName: authContext?.namaLengkap || 'Pendaftaran Warga',
+      role,
+      action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_FAILED,
+      module: 'REGISTRASI',
+      targetType: 'Warga',
+      targetId: warga.id_warga || warga.nik,
+      status: 'FAILED',
+      severity: 'WARNING',
+      details: `Exception saat commit data warga ke SSoT: ${errorMsg}`,
+      correlationId
+    });
+
+    return {
+      success: false,
+      error: errorMsg,
+      correlationId
+    };
+  }
+}
+
+/**
+ * registerKeluargaSSoT
+ * Authoritative SSoT Orchestration Gateway for Keluarga Registration
+ * Enforces transaction order: Validation -> SSoT Write -> SSoT Confirmation -> Cache Commit -> Auth Provisioning -> Audit Completion
+ */
+export async function registerKeluargaSSoT(
+  keluarga: Keluarga,
+  authContext?: AuthoritativeSessionContext
+): Promise<{ success: boolean; message?: string; error?: string; correlationId: string; data?: any; authProvisioned?: boolean }> {
+  const correlationId = generateCorrelationId();
+  const userId = authContext?.userId || 'PUBLIC_REGISTRATION';
+  const role = authContext?.role || 'WARGA';
+
+  // 1. Validation & Duplicate Check Boundary
+  if (!keluarga || !keluarga.nomorKK || !keluarga.nama_kepala_keluarga) {
+    return {
+      success: false,
+      error: 'Data Kartu Keluarga tidak lengkap. Nomor KK dan Nama Kepala Keluarga wajib diisi.',
+      correlationId
+    };
+  }
+
+  if (ResidentFamilyService.isDuplicateKK(keluarga.nomorKK)) {
+    return {
+      success: false,
+      error: `Nomor KK ${keluarga.nomorKK} sudah terdaftar dalam basis data RT 07.`,
+      correlationId
+    };
+  }
+
+  // 2. Audit SSoT Write Attempt
+  await writeAuditLog({
+    userId,
+    userName: authContext?.namaLengkap || 'Pendaftaran Keluarga',
+    role,
+    action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_ATTEMPTED,
+    module: 'REGISTRASI',
+    targetType: 'Keluarga',
+    targetId: keluarga.id_kk || keluarga.nomorKK,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Percobaan pengiriman data Kartu Keluarga baru ke Google Sheets SSoT (No KK: ${keluarga.nomorKK}).`,
+    correlationId
+  });
+
+  try {
+    const payload = {
+      ...keluarga,
+      correlationId,
+      user: userId
+    };
+
+    // 3. Dispatch to GAS Backend WebApp
+    const gasResponse = await syncDataWithGAS('saveKeluarga', payload);
+
+    // 4. Response Validation (Fail-closed on any invalid/falsy response)
+    if (!gasResponse || typeof gasResponse !== 'object' || gasResponse.success !== true) {
+      const errorMsg = (gasResponse && (gasResponse.message || gasResponse.error)) || 'Gagal mengirim data Kartu Keluarga ke Google Sheets SSoT';
+
+      // Audit Failure
+      await writeAuditLog({
+        userId,
+        userName: authContext?.namaLengkap || 'Pendaftaran Keluarga',
+        role,
+        action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_FAILED,
+        module: 'REGISTRASI',
+        targetType: 'Keluarga',
+        targetId: keluarga.id_kk || keluarga.nomorKK,
+        status: 'FAILED',
+        severity: 'WARNING',
+        details: `Gagal commit data Kartu Keluarga ke SSoT Google Sheets: ${errorMsg}`,
+        correlationId
+      });
+
+      return {
+        success: false,
+        error: errorMsg,
+        correlationId
+      };
+    }
+
+    // 5. Audit SSoT Write Confirmed
+    await writeAuditLog({
+      userId,
+      userName: authContext?.namaLengkap || 'Pendaftaran Keluarga',
+      role,
+      action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_CONFIRMED,
+      module: 'REGISTRASI',
+      targetType: 'Keluarga',
+      targetId: keluarga.id_kk || keluarga.nomorKK,
+      status: 'SUCCESS',
+      severity: 'INFO',
+      details: `Data Kartu Keluarga an. ${keluarga.nama_kepala_keluarga} (No KK: ${keluarga.nomorKK}) terkonfirmasi tersimpan di Google Sheets SSoT.`,
+      correlationId
+    });
+
+    // 6. Commit to Secondary LocalStorage Cache ONLY AFTER SSoT Confirmation
+    const cacheResult = ResidentFamilyService.createKeluarga(keluarga, {
+      userId,
+      role
+    });
+
+    // 7. Deterministic Authentication Provisioning ONLY AFTER SSoT Confirmation
+    let authProvisioned = false;
+    const kkNum = keluarga.nomorKK || keluarga.no_kk;
+    if (kkNum) {
+      try {
+        const authResult = IdentityAuthService.provisionAccountFromOfficialData(kkNum, keluarga, undefined);
+        authProvisioned = authResult.success;
+      } catch (authErr) {
+        console.warn('Auth provisioning warning in DAL:', authErr);
+      }
+    }
+
+    // 8. Audit Completion Event
+    await writeAuditLog({
+      userId,
+      userName: authContext?.namaLengkap || 'Pendaftaran Keluarga',
+      role,
+      action: AUDIT_EVENTS.KELUARGA_REGISTRATION_PERSISTED,
+      module: 'REGISTRASI',
+      targetType: 'Keluarga',
+      targetId: keluarga.id_kk || keluarga.nomorKK,
+      status: 'SUCCESS',
+      severity: 'INFO',
+      details: `Pendaftaran Kartu Keluarga an. ${keluarga.nama_kepala_keluarga} (No KK: ${keluarga.nomorKK}) selesai: SSoT confirmed, cache committed, akun otentikasi diprovisi.`,
+      correlationId
+    });
+
+    return {
+      success: true,
+      correlationId,
+      message: gasResponse.message || `Data Kartu Keluarga an. ${keluarga.nama_kepala_keluarga} berhasil disimpan di Google Sheets SSoT`,
+      data: {
+        ...gasResponse.data,
+        id_kk: keluarga.id_kk,
+        nomorKK: keluarga.nomorKK,
+        cacheCommitted: cacheResult.success,
+        authProvisioned
+      },
+      authProvisioned
+    };
+  } catch (err: any) {
+    const errorMsg = err?.message || 'Terjadi kesalahan sistem saat komunikasi dengan SSoT';
+
+    await writeAuditLog({
+      userId,
+      userName: authContext?.namaLengkap || 'Pendaftaran Keluarga',
+      role,
+      action: AUDIT_EVENTS.REGISTRATION_SSOT_WRITE_FAILED,
+      module: 'REGISTRASI',
+      targetType: 'Keluarga',
+      targetId: keluarga.id_kk || keluarga.nomorKK,
+      status: 'FAILED',
+      severity: 'WARNING',
+      details: `Exception saat commit data Kartu Keluarga ke SSoT: ${errorMsg}`,
+      correlationId
+    });
+
+    return {
+      success: false,
+      error: errorMsg,
+      correlationId
+    };
+  }
+}
+
+/**
+ * verifyWargaSSoT
+ * Authoritative verification handler for Pengurus/Admin role
+ * Updates SSoT (Google Sheets) and syncs local cache state
+ */
+export async function verifyWargaSSoT(
+  wargaId: string,
+  status: 'TERVERIFIKASI' | 'DITOLAK',
+  authContext: AuthoritativeSessionContext,
+  notes?: string
+): Promise<{ success: boolean; message?: string; error?: string; correlationId: string; data?: any }> {
+  const correlationId = generateCorrelationId();
+  validateSessionContext(authContext);
+
+  if (!['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(authContext.role)) {
+    await writeAuditLog({
+      userId: authContext.userId,
+      userName: authContext.namaLengkap || authContext.userId,
+      role: authContext.role,
+      action: AUDIT_EVENTS.UNAUTHORIZED_ACCESS,
+      module: 'USER',
+      targetType: 'Warga',
+      targetId: wargaId,
+      status: 'FAILED',
+      severity: 'WARNING',
+      details: `Upaya verifikasi warga ditolak: User role ${authContext.role} tidak memiliki hak verifikasi.`,
+      correlationId
+    });
+    return {
+      success: false,
+      error: 'Otoritas ditolak: Hanya Pengurus, Ketua RT, atau Admin yang berhak memverifikasi warga.',
+      correlationId
+    };
+  }
+
+  // Update local cache state
+  const cacheResult = ResidentFamilyService.verifyWarga(wargaId, status, {
+    userId: authContext.userId,
+    role: authContext.role,
+    namaLengkap: authContext.namaLengkap
+  }, notes);
+
+  if (!cacheResult.success) {
+    return {
+      success: false,
+      error: cacheResult.error || 'Gagal memperbarui status verifikasi warga',
+      correlationId
+    };
+  }
+
+  // Sync with SSoT (GAS)
+  try {
+    const gasPayload = {
+      wargaId,
+      statusVerifikasi: status,
+      verifiedBy: authContext.namaLengkap || authContext.userId,
+      verifiedAt: new Date().toISOString(),
+      notes: notes || '',
+      correlationId
+    };
+    await syncDataWithGAS('verifyWarga', gasPayload);
+  } catch (syncErr) {
+    console.warn('SSoT sync warning during warga verification:', syncErr);
+  }
+
+  // Audit event
+  await writeAuditLog({
+    userId: authContext.userId,
+    userName: authContext.namaLengkap || authContext.userId,
+    role: authContext.role,
+    action: status === 'TERVERIFIKASI' ? AUDIT_EVENTS.WARGA_VERIFIED : AUDIT_EVENTS.WARGA_REJECTED,
+    module: 'USER',
+    targetType: 'Warga',
+    targetId: wargaId,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Warga ${cacheResult.data?.nama_lengkap} (${cacheResult.data?.nik}) status verifikasi: ${status} oleh ${authContext.namaLengkap || authContext.userId}.`,
+    correlationId
+  });
+
+  return {
+    success: true,
+    correlationId,
+    message: `Data warga berhasil diverifikasi sebagai ${status}`,
+    data: cacheResult.data
+  };
+}
+
+/**
+ * verifyKeluargaSSoT
+ * Authoritative verification handler for Pengurus/Admin role
+ * Updates SSoT (Google Sheets) and syncs local cache state
+ */
+export async function verifyKeluargaSSoT(
+  keluargaId: string,
+  status: 'TERVERIFIKASI' | 'DITOLAK',
+  authContext: AuthoritativeSessionContext,
+  notes?: string
+): Promise<{ success: boolean; message?: string; error?: string; correlationId: string; data?: any }> {
+  const correlationId = generateCorrelationId();
+  validateSessionContext(authContext);
+
+  if (!['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(authContext.role)) {
+    await writeAuditLog({
+      userId: authContext.userId,
+      userName: authContext.namaLengkap || authContext.userId,
+      role: authContext.role,
+      action: AUDIT_EVENTS.UNAUTHORIZED_ACCESS,
+      module: 'USER',
+      targetType: 'Keluarga',
+      targetId: keluargaId,
+      status: 'FAILED',
+      severity: 'WARNING',
+      details: `Upaya verifikasi Kartu Keluarga ditolak: User role ${authContext.role} tidak memiliki hak verifikasi.`,
+      correlationId
+    });
+    return {
+      success: false,
+      error: 'Otoritas ditolak: Hanya Pengurus, Ketua RT, atau Admin yang berhak memverifikasi Kartu Keluarga.',
+      correlationId
+    };
+  }
+
+  // Update local cache state
+  const cacheResult = ResidentFamilyService.verifyKeluarga(keluargaId, status, {
+    userId: authContext.userId,
+    role: authContext.role,
+    namaLengkap: authContext.namaLengkap
+  }, notes);
+
+  if (!cacheResult.success) {
+    return {
+      success: false,
+      error: cacheResult.error || 'Gagal memperbarui status verifikasi Kartu Keluarga',
+      correlationId
+    };
+  }
+
+  // Sync with SSoT (GAS)
+  try {
+    const gasPayload = {
+      keluargaId,
+      statusVerifikasi: status,
+      verifiedBy: authContext.namaLengkap || authContext.userId,
+      verifiedAt: new Date().toISOString(),
+      notes: notes || '',
+      correlationId
+    };
+    await syncDataWithGAS('verifyKeluarga', gasPayload);
+  } catch (syncErr) {
+    console.warn('SSoT sync warning during keluarga verification:', syncErr);
+  }
+
+  // Audit event
+  await writeAuditLog({
+    userId: authContext.userId,
+    userName: authContext.namaLengkap || authContext.userId,
+    role: authContext.role,
+    action: status === 'TERVERIFIKASI' ? AUDIT_EVENTS.KELUARGA_VERIFIED : AUDIT_EVENTS.KELUARGA_REJECTED,
+    module: 'USER',
+    targetType: 'Keluarga',
+    targetId: keluargaId,
+    status: 'SUCCESS',
+    severity: 'INFO',
+    details: `Kartu Keluarga an. ${cacheResult.data?.nama_kepala_keluarga} (KK: ${cacheResult.data?.no_kk}) status verifikasi: ${status} oleh ${authContext.namaLengkap || authContext.userId}.`,
+    correlationId
+  });
+
+  return {
+    success: true,
+    correlationId,
+    message: `Data Kartu Keluarga berhasil diverifikasi sebagai ${status}`,
+    data: cacheResult.data
+  };
+}
+

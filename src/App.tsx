@@ -48,6 +48,7 @@ import { ExecutiveAnalyticsDashboard } from './components/analytics/ExecutiveAna
 import { RitaAssistantWidget } from './components/RitaAssistantWidget';
 import { AIAssistantPage } from './pages/AIAssistant';
 import { IdentityAuthService } from './services/identityAuthService';
+import { ResidentFamilyService } from './services/residentFamilyService';
 import { AuthoritativeSessionContext } from './security/authorization';
 import { LoginModal } from './components/LoginModal';
 import { FirstLoginChangePasswordModal } from './components/FirstLoginChangePasswordModal';
@@ -96,8 +97,8 @@ export default function App() {
   };
 
   // Master States
-  const [wargaList, setWargaList] = useState<Warga[]>(INITIAL_WARGA);
-  const [keluargaList, setKeluargaList] = useState<Keluarga[]>(INITIAL_KELUARGA);
+  const [wargaList, setWargaList] = useState<Warga[]>(() => ResidentFamilyService.loadInitialWarga());
+  const [keluargaList, setKeluargaList] = useState<Keluarga[]>(() => ResidentFamilyService.loadInitialKeluarga());
   const [suratList, setSuratList] = useState<SuratPengantar[]>(INITIAL_SURAT);
   const [transaksiList, setTransaksiList] = useState<TransaksiKeuangan[]>(INITIAL_TRANSAKSI);
   const [iuranList, setIuranList] = useState<TagihanIuran[]>(INITIAL_IURAN);

@@ -32,6 +32,7 @@ import { INITIAL_WARGA, INITIAL_KELUARGA, INITIAL_SURAT, INITIAL_PENGADUAN, INIT
 import { TataTertibService } from './tataTertibService';
 import { waServiceInstance } from './whatsappService';
 import { AuditLog } from '../types/rt';
+import { ResidentFamilyService } from './residentFamilyService';
 
 const NOTIFICATION_STORAGE_KEY = 'SMART_RT_WARGA_NOTIFICATIONS_V2';
 const INVOICE_STORAGE_KEY = 'SMART_RT_WARGA_INVOICES_V2';
@@ -149,23 +150,36 @@ export class WargaDashboardService {
     this.initStorage(userId);
 
     // 1. Fetch Profile Strictly for Current User
-    const rawWarga = INITIAL_WARGA.find((w) => w.id_warga === userId) || INITIAL_WARGA[0];
-    const rawKk = INITIAL_KELUARGA.find((k) => k.no_kk === rawWarga.no_kk) || INITIAL_KELUARGA[0];
+    const allWarga = ResidentFamilyService.getWargaList();
+    const rawWarga = allWarga.find(
+      (w) => w.id_warga === userId || w.wargaId === userId || w.nik === userId || (authContext.nomorKK && (w.no_kk === authContext.nomorKK || w.nomorKK === authContext.nomorKK)) || (authContext.keluargaId && w.keluargaId === authContext.keluargaId)
+    ) || INITIAL_WARGA.find((w) => w.id_warga === userId) || allWarga[0] || INITIAL_WARGA[0];
+
+    const allKk = ResidentFamilyService.getKeluargaList();
+    const rawKk = allKk.find(
+      (k) => (rawWarga.keluargaId && (k.keluargaId === rawWarga.keluargaId || k.id_kk === rawWarga.keluargaId)) ||
+             k.no_kk === (rawWarga.nomorKK || rawWarga.no_kk) ||
+             k.nomorKK === (rawWarga.nomorKK || rawWarga.no_kk)
+    ) || INITIAL_KELUARGA.find((k) => k.no_kk === rawWarga.no_kk) || allKk[0] || INITIAL_KELUARGA[0];
+
+    const familyMembers = ResidentFamilyService.getAnggotaKeluarga(rawKk.keluargaId || rawKk.id_kk, rawKk.no_kk || rawKk.nomorKK);
 
     const profile: WargaProfileSummary = {
       idWarga: rawWarga.id_warga,
       namaLengkap: rawWarga.nama_lengkap,
-      nikMasked: `${rawWarga.nik.slice(0, 6)}******${rawWarga.nik.slice(-4)}`,
-      noKkMasked: `${rawWarga.no_kk.slice(0, 6)}******${rawWarga.no_kk.slice(-4)}`,
-      rt: '07',
-      rw: '11',
+      nikMasked: rawWarga.nik ? `${rawWarga.nik.slice(0, 6)}******${rawWarga.nik.slice(-4)}` : '******',
+      noKkMasked: (rawWarga.nomorKK || rawWarga.no_kk) ? `${(rawWarga.nomorKK || rawWarga.no_kk).slice(0, 6)}******${(rawWarga.nomorKK || rawWarga.no_kk).slice(-4)}` : '******',
+      rt: rawWarga.rt || '07',
+      rw: rawWarga.rw || '11',
       perumahan: 'GPA Ngijo',
       blok: rawWarga.blok || 'Blok C-07',
-      statusWarga: rawWarga.status_warga,
-      statusKeluarga: rawWarga.id_warga === 'WRG-001' ? 'Kepala Keluarga' : 'Anggota Keluarga',
-      noHp: rawWarga.no_hp,
-      email: rawWarga.email,
-      jumlahAnggotaKeluarga: rawKk.jumlah_anggota || 4
+      statusWarga: rawWarga.status_warga || (rawWarga.statusWarga === 'KONTRAK_SEWA' ? 'Kontrak' : rawWarga.statusWarga === 'KOS' ? 'Kos' : 'Tetap'),
+      statusKeluarga: rawWarga.hubunganKeluarga === 'KEPALA_KELUARGA' || rawWarga.id_warga === 'WRG-001' ? 'Kepala Keluarga' : (rawWarga.hubunganKeluarga || 'Anggota Keluarga'),
+      noHp: rawWarga.no_hp || '',
+      email: rawWarga.email || '',
+      jumlahAnggotaKeluarga: familyMembers.length > 0 ? familyMembers.length : (rawKk.jumlah_anggota || 1),
+      statusVerifikasi: rawWarga.statusVerifikasi || 'TERVERIFIKASI',
+      consentGiven: rawWarga.consentGiven ?? true
     };
 
     // 2. Fetch Notifications Strictly for Current User

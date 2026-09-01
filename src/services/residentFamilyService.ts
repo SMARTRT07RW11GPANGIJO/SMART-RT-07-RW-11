@@ -8,6 +8,10 @@ import {
 } from '../types/rt';
 import { INITIAL_WARGA, INITIAL_KELUARGA, INITIAL_PEMILIK_RUMAH } from '../data/mockData';
 
+const STORAGE_KEY_WARGA = 'SMART_RT_WARGA_V1';
+const STORAGE_KEY_KELUARGA = 'SMART_RT_KELUARGA_V1';
+const STORAGE_KEY_PEMILIK = 'SMART_RT_PEMILIK_V1';
+
 export interface ResidentFilterCriteria {
   searchTerm?: string;
   blok?: string;
@@ -16,9 +20,104 @@ export interface ResidentFilterCriteria {
 }
 
 export class ResidentFamilyService {
-  private static wargaStore: Warga[] = [...INITIAL_WARGA];
-  private static keluargaStore: Keluarga[] = [...INITIAL_KELUARGA];
-  private static pemilikStore: PemilikRumah[] = [...INITIAL_PEMILIK_RUMAH];
+  private static wargaStore: Warga[] = ResidentFamilyService.loadInitialWarga();
+  private static keluargaStore: Keluarga[] = ResidentFamilyService.loadInitialKeluarga();
+  private static pemilikStore: PemilikRumah[] = ResidentFamilyService.loadInitialPemilik();
+
+  // Load from persistent local storage or fallback to fixture
+  public static loadInitialWarga(): Warga[] {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_WARGA);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse stored warga, fallback to initial', e);
+      }
+    }
+    return [...INITIAL_WARGA];
+  }
+
+  public static loadInitialKeluarga(): Keluarga[] {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_KELUARGA);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse stored keluarga, fallback to initial', e);
+      }
+    }
+    return [...INITIAL_KELUARGA];
+  }
+
+  public static loadInitialPemilik(): PemilikRumah[] {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_PEMILIK);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to parse stored pemilik, fallback to initial', e);
+      }
+    }
+    return [...INITIAL_PEMILIK_RUMAH];
+  }
+
+  private static persistWarga() {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY_WARGA, JSON.stringify(this.wargaStore));
+      } catch (e) {
+        console.error('Failed to persist warga to localStorage', e);
+      }
+    }
+  }
+
+  private static persistKeluarga() {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY_KELUARGA, JSON.stringify(this.keluargaStore));
+      } catch (e) {
+        console.error('Failed to persist keluarga to localStorage', e);
+      }
+    }
+  }
+
+  private static persistPemilik() {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(STORAGE_KEY_PEMILIK, JSON.stringify(this.pemilikStore));
+      } catch (e) {
+        console.error('Failed to persist pemilik to localStorage', e);
+      }
+    }
+  }
+
+  // Duplicate checks
+  public static isDuplicateNik(nik: string, excludeId?: string): boolean {
+    const cleanNik = (nik || '').trim();
+    if (!cleanNik) return false;
+    return this.wargaStore.some((w) => w.nik === cleanNik && (!excludeId || (w.id_warga !== excludeId && w.wargaId !== excludeId)));
+  }
+
+  public static isDuplicateKK(noKk: string, excludeId?: string): boolean {
+    const cleanKK = (noKk || '').trim();
+    if (!cleanKK) return false;
+    return this.keluargaStore.some((k) => (k.no_kk === cleanKK || k.nomorKK === cleanKK) && (!excludeId || (k.id_kk !== excludeId && k.keluargaId !== excludeId)));
+  }
 
   // Helper validation: 16 digits
   public static isValid16Digits(val: string): boolean {
@@ -28,9 +127,12 @@ export class ResidentFamilyService {
   // Synchronize internal store
   public static syncInitialData(warga: Warga[], keluarga: Keluarga[], pemilik?: PemilikRumah[]) {
     this.wargaStore = [...warga];
+    this.persistWarga();
     this.keluargaStore = [...keluarga];
+    this.persistKeluarga();
     if (pemilik) {
       this.pemilikStore = [...pemilik];
+      this.persistPemilik();
     }
   }
 
@@ -214,11 +316,16 @@ export class ResidentFamilyService {
       hubunganKeluarga: wargaData.hubunganKeluarga || 'KEPALA_KELUARGA',
       namaPemilikRumah: statusEnum === 'TETAP' ? undefined : wargaData.namaPemilikRumah,
       teleponPemilikRumah: statusEnum === 'TETAP' ? undefined : wargaData.teleponPemilikRumah,
+      consentGiven: wargaData.consentGiven ?? true,
+      consentTimestamp: wargaData.consentTimestamp || new Date().toISOString(),
+      consentVersion: wargaData.consentVersion || 'v1.0-2026',
+      statusVerifikasi: wargaData.statusVerifikasi || 'MENUNGGU_VERIFIKASI',
       createdAt: wargaData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
     this.wargaStore.unshift(newWarga);
+    this.persistWarga();
 
     // If property owner data provided, record in pemilikStore
     if ((statusEnum === 'KONTRAK_SEWA' || statusEnum === 'KOS') && newWarga.namaPemilikRumah && newWarga.teleponPemilikRumah) {
@@ -274,11 +381,16 @@ export class ResidentFamilyService {
       jumlah_anggota: keluargaData.jumlah_anggota || 1,
       status_rumah: keluargaData.status_rumah || 'Milik Sendiri',
       statusKeluarga: 'AKTIF',
+      consentGiven: keluargaData.consentGiven ?? true,
+      consentTimestamp: keluargaData.consentTimestamp || new Date().toISOString(),
+      consentVersion: keluargaData.consentVersion || 'v1.0-2026',
+      statusVerifikasi: keluargaData.statusVerifikasi || 'MENUNGGU_VERIFIKASI',
       createdAt: keluargaData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
     this.keluargaStore.unshift(newKk);
+    this.persistKeluarga();
 
     const auditLog: AuditLog = {
       id_log: `LOG-${Date.now()}`,
@@ -293,6 +405,92 @@ export class ResidentFamilyService {
     };
 
     return { success: true, data: newKk, auditLog };
+  }
+
+  // Verify Warga Registration (Pengurus / Ketua RT / Admin only)
+  public static verifyWarga(
+    wargaId: string,
+    status: 'TERVERIFIKASI' | 'DITOLAK',
+    actor: { userId: string; role: string; namaLengkap?: string },
+    notes?: string
+  ): { success: boolean; data?: Warga; error?: string; auditLog?: AuditLog } {
+    const isAuthorized = ['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(actor.role);
+    if (!isAuthorized) {
+      return {
+        success: false,
+        error: 'Otoritas ditolak: Hanya Pengurus, Ketua RT, atau Admin yang berhak memverifikasi data warga.'
+      };
+    }
+
+    const warga = this.wargaStore.find((w) => w.id_warga === wargaId || w.wargaId === wargaId);
+    if (!warga) {
+      return { success: false, error: 'Data warga tidak ditemukan.' };
+    }
+
+    warga.statusVerifikasi = status;
+    warga.verifiedBy = actor.namaLengkap || actor.userId;
+    warga.verifiedAt = new Date().toISOString();
+    warga.verificationNotes = notes;
+    warga.updatedAt = new Date().toISOString();
+
+    this.persistWarga();
+
+    const auditLog: AuditLog = {
+      id_log: `LOG-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      userId: actor.userId,
+      role: actor.role as any,
+      action: status === 'TERVERIFIKASI' ? 'WARGA_VERIFIED' : 'WARGA_REJECTED',
+      module: 'USER',
+      targetId: warga.id_warga,
+      status: 'SUCCESS',
+      details: `Verifikasi data warga ${warga.nama_lengkap} (${warga.nik}) status: ${status}. Catatan: ${notes || '-'}`
+    };
+
+    return { success: true, data: warga, auditLog };
+  }
+
+  // Verify Keluarga Registration (Pengurus / Ketua RT / Admin only)
+  public static verifyKeluarga(
+    keluargaId: string,
+    status: 'TERVERIFIKASI' | 'DITOLAK',
+    actor: { userId: string; role: string; namaLengkap?: string },
+    notes?: string
+  ): { success: boolean; data?: Keluarga; error?: string; auditLog?: AuditLog } {
+    const isAuthorized = ['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(actor.role);
+    if (!isAuthorized) {
+      return {
+        success: false,
+        error: 'Otoritas ditolak: Hanya Pengurus, Ketua RT, atau Admin yang berhak memverifikasi data keluarga.'
+      };
+    }
+
+    const keluarga = this.getKeluargaById(keluargaId) || this.getKeluargaByKK(keluargaId);
+    if (!keluarga) {
+      return { success: false, error: 'Data Kartu Keluarga tidak ditemukan.' };
+    }
+
+    keluarga.statusVerifikasi = status;
+    keluarga.verifiedBy = actor.namaLengkap || actor.userId;
+    keluarga.verifiedAt = new Date().toISOString();
+    keluarga.verificationNotes = notes;
+    keluarga.updatedAt = new Date().toISOString();
+
+    this.persistKeluarga();
+
+    const auditLog: AuditLog = {
+      id_log: `LOG-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      userId: actor.userId,
+      role: actor.role as any,
+      action: status === 'TERVERIFIKASI' ? 'KELUARGA_VERIFIED' : 'KELUARGA_REJECTED',
+      module: 'USER',
+      targetId: keluarga.keluargaId || keluarga.id_kk,
+      status: 'SUCCESS',
+      details: `Verifikasi Kartu Keluarga an. ${keluarga.nama_kepala_keluarga} (KK: ${keluarga.no_kk}) status: ${status}. Catatan: ${notes || '-'}`
+    };
+
+    return { success: true, data: keluarga, auditLog };
   }
 
   // Assign Warga to Family

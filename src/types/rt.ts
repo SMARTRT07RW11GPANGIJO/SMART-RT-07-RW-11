@@ -83,6 +83,13 @@ export interface Warga {
   teleponPemilikRumah?: string; // Conditional: required if KONTRAK_SEWA or KOS
   tanggal_masuk: string;
   keterangan?: string;
+  consentGiven?: boolean;
+  consentTimestamp?: string;
+  consentVersion?: string;
+  statusVerifikasi?: 'MENUNGGU_VERIFIKASI' | 'TERVERIFIKASI' | 'DITOLAK';
+  verifiedBy?: string;
+  verifiedAt?: string;
+  verificationNotes?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -101,6 +108,13 @@ export interface Keluarga {
   statusKeluarga?: 'AKTIF' | 'PINDAH' | 'NONAKTIF';
   no_hp: string;
   keterangan?: string;
+  consentGiven?: boolean;
+  consentTimestamp?: string;
+  consentVersion?: string;
+  statusVerifikasi?: 'MENUNGGU_VERIFIKASI' | 'TERVERIFIKASI' | 'DITOLAK';
+  verifiedBy?: string;
+  verifiedAt?: string;
+  verificationNotes?: string;
   createdAt?: string;
   updatedAt?: string;
 }

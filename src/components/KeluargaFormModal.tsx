@@ -22,12 +22,21 @@ export const KeluargaFormModal: React.FC<KeluargaFormModalProps> = ({
   const [no_hp, setNoHp] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(true);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setValidationError(null);
+
+    if (!consentAccepted) {
+      setValidationError('Persetujuan pemrosesan data kependudukan dan privasi warga (UU PDP) wajib disetujui.');
+      return;
+    }
 
     const cleanKK = no_kk.replace(/\D/g, '');
     const partialKK: Partial<Keluarga> = {
@@ -47,26 +56,43 @@ export const KeluargaFormModal: React.FC<KeluargaFormModalProps> = ({
       return;
     }
 
-    const newKkId = `KK-${Date.now().toString().slice(-4)}`;
-    const newKeluarga: Keluarga = {
-      id_kk: newKkId,
-      keluargaId: newKkId,
-      no_kk: cleanKK,
-      nomorKK: cleanKK,
-      nama_kepala_keluarga,
-      alamat: `Perum GPA Ngijo ${blok}`,
-      blok,
-      jumlah_anggota,
-      status_rumah,
-      statusKeluarga: 'AKTIF',
-      no_hp,
-      keterangan: keterangan || 'Terdaftar Aktif',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    if (ResidentFamilyService.isDuplicateKK(cleanKK)) {
+      setValidationError(`Nomor KK ${cleanKK} sudah terdaftar dalam basis data RT 07.`);
+      return;
+    }
 
-    onAddKeluarga(newKeluarga);
-    onClose();
+    setIsSubmitting(true);
+
+    try {
+      const newKkId = `KK-${Date.now().toString().slice(-4)}`;
+      const newKeluarga: Keluarga = {
+        id_kk: newKkId,
+        keluargaId: newKkId,
+        no_kk: cleanKK,
+        nomorKK: cleanKK,
+        nama_kepala_keluarga,
+        alamat: `Perum GPA Ngijo ${blok}`,
+        blok,
+        jumlah_anggota,
+        status_rumah,
+        statusKeluarga: 'AKTIF',
+        no_hp,
+        keterangan: keterangan || 'Terdaftar Aktif',
+        consentGiven: true,
+        consentTimestamp: new Date().toISOString(),
+        consentVersion: 'v1.0-2026',
+        statusVerifikasi: 'MENUNGGU_VERIFIKASI',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await onAddKeluarga(newKeluarga);
+      onClose();
+    } catch (err: any) {
+      setValidationError(err?.message || 'Gagal menyimpan data Kartu Keluarga.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -193,6 +219,32 @@ export const KeluargaFormModal: React.FC<KeluargaFormModalProps> = ({
             />
           </div>
 
+          {/* Privacy & Consent Agreement */}
+          <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="bg-[#2E7D52] text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+                UU PDP & PRIVASI
+              </span>
+              <h4 className="font-bold text-xs text-slate-800">
+                Pernyataan & Persetujuan Data Kartu Keluarga (v1.0-2026)
+              </h4>
+            </div>
+            <p className="text-[11px] text-slate-600 leading-relaxed">
+              Data Kartu Keluarga disimpan pada Google Sheets SSoT resmi RT 07 RW 11 GPA Ngijo dan hanya diakses oleh Pengurus RT berwenang.
+            </p>
+            <label className="flex items-start gap-2.5 pt-0.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={consentAccepted}
+                onChange={(e) => setConsentAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded text-[#2E7D52] focus:ring-[#2E7D52] border-slate-300 cursor-pointer"
+              />
+              <span className="text-xs text-slate-700 font-semibold leading-snug">
+                Saya menyatakan data KK benar dan menyetujui pemrosesan data untuk administrasi RT 07.
+              </span>
+            </label>
+          </div>
+
           <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
             <span className="text-[11px] text-slate-400">
               * Wajib 16 digit & valid
@@ -207,9 +259,10 @@ export const KeluargaFormModal: React.FC<KeluargaFormModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl font-bold text-white bg-[#2E7D52] hover:bg-[#236340] shadow-sm flex items-center gap-1.5 transition-all"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl font-bold text-white bg-[#2E7D52] hover:bg-[#236340] disabled:bg-slate-400 disabled:cursor-not-allowed shadow-sm flex items-center gap-1.5 transition-all"
               >
-                <CheckCircle className="w-4 h-4" /> Simpan Kartu Keluarga
+                <CheckCircle className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Simpan Kartu Keluarga'}
               </button>
             </div>
           </div>

@@ -20,6 +20,8 @@ export interface WargaProfileSummary {
   noHp: string;
   email: string;
   jumlahAnggotaKeluarga: number;
+  statusVerifikasi?: 'MENUNGGU_VERIFIKASI' | 'TERVERIFIKASI' | 'DITOLAK' | string;
+  consentGiven?: boolean;
 }
 
 export type WargaInvoiceFundType = 'RT_UMUM' | 'DANA_KEMATIAN' | 'OMPLOGAN';

@@ -13,7 +13,7 @@
  * - Zero plaintext credentials in Audit Logs, Sessions, or Storage
  */
 
-import { UserRole } from '../types/rt';
+import { UserRole, Warga, Keluarga } from '../types/rt';
 import { AuthoritativeSessionContext } from '../security/authorization';
 import { ResidentFamilyService } from './residentFamilyService';
 import { writeAuditLog, AUDIT_EVENTS, generateCorrelationId } from './auditLogService';
@@ -320,7 +320,11 @@ export class IdentityAuthService {
    * Safe Deterministic Account Provisioning from Official Record
    * Follows Section 6 of CR-SMART-RT-IDENTITY-001
    */
-  public static provisionAccountFromOfficialData(nomorKK: string): ProvisioningResult {
+  public static provisionAccountFromOfficialData(
+    nomorKK: string,
+    customKkData?: Partial<Keluarga>,
+    customHeadData?: Partial<Warga>
+  ): ProvisioningResult {
     const cleanKK = (nomorKK || '').trim();
 
     // 1. Validate KK format (exact 16 digits, no letters, no spaces)
@@ -354,9 +358,13 @@ export class IdentityAuthService {
       };
     }
 
-    // 3. Find official Keluarga record
+    // 3. Find official Keluarga record (or use provided customKkData)
     const keluargaList = ResidentFamilyService.getKeluargaList();
-    const keluarga = keluargaList.find((k) => (k.nomorKK === cleanKK || k.no_kk === cleanKK));
+    let keluarga = keluargaList.find((k) => (k.nomorKK === cleanKK || k.no_kk === cleanKK));
+
+    if (!keluarga && customKkData) {
+      keluarga = customKkData as Keluarga;
+    }
 
     if (!keluarga) {
       return {
@@ -371,7 +379,7 @@ export class IdentityAuthService {
       };
     }
 
-    // 4. Find official Head of Family
+    // 4. Find official Head of Family (or use provided customHeadData)
     const wargaList = ResidentFamilyService.getWargaList();
     let head = wargaList.find(
       (w) => (w.nomorKK === cleanKK || w.no_kk === cleanKK) && w.hubunganKeluarga === 'KEPALA_KELUARGA'
@@ -383,6 +391,10 @@ export class IdentityAuthService {
 
     if (!head) {
       head = wargaList.find((w) => (w.nomorKK === cleanKK || w.no_kk === cleanKK));
+    }
+
+    if (!head && customHeadData) {
+      head = customHeadData as Warga;
     }
 
     if (!head || !head.tanggal_lahir) {

@@ -303,11 +303,24 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
             <User className="w-6 h-6" />
           </div>
           <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-bold text-sm text-slate-800">{profile.namaLengkap}</h3>
               <span className="bg-emerald-50 text-[#2E7D52] text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
                 Warga Aktif ({profile.statusWarga})
               </span>
+              {profile.statusVerifikasi === 'MENUNGGU_VERIFIKASI' ? (
+                <span className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Menunggu Verifikasi
+                </span>
+              ) : profile.statusVerifikasi === 'DITOLAK' ? (
+                <span className="bg-red-50 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-300">
+                  Ditolak
+                </span>
+              ) : (
+                <span className="bg-emerald-50 text-[#2E7D52] text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-[#2E7D52]" /> Terverifikasi
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-500">
               {profile.blok} • RT {profile.rt} / RW {profile.rw} • {profile.perumahan}

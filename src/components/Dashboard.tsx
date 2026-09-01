@@ -87,6 +87,9 @@ import { createDigitalDocumentFromSurat } from '../services/documentService';
 import { WargaDashboardView } from './warga/WargaDashboardView';
 import { AuthoritativeSessionContext } from '../security/authorization';
 import { IdentityAuthService } from '../services/identityAuthService';
+import { ResidentFamilyService } from '../services/residentFamilyService';
+import { registerWargaSSoT, registerKeluargaSSoT, verifyWargaSSoT, verifyKeluargaSSoT } from '../dal/DataAccessLayer';
+import { writeAuditLog, AUDIT_EVENTS, generateCorrelationId } from '../services/auditLogService';
 
 interface DashboardProps {
   currentRole: UserRole;
@@ -173,6 +176,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Settings GAS State
   const [webAppUrlInput, setWebAppUrlInput] = useState(getGasWebappUrl());
   const [isTestingConn, setIsTestingConn] = useState(false);
+  const [wargaVerificationFilter, setWargaVerificationFilter] = useState<'ALL' | 'MENUNGGU' | 'TERVERIFIKASI' | 'DITOLAK'>('ALL');
+  const [kkVerificationFilter, setKkVerificationFilter] = useState<'ALL' | 'MENUNGGU' | 'TERVERIFIKASI' | 'DITOLAK'>('ALL');
 
   // Calculations
   const totalPemasukan = transaksiList.filter((t) => t.jenis === 'Pemasukan').reduce((a, b) => a + b.pemasukan, 0);
@@ -279,14 +284,98 @@ export const Dashboard: React.FC<DashboardProps> = ({
     addToast('success', 'Pembayaran Iuran Berhasil!', 'Status iuran keluarga diperbarui menjadi LUNAS.');
   };
 
-  const handleAddWargaSubmit = (newWarga: Warga) => {
-    setWargaList((prev) => [newWarga, ...prev]);
-    addToast('success', 'Data Warga Tersimpan!', `${newWarga.nama_lengkap} ditambahkan ke database RT 07.`);
+  const handleAddWargaSubmit = async (newWarga: Warga) => {
+    const activeSession = IdentityAuthService.getActiveSession();
+    const sessionCtx: AuthoritativeSessionContext = {
+      sessionId: activeSession?.sessionId || `SES-${Date.now()}`,
+      userId: activeSession?.userId || 'PUBLIC_REGISTRATION',
+      role: activeSession?.role || currentRole || 'WARGA',
+      isValid: true,
+      namaLengkap: activeSession?.namaLengkap || 'Pendaftaran Warga Baru'
+    };
+
+    // 1. Authoritative Registration Orchestration via DataAccessLayer (SSoT -> Cache -> Auth -> Audit)
+    const result = await registerWargaSSoT(newWarga, sessionCtx);
+
+    if (!result.success) {
+      const errorMsg = result.error || 'Gagal menyimpan data warga ke Google Sheets SSoT.';
+      addToast('error', 'Gagal Simpan ke SSoT Google Sheets', errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // 2. Refresh React UI state from updated persistent cache
+    const updatedList = ResidentFamilyService.getWargaList();
+    setWargaList(updatedList);
+
+    // 3. Show Success Toast
+    addToast('success', 'Data Warga Tersimpan!', result.message || `Data Warga ${newWarga.nama_lengkap} berhasil tersimpan di Google Sheets SSoT.`);
   };
 
-  const handleAddKeluargaSubmit = (newKk: Keluarga) => {
-    setKeluargaList((prev) => [newKk, ...prev]);
-    addToast('success', 'Kartu Keluarga Tersimpan!', `KK an. ${newKk.nama_kepala_keluarga} berhasil terdaftar.`);
+  const handleAddKeluargaSubmit = async (newKk: Keluarga) => {
+    const activeSession = IdentityAuthService.getActiveSession();
+    const sessionCtx: AuthoritativeSessionContext = {
+      sessionId: activeSession?.sessionId || `SES-${Date.now()}`,
+      userId: activeSession?.userId || 'PUBLIC_REGISTRATION',
+      role: activeSession?.role || currentRole || 'WARGA',
+      isValid: true,
+      namaLengkap: activeSession?.namaLengkap || 'Pendaftaran Keluarga Baru'
+    };
+
+    // 1. Authoritative Registration Orchestration via DataAccessLayer (SSoT -> Cache -> Auth -> Audit)
+    const result = await registerKeluargaSSoT(newKk, sessionCtx);
+
+    if (!result.success) {
+      const errorMsg = result.error || 'Gagal menyimpan data Kartu Keluarga ke Google Sheets SSoT.';
+      addToast('error', 'Gagal Simpan ke SSoT Google Sheets', errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // 2. Refresh React UI state from updated persistent cache
+    const updatedKkList = ResidentFamilyService.getKeluargaList();
+    setKeluargaList(updatedKkList);
+
+    // 3. Show Success Toast
+    addToast('success', 'Kartu Keluarga Tersimpan!', result.message || `KK an. ${newKk.nama_kepala_keluarga} berhasil tersimpan di Google Sheets SSoT.`);
+  };
+
+  const handleVerifyWarga = async (wargaId: string, status: 'TERVERIFIKASI' | 'DITOLAK') => {
+    const activeSession = IdentityAuthService.getActiveSession();
+    const sessionCtx: AuthoritativeSessionContext = {
+      sessionId: activeSession?.sessionId || `SES-${Date.now()}`,
+      userId: activeSession?.userId || 'USR-KETUART',
+      role: activeSession?.role || currentRole || 'KETUA_RT',
+      isValid: true,
+      namaLengkap: activeSession?.namaLengkap || 'Ketua RT 07'
+    };
+
+    const res = await verifyWargaSSoT(wargaId, status, sessionCtx);
+    if (res.success) {
+      const updatedList = ResidentFamilyService.getWargaList();
+      setWargaList(updatedList);
+      addToast('success', 'Verifikasi Warga Berhasil', `Status verifikasi warga diubah menjadi ${status}. SSoT diperbarui.`);
+    } else {
+      addToast('error', 'Gagal Verifikasi Warga', res.error || 'Terjadi kesalahan saat memproses verifikasi.');
+    }
+  };
+
+  const handleVerifyKeluarga = async (keluargaId: string, status: 'TERVERIFIKASI' | 'DITOLAK') => {
+    const activeSession = IdentityAuthService.getActiveSession();
+    const sessionCtx: AuthoritativeSessionContext = {
+      sessionId: activeSession?.sessionId || `SES-${Date.now()}`,
+      userId: activeSession?.userId || 'USR-KETUART',
+      role: activeSession?.role || currentRole || 'KETUA_RT',
+      isValid: true,
+      namaLengkap: activeSession?.namaLengkap || 'Ketua RT 07'
+    };
+
+    const res = await verifyKeluargaSSoT(keluargaId, status, sessionCtx);
+    if (res.success) {
+      const updatedKkList = ResidentFamilyService.getKeluargaList();
+      setKeluargaList(updatedKkList);
+      addToast('success', 'Verifikasi Kartu Keluarga Berhasil', `Status verifikasi KK diubah menjadi ${status}. SSoT diperbarui.`);
+    } else {
+      addToast('error', 'Gagal Verifikasi KK', res.error || 'Terjadi kesalahan saat memproses verifikasi.');
+    }
   };
 
   const handleAddTrxSubmit = (newTrx: TransaksiKeuangan) => {
@@ -1220,15 +1309,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               {/* Search & Filter */}
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Cari berdasarkan nama, NIK, No. KK, blok rumah, nama pemilik, atau pekerjaan..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full text-xs pl-9 pr-4 py-2.5 rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
-                />
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari berdasarkan nama, NIK, No. KK, blok rumah, nama pemilik, atau pekerjaan..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full text-xs pl-9 pr-4 py-2.5 rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
+                  />
+                </div>
+                
+                {/* Verification Status Filter Tabs */}
+                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 text-[11px] font-bold shrink-0">
+                  <button
+                    onClick={() => setWargaVerificationFilter('ALL')}
+                    className={`px-3 py-1.5 rounded-xl transition-all ${
+                      wargaVerificationFilter === 'ALL' ? 'bg-[#123B5D] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Semua ({wargaList.length})
+                  </button>
+                  <button
+                    onClick={() => setWargaVerificationFilter('MENUNGGU')}
+                    className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
+                      wargaVerificationFilter === 'MENUNGGU' ? 'bg-amber-500 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-100'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    Menunggu ({wargaList.filter(w => w.statusVerifikasi === 'MENUNGGU_VERIFIKASI').length})
+                  </button>
+                  <button
+                    onClick={() => setWargaVerificationFilter('TERVERIFIKASI')}
+                    className={`px-3 py-1.5 rounded-xl transition-all ${
+                      wargaVerificationFilter === 'TERVERIFIKASI' ? 'bg-[#2E7D52] text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-100'
+                    }`}
+                  >
+                    Terverifikasi ({wargaList.filter(w => !w.statusVerifikasi || w.statusVerifikasi === 'TERVERIFIKASI').length})
+                  </button>
+                  <button
+                    onClick={() => setWargaVerificationFilter('DITOLAK')}
+                    className={`px-3 py-1.5 rounded-xl transition-all ${
+                      wargaVerificationFilter === 'DITOLAK' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-100'
+                    }`}
+                  >
+                    Ditolak ({wargaList.filter(w => w.statusVerifikasi === 'DITOLAK').length})
+                  </button>
+                </div>
               </div>
 
               {/* Warga Table */}
@@ -1242,20 +1370,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <th className="p-3">Blok Rumah</th>
                       <th className="p-3">Kontak & Pekerjaan</th>
                       <th className="p-3">Status Domisili</th>
-                      <th className="p-3">Data Pemilik Rumah</th>
+                      <th className="p-3">Status Verifikasi</th>
+                      <th className="p-3 text-center">Aksi Verifikasi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {wargaList
-                      .filter((w) =>
-                        w.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        w.blok.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        w.nik.includes(searchTerm) ||
-                        w.no_kk.includes(searchTerm) ||
-                        (w.namaPemilikRumah && w.namaPemilikRumah.toLowerCase().includes(searchTerm.toLowerCase()))
-                      )
+                      .filter((w) => {
+                        const matchesSearch =
+                          w.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          w.blok.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          w.nik.includes(searchTerm) ||
+                          w.no_kk.includes(searchTerm) ||
+                          (w.namaPemilikRumah && w.namaPemilikRumah.toLowerCase().includes(searchTerm.toLowerCase()));
+                        
+                        if (!matchesSearch) return false;
+
+                        if (wargaVerificationFilter === 'MENUNGGU') return w.statusVerifikasi === 'MENUNGGU_VERIFIKASI';
+                        if (wargaVerificationFilter === 'TERVERIFIKASI') return !w.statusVerifikasi || w.statusVerifikasi === 'TERVERIFIKASI';
+                        if (wargaVerificationFilter === 'DITOLAK') return w.statusVerifikasi === 'DITOLAK';
+                        return true;
+                      })
                       .map((w) => {
                         const statusBadge = w.statusWarga || (w.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : w.status_warga === 'Kos' ? 'KOS' : 'TETAP');
+                        const isVerified = !w.statusVerifikasi || w.statusVerifikasi === 'TERVERIFIKASI';
+                        const isPending = w.statusVerifikasi === 'MENUNGGU_VERIFIKASI';
+                        const isRejected = w.statusVerifikasi === 'DITOLAK';
+
                         return (
                           <tr key={w.id_warga} className="hover:bg-slate-50 transition-colors">
                             <td className="p-3 font-mono text-slate-500 font-bold">{w.id_warga}</td>
@@ -1286,15 +1427,49 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               </span>
                             </td>
                             <td className="p-3">
-                              {statusBadge === 'TETAP' ? (
-                                <span className="text-slate-400 text-[10px] italic">Pemilik Langsung</span>
-                              ) : w.namaPemilikRumah ? (
-                                <div className="text-[10px]">
-                                  <span className="font-bold text-slate-800 block">{w.namaPemilikRumah}</span>
-                                  <span className="font-mono text-slate-500 block">{w.teleponPemilikRumah}</span>
+                              {isPending ? (
+                                <span className="bg-amber-50 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1 w-fit">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                  Menunggu
+                                </span>
+                              ) : isRejected ? (
+                                <span className="bg-rose-50 text-rose-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-rose-300 w-fit block">
+                                  Ditolak
+                                </span>
+                              ) : (
+                                <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-300 flex items-center gap-1 w-fit">
+                                  <CheckCircle2 className="w-3 h-3 text-[#2E7D52]" />
+                                  Terverifikasi
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-center">
+                              {['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(currentRole) ? (
+                                <div className="flex items-center justify-center gap-1.5">
+                                  {!isVerified && (
+                                    <button
+                                      onClick={() => handleVerifyWarga(w.id_warga, 'TERVERIFIKASI')}
+                                      title="Setujui dan Verifikasi Data Warga"
+                                      className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors flex items-center gap-1 text-[10px] font-bold px-2"
+                                    >
+                                      <Check className="w-3 h-3" /> Verifikasi
+                                    </button>
+                                  )}
+                                  {!isRejected && (
+                                    <button
+                                      onClick={() => handleVerifyWarga(w.id_warga, 'DITOLAK')}
+                                      title="Tolak Verifikasi Data Warga"
+                                      className="p-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-xs transition-colors flex items-center gap-1 text-[10px] font-bold px-2"
+                                    >
+                                      <X className="w-3 h-3" /> Tolak
+                                    </button>
+                                  )}
+                                  {isVerified && (
+                                    <span className="text-[10px] text-slate-400 font-medium italic">Selesai</span>
+                                  )}
                                 </div>
                               ) : (
-                                <span className="text-amber-600 text-[10px] font-bold">Belum Tercatat</span>
+                                <span className="text-[10px] text-slate-400 italic">Hanya Pengurus</span>
                               )}
                             </td>
                           </tr>
@@ -1325,16 +1500,79 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
 
+              {/* KK Verification Status Filter */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-2xl border border-slate-200 text-[11px] font-bold w-fit">
+                <button
+                  onClick={() => setKkVerificationFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                    kkVerificationFilter === 'ALL' ? 'bg-[#123B5D] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Semua ({keluargaList.length})
+                </button>
+                <button
+                  onClick={() => setKkVerificationFilter('MENUNGGU')}
+                  className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 ${
+                    kkVerificationFilter === 'MENUNGGU' ? 'bg-amber-500 text-white shadow-xs' : 'text-amber-700 hover:bg-amber-100'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  Menunggu ({keluargaList.filter(k => k.statusVerifikasi === 'MENUNGGU_VERIFIKASI').length})
+                </button>
+                <button
+                  onClick={() => setKkVerificationFilter('TERVERIFIKASI')}
+                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                    kkVerificationFilter === 'TERVERIFIKASI' ? 'bg-[#2E7D52] text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-100'
+                  }`}
+                >
+                  Terverifikasi ({keluargaList.filter(k => !k.statusVerifikasi || k.statusVerifikasi === 'TERVERIFIKASI').length})
+                </button>
+                <button
+                  onClick={() => setKkVerificationFilter('DITOLAK')}
+                  className={`px-3 py-1.5 rounded-xl transition-all ${
+                    kkVerificationFilter === 'DITOLAK' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-100'
+                  }`}
+                >
+                  Ditolak ({keluargaList.filter(k => k.statusVerifikasi === 'DITOLAK').length})
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {keluargaList.map((k) => {
+                {keluargaList
+                  .filter((k) => {
+                    if (kkVerificationFilter === 'MENUNGGU') return k.statusVerifikasi === 'MENUNGGU_VERIFIKASI';
+                    if (kkVerificationFilter === 'TERVERIFIKASI') return !k.statusVerifikasi || k.statusVerifikasi === 'TERVERIFIKASI';
+                    if (kkVerificationFilter === 'DITOLAK') return k.statusVerifikasi === 'DITOLAK';
+                    return true;
+                  })
+                  .map((k) => {
                   const members = wargaList.filter(
                     (w) => w.keluargaId === (k.keluargaId || k.id_kk) || w.no_kk === k.no_kk || w.nomorKK === k.no_kk
                   );
+                  const isKkVerified = !k.statusVerifikasi || k.statusVerifikasi === 'TERVERIFIKASI';
+                  const isKkPending = k.statusVerifikasi === 'MENUNGGU_VERIFIKASI';
+                  const isKkRejected = k.statusVerifikasi === 'DITOLAK';
+
                   return (
                     <div key={k.id_kk} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm hover:border-[#123B5D]/30 transition-all">
                       <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                         <div>
-                          <h4 className="font-bold text-sm text-[#123B5D]">{k.nama_kepala_keluarga}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-sm text-[#123B5D]">{k.nama_kepala_keluarga}</h4>
+                            {isKkPending ? (
+                              <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                                Menunggu Verifikasi
+                              </span>
+                            ) : isKkRejected ? (
+                              <span className="bg-rose-100 text-rose-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-rose-300">
+                                Ditolak
+                              </span>
+                            ) : (
+                              <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                                Terverifikasi
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-500 font-mono">KK ID: {k.id_kk}</span>
                         </div>
                         <span className="bg-[#123B5D] text-white text-[10px] font-bold px-3 py-1 rounded-full">
@@ -1379,6 +1617,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <span className="text-[8px] text-slate-400 font-mono">({m.hubunganKeluarga?.slice(0, 4) || 'WRG'})</span>
                               </span>
                             ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Verification Actions for Pengurus */}
+                      {['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(currentRole) && (
+                        <div className="pt-2.5 border-t border-slate-200 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-500">Verifikasi Pengurus:</span>
+                          <div className="flex gap-1.5">
+                            {!isKkVerified && (
+                              <button
+                                onClick={() => handleVerifyKeluarga(k.id_kk, 'TERVERIFIKASI')}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs"
+                              >
+                                <Check className="w-3 h-3" /> Setujui
+                              </button>
+                            )}
+                            {!isKkRejected && (
+                              <button
+                                onClick={() => handleVerifyKeluarga(k.id_kk, 'DITOLAK')}
+                                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs"
+                              >
+                                <X className="w-3 h-3" /> Tolak
+                              </button>
+                            )}
+                            {isKkVerified && (
+                              <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-[#2E7D52]" /> Terverifikasi
+                              </span>
+                            )}
                           </div>
                         </div>
                       )}
