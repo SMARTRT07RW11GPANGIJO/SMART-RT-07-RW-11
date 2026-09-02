@@ -246,7 +246,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">Hubungan dalam Keluarga</label>
                 <select
                   value={formData.hubunganKeluarga || 'KEPALA_KELUARGA'}
-                  onChange={(e) => setFormData({ ...formData, hubunganKeluarga: e.target.value as HubunganKeluarga })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, hubunganKeluarga: e.target.value as HubunganKeluarga }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 >
                   <option value="KEPALA_KELUARGA">Kepala Keluarga</option>
@@ -299,7 +299,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                     required={isNonTetap}
                     placeholder="misal: Bapak H. Sudarsono"
                     value={formData.namaPemilikRumah || ''}
-                    onChange={(e) => setFormData({ ...formData, namaPemilikRumah: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, namaPemilikRumah: e.target.value }))}
                     className="w-full p-2.5 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600"
                   />
                 </div>
@@ -311,7 +311,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                     required={isNonTetap}
                     placeholder="misal: 081299887766"
                     value={formData.teleponPemilikRumah || ''}
-                    onChange={(e) => setFormData({ ...formData, teleponPemilikRumah: e.target.value })}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, teleponPemilikRumah: e.target.value }))}
                     className="w-full p-2.5 rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600 font-mono"
                   />
                 </div>
@@ -334,7 +334,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   required
                   placeholder="misal: Ir. Budi Santoso, S.T."
                   value={formData.nama_lengkap}
-                  onChange={(e) => setFormData({ ...formData, nama_lengkap: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nama_lengkap: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -347,7 +347,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   maxLength={16}
                   placeholder="350712xxxxxxxxxx"
                   value={formData.nik}
-                  onChange={(e) => setFormData({ ...formData, nik: e.target.value.replace(/\D/g, '') })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nik: e.target.value.replace(/\D/g, '') }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -359,7 +359,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   maxLength={16}
                   placeholder="350712xxxxxxxxxx"
                   value={formData.no_kk}
-                  onChange={(e) => setFormData({ ...formData, no_kk: e.target.value.replace(/\D/g, ''), nomorKK: e.target.value.replace(/\D/g, '') })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, no_kk: e.target.value.replace(/\D/g, ''), nomorKK: e.target.value.replace(/\D/g, '') }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -371,7 +371,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   required
                   placeholder="misal: Blok C-09"
                   value={formData.blok}
-                  onChange={(e) => setFormData({ ...formData, blok: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, blok: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -382,7 +382,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   type="text"
                   placeholder="misal: Malang"
                   value={formData.tempat_lahir}
-                  onChange={(e) => setFormData({ ...formData, tempat_lahir: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tempat_lahir: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -392,7 +392,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                 <input
                   type="date"
                   value={formData.tanggal_lahir}
-                  onChange={(e) => setFormData({ ...formData, tanggal_lahir: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tanggal_lahir: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -401,7 +401,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">Jenis Kelamin</label>
                 <select
                   value={formData.jenis_kelamin}
-                  onChange={(e) => setFormData({ ...formData, jenis_kelamin: e.target.value as any })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, jenis_kelamin: e.target.value as any }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 >
                   <option value="Laki-Laki">Laki-Laki</option>
@@ -413,7 +413,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">Status Perkawinan</label>
                 <select
                   value={formData.status_perkawinan}
-                  onChange={(e) => setFormData({ ...formData, status_perkawinan: e.target.value as any })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, status_perkawinan: e.target.value as any }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 >
                   <option value="Kawin">Kawin</option>
@@ -427,7 +427,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                 <label className="block font-bold text-slate-700 mb-1">Agama</label>
                 <select
                   value={formData.agama}
-                  onChange={(e) => setFormData({ ...formData, agama: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, agama: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 >
                   <option value="Islam">Islam</option>
@@ -445,7 +445,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   type="text"
                   placeholder="Wiraswasta / Pegawai Swasta / PNS"
                   value={formData.pekerjaan}
-                  onChange={(e) => setFormData({ ...formData, pekerjaan: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, pekerjaan: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -456,7 +456,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   type="text"
                   placeholder="081234567890"
                   value={formData.no_hp}
-                  onChange={(e) => setFormData({ ...formData, no_hp: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, no_hp: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>
@@ -467,7 +467,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   type="email"
                   placeholder="nama@email.com"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                   className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
                 />
               </div>

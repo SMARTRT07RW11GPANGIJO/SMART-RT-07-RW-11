@@ -735,7 +735,7 @@ function doPost(e) {
       });
     }
 
-    // P0 PATCH #002: saveWarga Action Router
+    // P0 PATCH #002: saveWarga Action Router (Self-Contained / Zero-Dependency)
     if (action === "saveWarga") {
       try {
         if (!payload || typeof payload !== "object") {
@@ -747,31 +747,83 @@ function doPost(e) {
           });
         }
 
-        var result = appendSheetRow("WARGA", payload);
+        // 1. Cari Spreadsheet (Active Spreadsheet atau via ScriptProperties)
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        if (!ss) {
+          var props = PropertiesService.getScriptProperties();
+          var ssId = props.getProperty("SPREADSHEET_ID") || props.getProperty("DATABASE_ID");
+          if (ssId) {
+            ss = SpreadsheetApp.openById(ssId);
+          }
+        }
 
-        try {
-          writeAuditLog({
-            action: "CREATE",
-            module: "WARGA",
-            userId: payload.user || "SYSTEM",
-            correlationId: payload.correlationId || "",
-            details: "saveWarga: " + (payload.nama_lengkap || "SUCCESS")
+        if (!ss) {
+          return jsonResponse({
+            success: false,
+            message: "Spreadsheet database tidak ditemukan atau belum terhubung.",
+            data: null,
+            errorCode: "SPREADSHEET_NOT_FOUND"
           });
+        }
+
+        // 2. Cari Sheet bernama persis 'WARGA'
+        var sheetWarga = ss.getSheetByName("WARGA");
+        if (!sheetWarga) {
+          return jsonResponse({
+            success: false,
+            message: "Tab Sheet WARGA tidak ditemukan pada spreadsheet.",
+            data: null,
+            errorCode: "SHEET_NOT_FOUND"
+          });
+        }
+
+        // 3. Ambil header kolom dari baris ke-1
+        var lastCol = sheetWarga.getLastColumn() || 1;
+        var headers = sheetWarga.getRange(1, 1, 1, lastCol).getValues()[0];
+
+        // 4. Petakan payload ke baris baru berdasarkan nama header kolom
+        var row = headers.map(function(h) {
+          return (payload[h] !== undefined && payload[h] !== null) ? payload[h] : "";
+        });
+        sheetWarga.appendRow(row);
+
+        // 5. Pencatatan AUDIT_LOG opsional (Hanya jika Sheet AUDIT_LOG memang ada)
+        try {
+          var sheetAudit = ss.getSheetByName("AUDIT_LOG");
+          if (sheetAudit) {
+            var now = Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss");
+            var auditRow = [
+              "LOG-" + new Date().getTime(),
+              now,
+              payload.user || "SYSTEM",
+              payload.nama_lengkap || "Warga",
+              "WARGA",
+              "CREATE",
+              "WARGA",
+              "RECORD",
+              payload.id_warga || "-",
+              "SUCCESS",
+              "INFO",
+              "Registrasi warga: " + (payload.nama_lengkap || ""),
+              payload.correlationId || ""
+            ];
+            sheetAudit.appendRow(auditRow);
+          }
         } catch (auditErr) {
-          console.warn("Audit log gagal dicatat:", auditErr);
+          console.warn("Audit log gagal dicatat (non-fatal):", auditErr);
         }
 
         return jsonResponse({
           success: true,
           message: "Data warga berhasil disimpan.",
-          data: result || { status: true },
+          data: { status: true, id_warga: payload.id_warga || "" },
           errorCode: null
         });
 
       } catch (err) {
         return jsonResponse({
           success: false,
-          message: "Gagal menyimpan data warga.",
+          message: "Gagal menyimpan data warga: " + (err && err.message ? err.message : "Error tidak diketahui"),
           data: null,
           errorCode: "SAVE_WARGA_FAILED"
         });
