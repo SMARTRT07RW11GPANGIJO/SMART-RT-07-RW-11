@@ -524,7 +524,26 @@ export async function registerWargaSSoT(
 
   try {
     const payload = {
-      ...warga,
+      ID_WARGA: warga.id_warga,
+      NIK: warga.nik,
+      NO_KK: warga.no_kk,
+      NAMA_LENGKAP: warga.nama_lengkap,
+      NAMA_PANGGILAN: warga.nama_panggilan,
+      JENIS_KELAMIN: warga.jenis_kelamin,
+      TEMPAT_LAHIR: warga.tempat_lahir,
+      TANGGAL_LAHIR: warga.tanggal_lahir,
+      AGAMA: warga.agama,
+      STATUS_PERKAWINAN: warga.status_perkawinan,
+      PENDIDIKAN: warga.pendidikan,
+      PEKERJAAN: warga.pekerjaan,
+      NO_HP: warga.no_hp,
+      EMAIL: warga.email,
+      ALAMAT: warga.alamat,
+      BLOK: warga.blok,
+      STATUS_TINGGAL: warga.status_tinggal,
+      STATUS_WARGA: warga.status_warga,
+      TANGGAL_MASUK: warga.tanggal_masuk,
+      KETERANGAN: warga.keterangan,
       correlationId,
       user: userId
     };
