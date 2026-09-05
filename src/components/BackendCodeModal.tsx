@@ -783,7 +783,11 @@ function doPost(e) {
 
         // 4. Petakan payload ke baris baru berdasarkan nama header kolom
         var row = headers.map(function(h) {
-          return (payload[h] !== undefined && payload[h] !== null) ? payload[h] : "";
+          var val = (payload[h] !== undefined && payload[h] !== null) ? payload[h] : "";
+          if ((h === "NO_HP" || h === "no_hp") && val !== "") {
+            return "'" + val;
+          }
+          return val;
         });
         sheetWarga.appendRow(row);
 
