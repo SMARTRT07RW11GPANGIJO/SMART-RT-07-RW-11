@@ -397,7 +397,7 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                 />
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label className="block font-bold text-slate-700 mb-1">Jenis Kelamin</label>
                 <select
                   value={formData.jenis_kelamin}
@@ -436,6 +436,31 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
                   <option value="Hindu">Hindu</option>
                   <option value="Buddha">Buddha</option>
                   <option value="Konghucu">Konghucu</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Pendidikan *</label>
+                <select
+                  value={formData.pendidikan}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pendidikan: e.target.value
+                    }))
+                  }
+                  className="w-full p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#123B5D]"
+                >
+                  <option value="SD">SD</option>
+                  <option value="SMP">SMP</option>
+                  <option value="SMA/SMK">SMA/SMK</option>
+                  <option value="D1">D1</option>
+                  <option value="D2">D2</option>
+                  <option value="D3">D3</option>
+                  <option value="D4">D4</option>
+                  <option value="S1">S1</option>
+                  <option value="S2">S2</option>
+                  <option value="S3">S3</option>
                 </select>
               </div>
 
