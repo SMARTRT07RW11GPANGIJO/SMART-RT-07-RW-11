@@ -44,7 +44,9 @@ function saveWarga(data) {
     sanitizeInput(data.STATUS_TINGGAL || ''),
     sanitizeInput(data.STATUS_WARGA || ''),
     sanitizeInput(data.TANGGAL_MASUK || ''),
-    sanitizeInput(data.KETERANGAN || '')
+    sanitizeInput(data.KETERANGAN || ''),
+    sanitizeInput(data.NAMA_PEMILIK_RUMAH || ''),
+    "'" + sanitizeInput(data.TELEPON_PEMILIK_RUMAH || '')
   ];
 
   sheet.appendRow(rowData);

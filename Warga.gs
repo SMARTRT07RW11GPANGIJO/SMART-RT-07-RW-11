@@ -4,7 +4,12 @@
  * Service Data Warga & Keluarga
  */
 
-function saveWarga(rowData) {
+function sanitizeInput(val) {
+  if (val === undefined || val === null) return "";
+  return String(val).trim();
+}
+
+function saveWarga(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) {
     var props = PropertiesService.getScriptProperties();
@@ -19,29 +24,30 @@ function saveWarga(rowData) {
     throw new Error("Sheet WARGA tidak ditemukan.");
   }
 
-  // Minimal patch: Pastikan nilai NO_HP disimpan sebagai teks di Google Sheets
-  // agar leading zero (e.g. 081234567890) tidak hilang akibat automatic type inference.
-  if (Array.isArray(rowData)) {
-    // Header sheet WARGA: no_hp berada di kolom ke-12 (indeks 11)
-    if (rowData[11] !== undefined && rowData[11] !== null && rowData[11] !== "") {
-      var hpVal = String(rowData[11]);
-      if (hpVal.charAt(0) !== "'") {
-        rowData[11] = "'" + hpVal;
-      }
-    }
-  } else if (rowData && typeof rowData === "object") {
-    if (rowData.NO_HP !== undefined && rowData.NO_HP !== null && rowData.NO_HP !== "") {
-      var hpVal = String(rowData.NO_HP);
-      if (hpVal.charAt(0) !== "'") {
-        rowData.NO_HP = "'" + hpVal;
-      }
-    } else if (rowData.no_hp !== undefined && rowData.no_hp !== null && rowData.no_hp !== "") {
-      var hpVal = String(rowData.no_hp);
-      if (hpVal.charAt(0) !== "'") {
-        rowData.no_hp = "'" + hpVal;
-      }
-    }
-  }
+  var rowData = [
+    sanitizeInput(data.ID_WARGA || ''),
+    sanitizeInput(data.NIK || ''),
+    sanitizeInput(data.NO_KK || ''),
+    sanitizeInput(data.NAMA_LENGKAP || ''),
+    sanitizeInput(data.NAMA_PANGGILAN || ''),
+    sanitizeInput(data.JENIS_KELAMIN || ''),
+    sanitizeInput(data.TEMPAT_LAHIR || ''),
+    sanitizeInput(data.TANGGAL_LAHIR || ''),
+    sanitizeInput(data.AGAMA || ''),
+    sanitizeInput(data.STATUS_PERKAWINAN || ''),
+    sanitizeInput(data.PENDIDIKAN || ''),
+    sanitizeInput(data.PEKERJAAN || ''),
+    "'" + sanitizeInput(data.NO_HP || ''),
+    sanitizeInput(data.EMAIL || ''),
+    sanitizeInput(data.ALAMAT || ''),
+    sanitizeInput(data.BLOK || ''),
+    sanitizeInput(data.STATUS_TINGGAL || ''),
+    sanitizeInput(data.STATUS_WARGA || ''),
+    sanitizeInput(data.TANGGAL_MASUK || ''),
+    sanitizeInput(data.KETERANGAN || ''),
+    sanitizeInput(data.NAMA_PEMILIK_RUMAH || ''),
+    "'" + sanitizeInput(data.TELEPON_PEMILIK_RUMAH || '')
+  ];
 
   sheet.appendRow(rowData);
 

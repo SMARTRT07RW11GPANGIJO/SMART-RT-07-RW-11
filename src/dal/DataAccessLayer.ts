@@ -544,6 +544,8 @@ export async function registerWargaSSoT(
       STATUS_WARGA: warga.status_warga,
       TANGGAL_MASUK: warga.tanggal_masuk,
       KETERANGAN: warga.keterangan,
+      NAMA_PEMILIK_RUMAH: warga.namaPemilikRumah,
+      TELEPON_PEMILIK_RUMAH: warga.teleponPemilikRumah,
       correlationId,
       user: userId
     };
