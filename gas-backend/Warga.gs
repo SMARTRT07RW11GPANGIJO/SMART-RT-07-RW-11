@@ -45,8 +45,13 @@ function saveWarga(data) {
     sanitizeInput(data.STATUS_WARGA || ''),
     sanitizeInput(data.TANGGAL_MASUK || ''),
     sanitizeInput(data.KETERANGAN || ''),
+    // Kolom 21 - DATA CONTRACT v1.1
     sanitizeInput(data.NAMA_PEMILIK_RUMAH || ''),
-    "'" + sanitizeInput(data.TELEPON_PEMILIK_RUMAH || '')
+    // Kolom 22 - DATA CONTRACT v1.1
+    // Text qualifier untuk mempertahankan leading zero 08...
+    "'" + sanitizeInput(data.TELEPON_PEMILIK_RUMAH || ''),
+    // Kolom 23 - HUBUNGAN_KELUARGA
+    sanitizeInput(data.HUBUNGAN_KELUARGA || '')
   ];
 
   sheet.appendRow(rowData);
