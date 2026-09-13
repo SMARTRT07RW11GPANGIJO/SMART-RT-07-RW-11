@@ -160,6 +160,7 @@ export class ResidentFamilyService {
       const target = filter.statusWarga;
       result = result.filter((w) => {
         if (w.statusWarga && w.statusWarga === target) return true;
+        if (w.status_tinggal && w.status_tinggal.toUpperCase() === target) return true;
         if (target === 'TETAP' && w.status_warga === 'Tetap') return true;
         if (target === 'KONTRAK_SEWA' && w.status_warga === 'Kontrak') return true;
         if (target === 'KOS' && w.status_warga === 'Kos') return true;
@@ -233,7 +234,7 @@ export class ResidentFamilyService {
       return { valid: false, error: 'Blok rumah wajib diisi.' };
     }
 
-    const status = warga.statusWarga || (warga.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : warga.status_warga === 'Kos' ? 'KOS' : 'TETAP');
+    const status = warga.statusWarga || (warga.status_tinggal === 'KONTRAK_SEWA' ? 'KONTRAK_SEWA' : warga.status_tinggal === 'KOS' ? 'KOS' : warga.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : warga.status_warga === 'Kos' ? 'KOS' : 'TETAP');
 
     // CONDITIONAL VALIDATION: KONTRAK_SEWA & KOS require owner details
     if (status === 'KONTRAK_SEWA' || status === 'KOS') {
@@ -284,14 +285,17 @@ export class ResidentFamilyService {
       return { success: false, error: `NIK ${wargaData.nik} sudah terdaftar atas nama ${existingNik.nama_lengkap}.` };
     }
 
-    // Normalize statusWarga
+    // Normalize statusWarga & status_tinggal
     const statusEnum: StatusWarga = wargaData.statusWarga
       ? wargaData.statusWarga
-      : wargaData.status_warga === 'Kontrak'
+      : wargaData.status_tinggal === 'KONTRAK_SEWA' || wargaData.status_warga === 'Kontrak'
       ? 'KONTRAK_SEWA'
-      : wargaData.status_warga === 'Kos'
+      : wargaData.status_tinggal === 'KOS' || wargaData.status_warga === 'Kos'
       ? 'KOS'
       : 'TETAP';
+
+    const domisiliStatus = wargaData.status_tinggal || statusEnum;
+    const populasiStatus = (wargaData.status_warga as any) === 'TIDAK_AKTIF' ? 'TIDAK_AKTIF' : 'AKTIF';
 
     // Auto-link to existing Keluarga or create new family reference
     let targetKeluargaId = wargaData.keluargaId;
@@ -312,7 +316,8 @@ export class ResidentFamilyService {
       no_kk: kkNum || '',
       keluargaId: targetKeluargaId,
       statusWarga: statusEnum,
-      status_warga: statusEnum === 'KONTRAK_SEWA' ? 'Kontrak' : statusEnum === 'KOS' ? 'Kos' : 'Tetap',
+      status_tinggal: domisiliStatus,
+      status_warga: populasiStatus as any,
       hubunganKeluarga: wargaData.hubunganKeluarga || 'KEPALA_KELUARGA',
       namaPemilikRumah: statusEnum === 'TETAP' ? undefined : wargaData.namaPemilikRumah,
       teleponPemilikRumah: statusEnum === 'TETAP' ? undefined : wargaData.teleponPemilikRumah,

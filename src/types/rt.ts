@@ -76,6 +76,8 @@ export interface Warga {
   blok: string;
   rt: string;
   rw: string;
+  nama_panggilan?: string;
+  status_tinggal?: string;
   status_warga: 'Tetap' | 'Kontrak' | 'Kos'; // Backward compatibility
   statusWarga?: StatusWarga; // v1.1 Enum standard
   hubunganKeluarga?: HubunganKeluarga;

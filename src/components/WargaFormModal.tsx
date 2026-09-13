@@ -35,7 +35,8 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
     blok: 'Blok C-01',
     rt: '07',
     rw: '11',
-    status_warga: 'Tetap',
+    status_tinggal: 'TETAP',
+    status_warga: 'AKTIF' as any,
     statusWarga: 'TETAP',
     hubunganKeluarga: 'KEPALA_KELUARGA',
     namaPemilikRumah: '',
@@ -50,14 +51,15 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentStatusWarga: StatusWarga = formData.statusWarga || (formData.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : formData.status_warga === 'Kos' ? 'KOS' : 'TETAP');
+  const currentStatusWarga: StatusWarga = formData.statusWarga || (formData.status_tinggal === 'KONTRAK_SEWA' || formData.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : formData.status_tinggal === 'KOS' || formData.status_warga === 'Kos' ? 'KOS' : 'TETAP');
   const isNonTetap = currentStatusWarga === 'KONTRAK_SEWA' || currentStatusWarga === 'KOS';
 
   const handleStatusChange = (status: StatusWarga) => {
     setFormData((prev) => ({
       ...prev,
       statusWarga: status,
-      status_warga: status === 'KONTRAK_SEWA' ? 'Kontrak' : status === 'KOS' ? 'Kos' : 'Tetap',
+      status_tinggal: status,
+      status_warga: 'AKTIF' as any,
       hubunganKeluarga: status === 'KONTRAK_SEWA' ? 'PENYEWA' : status === 'KOS' ? 'PENGHUNI_KOS' : prev.hubunganKeluarga
     }));
     setValidationError(null);
@@ -117,7 +119,8 @@ export const WargaFormModal: React.FC<WargaFormModalProps> = ({
         id_warga: newWargaId,
         wargaId: newWargaId,
         statusWarga: currentStatusWarga,
-        status_warga: currentStatusWarga === 'KONTRAK_SEWA' ? 'Kontrak' : currentStatusWarga === 'KOS' ? 'Kos' : 'Tetap',
+        status_tinggal: currentStatusWarga,
+        status_warga: 'AKTIF' as any,
         // Safe cleanup: if TETAP, remove owner fields
         namaPemilikRumah: isNonTetap ? formData.namaPemilikRumah : undefined,
         teleponPemilikRumah: isNonTetap ? formData.teleponPemilikRumah : undefined,

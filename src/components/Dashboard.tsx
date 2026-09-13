@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   UserRole, 
   Warga, 
@@ -90,6 +90,14 @@ import { IdentityAuthService } from '../services/identityAuthService';
 import { ResidentFamilyService } from '../services/residentFamilyService';
 import { registerWargaSSoT, registerKeluargaSSoT, verifyWargaSSoT, verifyKeluargaSSoT } from '../dal/DataAccessLayer';
 import { writeAuditLog, AUDIT_EVENTS, generateCorrelationId } from '../services/auditLogService';
+import { calculateDashboardData } from '../dashboard/calculationEngine';
+import {
+  DashboardCalculationResult,
+  DashboardFilterState,
+  DEFAULT_DASHBOARD_FILTER_STATE,
+} from '../dashboard/calculationTypes';
+import { OFFICIAL_FILTER_OPTIONS, normalizeBlok } from '../dashboard/filters';
+import { OfficialMetricsView } from './dashboard/OfficialMetricsView';
 
 interface DashboardProps {
   currentRole: UserRole;
@@ -179,6 +187,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [wargaVerificationFilter, setWargaVerificationFilter] = useState<'ALL' | 'MENUNGGU' | 'TERVERIFIKASI' | 'DITOLAK'>('ALL');
   const [kkVerificationFilter, setKkVerificationFilter] = useState<'ALL' | 'MENUNGGU' | 'TERVERIFIKASI' | 'DITOLAK'>('ALL');
 
+  // Gate 3.16 Calculation Engine Integration State
+  const [dashboardFilterState, setDashboardFilterState] = useState<DashboardFilterState>(DEFAULT_DASHBOARD_FILTER_STATE);
+
+  // Derived calculation result through pure memoization (Safe Integration Bridge)
+  const dashboardCalculationResult: DashboardCalculationResult = useMemo(() => {
+    return calculateDashboardData(wargaList, dashboardFilterState);
+  }, [wargaList, dashboardFilterState]);
+
+  // Dynamic blok options derived from official list and existing data
+  const blokOptions = useMemo(() => {
+    const base = [...OFFICIAL_FILTER_OPTIONS.blok];
+    const existingBlokSet = new Set(base.map((o) => o.value));
+    wargaList.forEach((w) => {
+      const nb = normalizeBlok(w.blok);
+      if (nb && !existingBlokSet.has(nb)) {
+        existingBlokSet.add(nb);
+        base.push({ value: nb, label: `Blok ${nb}` });
+      }
+    });
+    return base;
+  }, [wargaList]);
+
+  const filterOptionsMap: Record<keyof DashboardFilterState, { value: string; label: string }[]> = {
+    blok: blokOptions,
+    statusDomisili: OFFICIAL_FILTER_OPTIONS.statusDomisili,
+    jenisKelamin: OFFICIAL_FILTER_OPTIONS.jenisKelamin,
+    kelompokUsia: OFFICIAL_FILTER_OPTIONS.kelompokUsia,
+    pendidikan: OFFICIAL_FILTER_OPTIONS.pendidikan,
+    pekerjaan: OFFICIAL_FILTER_OPTIONS.pekerjaan,
+    statusPerkawinan: OFFICIAL_FILTER_OPTIONS.statusPerkawinan,
+  };
+
   // Calculations
   const totalPemasukan = transaksiList.filter((t) => t.jenis === 'Pemasukan').reduce((a, b) => a + b.pemasukan, 0);
   const totalPengeluaran = transaksiList.filter((t) => t.jenis === 'Pengeluaran').reduce((a, b) => a + b.pengeluaran, 0);
@@ -194,11 +234,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
     { bulan: 'Agustus', Pemasukan: totalPemasukan, Pengeluaran: totalPengeluaran }
   ];
 
-  const pieStatusWarga = [
-    { name: 'Tetap', value: wargaList.filter(w => w.status_warga === 'Tetap').length },
-    { name: 'Kontrak', value: wargaList.filter(w => w.status_warga === 'Kontrak').length },
-    { name: 'Kos', value: wargaList.filter(w => w.status_warga === 'Kos').length }
-  ];
+  // Official Domisili pie chart derived from Calculation Engine SSoT (STATUS_TINGGAL)
+  const pieStatusDomisili = useMemo(() => {
+    if (dashboardCalculationResult.status === 'success') {
+      const { TETAP, KONTRAK_SEWA, KOS } = dashboardCalculationResult.data.domisili.categories;
+      return [
+        { name: 'Tetap', value: TETAP.count, percentage: TETAP.formattedPercentage },
+        { name: 'Kontrak / Sewa', value: KONTRAK_SEWA.count, percentage: KONTRAK_SEWA.formattedPercentage },
+        { name: 'Kos', value: KOS.count, percentage: KOS.formattedPercentage }
+      ];
+    }
+    return [
+      { name: 'Tetap', value: 0, percentage: '— / Tidak tersedia' },
+      { name: 'Kontrak / Sewa', value: 0, percentage: '— / Tidak tersedia' },
+      { name: 'Kos', value: 0, percentage: '— / Tidak tersedia' }
+    ];
+  }, [dashboardCalculationResult]);
+
+  const pieStatusWarga = pieStatusDomisili;
 
   const COLORS_PIE = ['#2E7D52', '#D4A72C', '#C62828'];
 
@@ -1012,24 +1065,188 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </span>
               </div>
 
+              {/* Gate 3.16: Calculation Engine Integration Bridge (Controlled Foundation) */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-[#123B5D]" />
+                    <div>
+                      <h4 className="font-bold text-sm text-[#123B5D]">SSoT Calculation Engine (Gate 3.16 Foundation)</h4>
+                      <p className="text-[11px] text-slate-500">Pipeline Terkunci: Validate → Active → Filter → Aggregate → Reconcile</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {dashboardCalculationResult.status === 'success' && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Engine Aktif ({dashboardCalculationResult.data.metadata.population.totalActive} Warga SSoT)
+                      </span>
+                    )}
+                    {dashboardCalculationResult.status === 'empty' && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Populasi Kosong
+                      </span>
+                    )}
+                    {dashboardCalculationResult.status === 'calculation_error' && (
+                      <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Calculation Error
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status Bridge Rendering */}
+                {(dashboardCalculationResult.status === 'success' || dashboardCalculationResult.status === 'empty') && (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-semibold text-slate-400 block uppercase">Warga Aktif (SSoT)</span>
+                        <span className="text-lg font-bold text-[#123B5D]">
+                          {dashboardCalculationResult.data.summary.totalWargaAktif} Jiwa
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">ID Valid & Status AKTIF</span>
+                      </div>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-semibold text-slate-400 block uppercase">Warga Terfilter</span>
+                        <span className="text-lg font-bold text-[#2E7D52]">
+                          {dashboardCalculationResult.data.summary.totalWargaTerfilter} Jiwa
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">Populasi terfilter</span>
+                      </div>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-semibold text-slate-400 block uppercase">KK Terverifikasi</span>
+                        <span className="text-lg font-bold text-amber-700">
+                          {dashboardCalculationResult.data.summary.totalKK} KK
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">Unique NO_KK Warga</span>
+                      </div>
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                        <span className="text-[10px] font-semibold text-slate-400 block uppercase">Filter Aktif</span>
+                        <span className="text-lg font-bold text-sky-700">
+                          {dashboardCalculationResult.data.summary.totalFilterAktif} / 7
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">Dimensi filter aktif</span>
+                      </div>
+                    </div>
+
+                    {/* Zero Result Banner if empty */}
+                    {dashboardCalculationResult.status === 'empty' && (
+                      <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-amber-800 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>
+                            Kombinasi filter menghasilkan <strong>0 warga aktif</strong>. Ubah opsi filter atau tekan Reset untuk kembali ke seluruh warga aktif.
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setDashboardFilterState(DEFAULT_DASHBOARD_FILTER_STATE)}
+                          className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[11px] transition-colors shrink-0"
+                        >
+                          Reset Filter (ALL)
+                        </button>
+                      </div>
+                    )}
+
+                    {/* 7 Official Filter Controls */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <span className="text-[11px] font-bold text-slate-600">
+                          7 Official Dashboard Filters (Kumulatif AND):
+                        </span>
+                        {dashboardCalculationResult.data.summary.totalFilterAktif > 0 && (
+                          <button
+                            onClick={() => setDashboardFilterState(DEFAULT_DASHBOARD_FILTER_STATE)}
+                            className="text-[10px] font-bold text-rose-600 hover:underline flex items-center gap-1"
+                          >
+                            Reset Semua Filter (ALL)
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                        {(
+                          [
+                            ['blok', 'Blok'],
+                            ['statusDomisili', 'Domisili'],
+                            ['jenisKelamin', 'Gender'],
+                            ['kelompokUsia', 'Usia'],
+                            ['pendidikan', 'Pendidikan'],
+                            ['pekerjaan', 'Pekerjaan'],
+                            ['statusPerkawinan', 'Perkawinan'],
+                          ] as const
+                        ).map(([key, label]) => (
+                          <div key={key} className="space-y-0.5">
+                            <label className="text-[9px] font-semibold text-slate-500 uppercase block">{label}</label>
+                            <select
+                              value={dashboardFilterState[key]}
+                              onChange={(e) =>
+                                setDashboardFilterState((prev) => ({
+                                  ...prev,
+                                  [key]: e.target.value,
+                                }))
+                              }
+                              className="w-full text-[11px] bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
+                            >
+                              {filterOptionsMap[key].map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {dashboardCalculationResult.status === 'calculation_error' && (
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs space-y-1">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-rose-600" />
+                      <span>Peringatan Perhitungan Engine [{dashboardCalculationResult.error.stage}]</span>
+                    </div>
+                    <p className="text-[11px] text-rose-700">{dashboardCalculationResult.error.message}</p>
+                  </div>
+                )}
+              </div>
+
               {/* 7 High-Impact Stat Cards as requested in TAHAP 3 */}
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Warga</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Total Warga Aktif</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-black text-[#123B5D]">{wargaList.length} Jiwa</span>
+                    <span className="text-2xl font-black text-[#123B5D]">
+                      {dashboardCalculationResult.status === 'success'
+                        ? `${dashboardCalculationResult.data.summary.totalWargaTerfilter} Jiwa`
+                        : dashboardCalculationResult.status === 'empty'
+                        ? '0 Jiwa'
+                        : '—'}
+                    </span>
                     <Users className="w-6 h-6 text-[#2E7D52]" />
                   </div>
-                  <span className="text-[11px] text-[#2E7D52] font-semibold">100% Terdata</span>
+                  <span className="text-[11px] text-[#2E7D52] font-semibold">
+                    {dashboardCalculationResult.status === 'success'
+                      ? `Menampilkan ${dashboardCalculationResult.data.summary.totalWargaTerfilter} dari ${dashboardCalculationResult.data.summary.totalWargaAktif} warga aktif`
+                      : dashboardCalculationResult.status === 'empty'
+                      ? `0 dari ${dashboardCalculationResult.data.summary.totalWargaAktif} warga aktif`
+                      : 'Data tidak tersedia'}
+                  </span>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Jumlah KK</span>
                   <div className="flex items-center justify-between">
-                    <span className="text-2xl font-black text-[#123B5D]">{keluargaList.length} KK</span>
+                    <span className="text-2xl font-black text-[#123B5D]">
+                      {dashboardCalculationResult.status === 'success' || dashboardCalculationResult.status === 'empty'
+                        ? `${dashboardCalculationResult.data.summary.totalKK} KK`
+                        : '—'}
+                    </span>
                     <Home className="w-6 h-6 text-amber-600" />
                   </div>
-                  <span className="text-[11px] text-slate-500">Perum GPA Ngijo</span>
+                  <span className="text-[11px] text-slate-500">
+                    {dashboardCalculationResult.status === 'success' || dashboardCalculationResult.status === 'empty'
+                      ? `Rerata ${dashboardCalculationResult.data.keluarga.averageMembersPerKK} Jiwa / KK`
+                      : 'Perum GPA Ngijo'}
+                  </span>
                 </div>
 
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1">
@@ -1182,12 +1399,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <div className="lg:col-span-4 bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-3 flex flex-col justify-between">
-                  <h4 className="font-bold text-sm text-[#123B5D]">Demografi Status Warga</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-sm text-[#123B5D]">Demografi Status Domisili</h4>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">STATUS_TINGGAL</span>
+                  </div>
                   <div className="h-44 w-full flex items-center justify-center">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={pieStatusWarga}
+                          data={pieStatusDomisili}
                           dataKey="value"
                           nameKey="name"
                           cx="50%"
@@ -1195,20 +1415,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           outerRadius={55}
                           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         >
-                          {pieStatusWarga.map((entry, index) => (
+                          {pieStatusDomisili.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS_PIE[index % COLORS_PIE.length]} />
                           ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip formatter={(value: any, name: any, item: any) => [`${value} Jiwa (${item?.payload?.percentage || '—'})`, name]} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                   <div className="text-[11px] text-slate-600 space-y-1 bg-white p-3 rounded-2xl border border-slate-200">
-                    <div className="flex justify-between"><span>Warga Tetap:</span> <b>{pieStatusWarga[0].value} orang</b></div>
-                    <div className="flex justify-between"><span>Warga Kontrak:</span> <b>{pieStatusWarga[1].value} orang</b></div>
+                    <div className="flex justify-between">
+                      <span>Warga Tetap:</span>
+                      <b>{pieStatusDomisili[0].value} Jiwa ({pieStatusDomisili[0].percentage})</b>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Kontrak / Sewa:</span>
+                      <b>{pieStatusDomisili[1].value} Jiwa ({pieStatusDomisili[1].percentage})</b>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Kos:</span>
+                      <b>{pieStatusDomisili[2].value} Jiwa ({pieStatusDomisili[2].percentage})</b>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Official SSoT Metrics View (Batch F Official Wiring) */}
+              <OfficialMetricsView
+                calculationResult={dashboardCalculationResult}
+                onResetFilter={() => setDashboardFilterState(DEFAULT_DASHBOARD_FILTER_STATE)}
+              />
 
               {/* Quick Actions Bar */}
               <div className="bg-[#123B5D]/5 p-5 rounded-3xl border border-[#123B5D]/20 space-y-3">
