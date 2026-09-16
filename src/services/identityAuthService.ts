@@ -17,6 +17,7 @@ import { UserRole, Warga, Keluarga } from '../types/rt';
 import { AuthoritativeSessionContext } from '../security/authorization';
 import { ResidentFamilyService } from './residentFamilyService';
 import { writeAuditLog, AUDIT_EVENTS, generateCorrelationId } from './auditLogService';
+import { syncDataWithGAS } from './apiService';
 import { 
   PasswordSecurityEngine, 
   generateSecureSalt, 
@@ -557,26 +558,82 @@ export class IdentityAuthService {
       }
     }
 
-    const account = accounts.get(cleanIdentifier);
+    let account = accounts.get(cleanIdentifier);
     const now = Date.now();
 
-    // 2. Generic error response if account not found (Prevent Account Enumeration)
+    // 2. Warga First Login / Provisioning Verification via GAS SSoT
+    // If credentials are for WARGA_KK and account is not yet provisioned, or is still in first-login state
+    if (credentials.type === 'WARGA_KK' && (!account || account.isFirstLogin || account.firstLogin)) {
+      try {
+        const gasRes = await syncDataWithGAS('verifyWargaCredentials', {
+          noKK: cleanIdentifier,
+          tanggalLahir: inputPassword
+        });
+
+        if (gasRes && gasRes.success === true && gasRes.data && gasRes.data.isValid === true) {
+          const verifiedData = gasRes.data;
+          const salt = generateSecureSalt(16);
+          const { hash } = PasswordSecurityEngine.hashPassword(inputPassword, salt);
+
+          const residentId = verifiedData.wargaId || `WRG-${cleanIdentifier.slice(-4)}`;
+          const familyId = verifiedData.keluargaId || `KK-${cleanIdentifier.slice(-4)}`;
+          const namaLengkap = verifiedData.displayName || (account ? account.namaLengkap : `Keluarga ${cleanIdentifier}`);
+
+          account = {
+            accountId: `ACC-KK-${cleanIdentifier}`,
+            identifier: cleanIdentifier,
+            username: cleanIdentifier,
+            role: 'WARGA',
+            userId: residentId,
+            residentId: residentId,
+            familyId: familyId,
+            keluargaId: familyId,
+            nomorKK: cleanIdentifier,
+            namaLengkap: namaLengkap,
+            passwordHash: hash,
+            salt: salt,
+            isFirstLogin: true,
+            firstLogin: true,
+            forcePasswordChange: true,
+            accountStatus: 'PASSWORD_CHANGE_REQUIRED',
+            status: 'PASSWORD_CHANGE_REQUIRED',
+            failedAttempts: 0,
+            failedLoginCount: 0,
+            initialDobRaw: inputPassword,
+            createdAt: account?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          accounts.set(cleanIdentifier, account);
+          this.persistAccounts(accounts);
+        }
+      } catch (gasErr) {
+        // Fail-closed principle: logging without leaking sensitive credential
+        console.warn('GAS verification call failed, falling back to local verification if available');
+      }
+    }
+
+    // 3. Generic error response if account not found (Prevent Account Enumeration)
     if (!account) {
       const genericMsg = credentials.type === 'WARGA_KK'
         ? 'Nomor KK atau tanggal lahir tidak sesuai.'
         : 'Username atau password tidak sesuai.';
 
+      const maskedId = cleanIdentifier.length >= 8
+        ? `${cleanIdentifier.slice(0, 4)}****${cleanIdentifier.slice(-4)}`
+        : cleanIdentifier;
+
       await writeAuditLog({
         userId: 'UNKNOWN',
-        userName: `Login (${cleanIdentifier})`,
+        userName: `Login (${maskedId})`,
         role: 'PUBLIC',
         action: AUDIT_EVENTS.LOGIN_FAILED,
         module: 'AUTH',
         targetType: 'AUTH_GATE',
-        targetId: cleanIdentifier,
+        targetId: maskedId,
         status: 'FAILED',
         severity: 'WARNING',
-        details: `Percobaan login gagal untuk identifier: ${cleanIdentifier}`
+        details: `Percobaan login gagal untuk identifier: ${maskedId}`
       });
 
       return {
@@ -586,7 +643,7 @@ export class IdentityAuthService {
       };
     }
 
-    // 3. Check Lockout Status (15 Minutes Lockout)
+    // 4. Check Lockout Status (15 Minutes Lockout)
     const lockoutTimestamp = account.lockedUntil || account.lockoutUntil;
     if (lockoutTimestamp && now < lockoutTimestamp) {
       const remainingSeconds = Math.ceil((lockoutTimestamp - now) / 1000);
@@ -597,7 +654,7 @@ export class IdentityAuthService {
       };
     }
 
-    // 4. Verify Credential using Hardened Password Engine
+    // 5. Verify Credential using Hardened Password Engine
     let passwordMatches = false;
 
     if ((account.isFirstLogin || account.firstLogin) && account.role === 'WARGA' && account.initialDobRaw) {

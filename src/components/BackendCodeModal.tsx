@@ -834,6 +834,218 @@ function doPost(e) {
       }
     }
 
+    // P0 PATCH #003: verifyWargaCredentials Action Router (SSoT Verification)
+    if (action === "verifyWargaCredentials") {
+      try {
+        if (!payload || typeof payload !== "object") {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+
+        // 1. Sanitasi No KK
+        var rawKk = String(payload.noKK || payload.nomorKK || payload.no_kk || "").trim();
+        var cleanKk = rawKk.replace(/\\D/g, "");
+        if (cleanKk.length !== 16) {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+
+        // 2. Normalisasi input tanggal lahir
+        var rawDob = String(payload.tanggalLahir || payload.tanggal_lahir || "").trim();
+        if (!rawDob) {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+
+        function normalizeDateStr(dStr) {
+          if (!dStr) return "";
+          var s = String(dStr).trim();
+          var isoMatch = s.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})/);
+          if (isoMatch) {
+            var y = isoMatch[1];
+            var m = ("0" + isoMatch[2]).slice(-2);
+            var d = ("0" + isoMatch[3]).slice(-2);
+            return y + "-" + m + "-" + d;
+          }
+          var idMatch = s.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})/);
+          if (idMatch) {
+            var d2 = ("0" + idMatch[1]).slice(-2);
+            var m2 = ("0" + idMatch[2]).slice(-2);
+            var y2 = idMatch[3];
+            return y2 + "-" + m2 + "-" + d2;
+          }
+          var parsed = new Date(s);
+          if (!isNaN(parsed.getTime())) {
+            var yr = parsed.getFullYear();
+            var mo = ("0" + (parsed.getMonth() + 1)).slice(-2);
+            var dy = ("0" + parsed.getDate()).slice(-2);
+            return yr + "-" + mo + "-" + dy;
+          }
+          return s;
+        }
+
+        var normInputDob = normalizeDateStr(rawDob);
+        if (!normInputDob) {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+
+        // 3. Cari Spreadsheet & Sheet WARGA
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        if (!ss) {
+          var props = PropertiesService.getScriptProperties();
+          var ssId = props.getProperty("SPREADSHEET_ID") || props.getProperty("DATABASE_ID");
+          if (ssId) {
+            ss = SpreadsheetApp.openById(ssId);
+          }
+        }
+
+        if (!ss) {
+          return jsonResponse({
+            success: false,
+            message: "Spreadsheet database tidak ditemukan atau belum terhubung.",
+            data: null,
+            errorCode: "SPREADSHEET_NOT_FOUND"
+          });
+        }
+
+        var sheetWarga = ss.getSheetByName("WARGA");
+        if (!sheetWarga) {
+          return jsonResponse({
+            success: false,
+            message: "Tab Sheet WARGA tidak ditemukan pada spreadsheet.",
+            data: null,
+            errorCode: "SHEET_NOT_FOUND"
+          });
+        }
+
+        var lastRow = sheetWarga.getLastRow();
+        var lastCol = sheetWarga.getLastColumn();
+        if (lastRow <= 1) {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+
+        var dataValues = sheetWarga.getRange(1, 1, lastRow, lastCol).getValues();
+        var headers = dataValues[0];
+
+        var idxKk = -1;
+        var idxDob = -1;
+        var idxHub = -1;
+        var idxId = -1;
+        var idxNama = -1;
+        var idxBlok = -1;
+        var idxStatusWarga = -1;
+
+        for (var c = 0; c < headers.length; c++) {
+          var h = String(headers[c]).toUpperCase().trim();
+          if (h === "NO_KK" || h === "NO. KK" || h === "NOMORKK") idxKk = c;
+          else if (h === "TANGGAL_LAHIR" || h === "TANGGAL LAHIR") idxDob = c;
+          else if (h === "HUBUNGAN_KELUARGA" || h === "HUBUNGAN KELUARGA" || h === "STATUS_KELUARGA") idxHub = c;
+          else if (h === "ID_WARGA" || h === "ID WARGA") idxId = c;
+          else if (h === "NAMA_LENGKAP" || h === "NAMA LENGKAP") idxNama = c;
+          else if (h === "BLOK" || h === "BLOK / NO") idxBlok = c;
+          else if (h === "STATUS_WARGA" || h === "STATUS WARGA") idxStatusWarga = c;
+        }
+
+        if (idxId === -1) idxId = 0;
+        if (idxKk === -1) idxKk = 2;
+        if (idxNama === -1) idxNama = 3;
+        if (idxDob === -1) idxDob = 7;
+        if (idxBlok === -1) idxBlok = 15;
+        if (idxHub === -1) idxHub = 22;
+
+        var headRecord = null;
+        var fallbackRecord = null;
+
+        for (var r = 1; r < dataValues.length; r++) {
+          var row = dataValues[r];
+          var rowKk = String(row[idxKk] || "").replace(/\\D/g, "");
+          if (rowKk === cleanKk) {
+            if (!fallbackRecord) {
+              fallbackRecord = row;
+            }
+            var hub = String(row[idxHub] || "").toUpperCase().trim();
+            if (hub === "KEPALA_KELUARGA" || hub === "KEPALA KELUARGA") {
+              headRecord = row;
+              break;
+            }
+          }
+        }
+
+        var targetRecord = headRecord || fallbackRecord;
+        if (!targetRecord) {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+
+        var rawRecordDob = targetRecord[idxDob];
+        var normRecordDob = normalizeDateStr(rawRecordDob);
+
+        if (!normRecordDob || normRecordDob !== normInputDob) {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+
+        var wargaId = String(targetRecord[idxId] || ("WRG-" + cleanKk.slice(-4)));
+        var namaLengkap = String(targetRecord[idxNama] || "Warga");
+        var blok = idxBlok >= 0 ? String(targetRecord[idxBlok] || "") : "";
+        var statusWargaVal = idxStatusWarga >= 0 ? String(targetRecord[idxStatusWarga] || "TETAP") : "TETAP";
+
+        return jsonResponse({
+          success: true,
+          message: "Kredensial warga valid.",
+          data: {
+            isValid: true,
+            wargaId: wargaId,
+            keluargaId: "KK-" + cleanKk.slice(-4),
+            displayName: namaLengkap,
+            nomorKK: cleanKk,
+            blok: blok,
+            hubunganKeluarga: "KEPALA_KELUARGA",
+            statusWarga: statusWargaVal
+          },
+          errorCode: null
+        });
+
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Terjadi kesalahan saat memverifikasi kredensial: " + (err && err.message ? err.message : "Error tidak diketahui"),
+          data: null,
+          errorCode: "VERIFY_FAILED"
+        });
+      }
+    }
+
     // Safe default handler for unrecognized actions
     return jsonResponse({
       success: false,
