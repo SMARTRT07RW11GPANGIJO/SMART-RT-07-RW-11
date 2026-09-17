@@ -260,6 +260,9 @@ function verifyWargaCredentials(payload) {
   var blok = idxBlok >= 0 ? String(targetRecord[idxBlok] || '') : '';
   var statusWargaVal = idxStatusWarga >= 0 ? String(targetRecord[idxStatusWarga] || 'TETAP') : 'TETAP';
 
+  // CR-PRE/19-SEP-001: Terbitkan signed authorization token (HMAC-SHA256)
+  var token = generateWargaAuthToken(wargaId);
+
   return {
     success: true,
     message: "Kredensial warga valid.",
@@ -271,7 +274,278 @@ function verifyWargaCredentials(payload) {
       nomorKK: cleanKk,
       blok: blok,
       hubunganKeluarga: "KEPALA_KELUARGA",
-      statusWarga: statusWargaVal
+      statusWarga: statusWargaVal,
+      token: token
+    },
+    errorCode: null
+  };
+}
+
+/**
+ * CR-PRE/19-SEP-001: Helper pembuatan token HMAC-SHA256
+ * Membaca secret murni dari Script Properties: AUTH_SECRET_KEY.
+ * Fail closed: Mengembalikan null jika AUTH_SECRET_KEY belum di-set.
+ */
+function generateWargaAuthToken(wargaId) {
+  var secret = PropertiesService.getScriptProperties().getProperty("AUTH_SECRET_KEY");
+  if (!secret) {
+    Logger.log("WARN: AUTH_SECRET_KEY not set in ScriptProperties. Token issuance failed closed.");
+    return null;
+  }
+
+  var now = Math.floor(new Date().getTime() / 1000);
+  var exp = now + (7 * 24 * 60 * 60); // 7 hari TTL
+  var jti = Utilities.getUuid();
+
+  var payloadObj = {
+    typ: "SMART_RT_WARGA",
+    ver: 1,
+    sub: String(wargaId),
+    iat: now,
+    exp: exp,
+    jti: jti
+  };
+
+  var payloadJson = JSON.stringify(payloadObj);
+  var payloadBase64 = Utilities.base64EncodeWebSafe(payloadJson);
+  var signatureBytes = Utilities.computeHmacSha256Signature(payloadBase64, secret);
+  var signatureBase64 = Utilities.base64EncodeWebSafe(signatureBytes);
+
+  return payloadBase64 + "." + signatureBase64;
+}
+
+/**
+ * CR-PRE/19-SEP-001: Helper verifikasi token HMAC-SHA256
+ * Memvalidasi format, signature, dan expiry time.
+ * Mengembalikan objek payload jika sah, atau null jika tidak sah.
+ */
+function verifyWargaAuthToken(tokenString) {
+  if (!tokenString || typeof tokenString !== "string") {
+    return null;
+  }
+
+  var parts = tokenString.split(".");
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  var payloadBase64 = parts[0];
+  var receivedSigBase64 = parts[1];
+
+  var secret = PropertiesService.getScriptProperties().getProperty("AUTH_SECRET_KEY");
+  if (!secret) {
+    return null; // Fail closed
+  }
+
+  var expectedSigBytes = Utilities.computeHmacSha256Signature(payloadBase64, secret);
+  var expectedSigBase64 = Utilities.base64EncodeWebSafe(expectedSigBytes);
+
+  if (receivedSigBase64 !== expectedSigBase64) {
+    return null; // Signature mismatch
+  }
+
+  try {
+    var payloadJson = Utilities.newBlob(Utilities.base64DecodeWebSafe(payloadBase64)).getDataAsString("UTF-8");
+    var payload = JSON.parse(payloadJson);
+
+    if (payload.typ !== "SMART_RT_WARGA") {
+      return null;
+    }
+
+    var now = Math.floor(new Date().getTime() / 1000);
+    if (!payload.exp || now > payload.exp) {
+      return null; // Expired
+    }
+
+    if (!payload.sub) {
+      return null;
+    }
+
+    return payload;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * CR-PRE/19-SEP-001: getMyProfile
+ * Mengambil profil warga & anggota keluarga berdasarkan token terverifikasi.
+ * Client TIDAK menentukan identitas otoritatif.
+ */
+function getMyProfile(payload) {
+  var token = payload ? payload.token : null;
+  var verifiedPayload = verifyWargaAuthToken(token);
+
+  if (!verifiedPayload) {
+    return {
+      success: false,
+      message: "Sesi tidak valid atau telah kedaluwarsa. Silakan login kembali.",
+      data: null,
+      errorCode: "UNAUTHORIZED"
+    };
+  }
+
+  var authoritativeWargaId = String(verifiedPayload.sub);
+
+  // Akses Google Sheets WARGA
+  var ss = null;
+  try {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {
+    var sheetId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID") ||
+                  PropertiesService.getScriptProperties().getProperty("DATABASE_ID");
+    if (sheetId) {
+      ss = SpreadsheetApp.openById(sheetId);
+    }
+  }
+
+  if (!ss) {
+    return {
+      success: false,
+      message: "Database spreadsheet tidak ditemukan.",
+      data: null,
+      errorCode: "SPREADSHEET_NOT_FOUND"
+    };
+  }
+
+  var sheetWarga = ss.getSheetByName("WARGA");
+  if (!sheetWarga) {
+    return {
+      success: false,
+      message: "Sheet WARGA tidak ditemukan.",
+      data: null,
+      errorCode: "SHEET_NOT_FOUND"
+    };
+  }
+
+  var dataValues = sheetWarga.getDataRange().getValues();
+  if (dataValues.length <= 1) {
+    return {
+      success: false,
+      message: "Data warga kosong.",
+      data: null,
+      errorCode: "EMPTY_DATA"
+    };
+  }
+
+  // Petakan indeks kolom
+  var headers = dataValues[0];
+  var idxId = -1;
+  var idxKk = -1;
+  var idxNik = -1;
+  var idxNama = -1;
+  var idxBlok = -1;
+  var idxStatusWarga = -1;
+  var idxHub = -1;
+  var idxHp = -1;
+  var idxEmail = -1;
+  var idxGender = -1;
+
+  for (var h = 0; h < headers.length; h++) {
+    var hName = String(headers[h] || '').toUpperCase().trim();
+    if (hName === "ID_WARGA" || hName === "ID") idxId = h;
+    else if (hName === "NO_KK" || hName === "NOMOR_KK" || hName === "NO KK") idxKk = h;
+    else if (hName === "NIK") idxNik = h;
+    else if (hName === "NAMA_LENGKAP" || hName === "NAMA") idxNama = h;
+    else if (hName === "BLOK" || hName === "BLOK_RUMAH") idxBlok = h;
+    else if (hName === "STATUS_WARGA") idxStatusWarga = h;
+    else if (hName === "HUBUNGAN_KELUARGA" || hName === "HUBUNGAN") idxHub = h;
+    else if (hName === "NO_HP" || hName === "TELEPON" || hName === "HP") idxHp = h;
+    else if (hName === "EMAIL") idxEmail = h;
+    else if (hName === "JENIS_KELAMIN") idxGender = h;
+  }
+
+  // Fallbacks jika header tidak standar
+  if (idxId === -1) idxId = 0;
+  if (idxKk === -1) idxKk = 1;
+  if (idxNik === -1) idxNik = 2;
+  if (idxNama === -1) idxNama = 3;
+  if (idxBlok === -1) idxBlok = 15;
+  if (idxHub === -1) idxHub = 22;
+
+  // 1. Cari record warga berdasarkan ID_WARGA otoritatif dari token
+  var authoritativeRecord = null;
+  for (var r = 1; r < dataValues.length; r++) {
+    var row = dataValues[r];
+    if (String(row[idxId] || '').trim() === authoritativeWargaId) {
+      authoritativeRecord = row;
+      break;
+    }
+  }
+
+  if (!authoritativeRecord) {
+    return {
+      success: false,
+      message: "Data warga tidak ditemukan di SSoT.",
+      data: null,
+      errorCode: "WARGA_NOT_FOUND"
+    };
+  }
+
+  // 2. Dapatkan NO_KK otoritatif dari record warga tersebut (bukan dari client)
+  var authoritativeKk = String(authoritativeRecord[idxKk] || '').replace(/\D/g, '');
+
+  // Helper fungsi masking data
+  function maskIdentifier(val, showStart, showEnd) {
+    if (!val) return "-";
+    var str = String(val).trim();
+    if (str.length <= (showStart + showEnd)) return str;
+    var start = str.slice(0, showStart);
+    var end = str.slice(-showEnd);
+    return start + "******" + end;
+  }
+
+  function maskPhone(val) {
+    if (!val) return "-";
+    var str = String(val).trim();
+    if (str.length <= 6) return str;
+    return str.slice(0, 4) + "****" + str.slice(-4);
+  }
+
+  function maskEmail(val) {
+    if (!val) return "-";
+    var str = String(val).trim();
+    var atIdx = str.indexOf("@");
+    if (atIdx <= 1) return str;
+    return str.charAt(0) + "******" + str.slice(atIdx);
+  }
+
+  // 3. Kumpulkan semua anggota keluarga dengan NO_KK yang sama
+  var familyMembers = [];
+  for (var f = 1; f < dataValues.length; f++) {
+    var fRow = dataValues[f];
+    var fRowKk = String(fRow[idxKk] || '').replace(/\D/g, '');
+    if (fRowKk && fRowKk === authoritativeKk) {
+      familyMembers.push({
+        wargaId: String(fRow[idxId] || ''),
+        name: String(fRow[idxNama] || 'Anggota'),
+        relationship: idxHub >= 0 ? String(fRow[idxHub] || 'ANGGOTA') : 'ANGGOTA',
+        gender: idxGender >= 0 ? String(fRow[idxGender] || 'LAKI_LAKI') : 'LAKI_LAKI',
+        statusWarga: idxStatusWarga >= 0 ? String(fRow[idxStatusWarga] || 'TETAP') : 'TETAP'
+      });
+    }
+  }
+
+  // 4. Susun Profile DTO Minimal (Tanpa data sensitif seperti DOB utuh, password, dll)
+  var profileDto = {
+    idWarga: authoritativeWargaId,
+    name: String(authoritativeRecord[idxNama] || 'Warga'),
+    nik: idxNik >= 0 ? maskIdentifier(authoritativeRecord[idxNik], 6, 4) : "-",
+    nomorKK: maskIdentifier(authoritativeKk, 6, 4),
+    block: idxBlok >= 0 ? String(authoritativeRecord[idxBlok] || '-') : '-',
+    statusWarga: idxStatusWarga >= 0 ? String(authoritativeRecord[idxStatusWarga] || 'TETAP') : 'TETAP',
+    statusKeluarga: idxHub >= 0 ? String(authoritativeRecord[idxHub] || 'KEPALA_KELUARGA') : 'KEPALA_KELUARGA',
+    phone: idxHp >= 0 ? maskPhone(authoritativeRecord[idxHp]) : "-",
+    email: idxEmail >= 0 ? maskEmail(authoritativeRecord[idxEmail]) : "-",
+    familyCount: familyMembers.length
+  };
+
+  return {
+    success: true,
+    message: "Profil warga berhasil dimuat dari SSoT.",
+    data: {
+      profile: profileDto,
+      family: familyMembers
     },
     errorCode: null
   };

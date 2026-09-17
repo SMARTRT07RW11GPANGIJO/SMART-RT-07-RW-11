@@ -27,6 +27,7 @@ import {
 // Storage keys
 const STORAGE_KEY_AUTH_ACCOUNTS = 'SMART_RT_AUTH_ACCOUNTS_V1';
 const STORAGE_KEY_ACTIVE_SESSIONS = 'SMART_RT_ACTIVE_SESSIONS_V1';
+export const STORAGE_KEY_AUTH_TOKEN = 'SMART_RT_AUTH_TOKEN_V1';
 
 export interface AuthAccount {
   accountId: string;
@@ -561,6 +562,8 @@ export class IdentityAuthService {
     let account = accounts.get(cleanIdentifier);
     const now = Date.now();
 
+    let receivedAuthToken: string | undefined = undefined;
+
     // 2. Warga First Login / Provisioning Verification via GAS SSoT
     // If credentials are for WARGA_KK and account is not yet provisioned, or is still in first-login state
     if (credentials.type === 'WARGA_KK' && (!account || account.isFirstLogin || account.firstLogin)) {
@@ -572,6 +575,9 @@ export class IdentityAuthService {
 
         if (gasRes && gasRes.success === true && gasRes.data && gasRes.data.isValid === true) {
           const verifiedData = gasRes.data;
+          if (verifiedData.token) {
+            receivedAuthToken = verifiedData.token;
+          }
           const salt = generateSecureSalt(16);
           const { hash } = PasswordSecurityEngine.hashPassword(inputPassword, salt);
 
@@ -738,6 +744,18 @@ export class IdentityAuthService {
     this.persistAccounts(accounts);
 
     // 7. Issue Authoritative Session Context (Strict Server-Side Role Enforcement)
+    // Check existing stored auth token if available (for returning logins)
+    let existingToken: string | undefined = undefined;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_AUTH_TOKEN);
+        if (stored) existingToken = stored;
+      } catch {
+        // ignore
+      }
+    }
+    const finalToken = receivedAuthToken || existingToken;
+
     const sessionId = `SES-${account.role}-${Date.now()}-${generateCorrelationId().slice(-6)}`;
     const session: AuthoritativeSessionContext = {
       sessionId,
@@ -749,7 +767,8 @@ export class IdentityAuthService {
       nomorKK: account.nomorKK,
       namaLengkap: account.namaLengkap,
       forcePasswordChange: account.forcePasswordChange,
-      isFirstLogin: account.isFirstLogin || account.firstLogin
+      isFirstLogin: account.isFirstLogin || account.firstLogin,
+      authToken: finalToken
     };
 
     inMemorySessions.set(sessionId, session);
@@ -758,6 +777,9 @@ export class IdentityAuthService {
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem(STORAGE_KEY_ACTIVE_SESSIONS, JSON.stringify(session));
+        if (finalToken) {
+          localStorage.setItem(STORAGE_KEY_AUTH_TOKEN, finalToken);
+        }
       } catch {
         // ignore
       }
@@ -938,10 +960,29 @@ export class IdentityAuthService {
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(STORAGE_KEY_ACTIVE_SESSIONS);
+        localStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
       } catch {
         // ignore
       }
     }
+  }
+
+  /**
+   * Helper to retrieve current active signed authorization token (if any)
+   */
+  public static getAuthToken(sessionId?: string): string | null {
+    const session = sessionId ? this.getActiveSession(sessionId) : this.getActiveSession();
+    if (session && session.authToken) {
+      return session.authToken;
+    }
+    if (typeof localStorage !== 'undefined') {
+      try {
+        return localStorage.getItem(STORAGE_KEY_AUTH_TOKEN);
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
 
   /**
@@ -953,6 +994,7 @@ export class IdentityAuthService {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY_AUTH_ACCOUNTS);
       localStorage.removeItem(STORAGE_KEY_ACTIVE_SESSIONS);
+      localStorage.removeItem(STORAGE_KEY_AUTH_TOKEN);
     }
     this.initializeAccounts(true);
   }

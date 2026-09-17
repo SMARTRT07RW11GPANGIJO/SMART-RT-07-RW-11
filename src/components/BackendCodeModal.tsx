@@ -1020,6 +1020,9 @@ function doPost(e) {
         var blok = idxBlok >= 0 ? String(targetRecord[idxBlok] || "") : "";
         var statusWargaVal = idxStatusWarga >= 0 ? String(targetRecord[idxStatusWarga] || "TETAP") : "TETAP";
 
+        // CR-PRE/19-SEP-001: Terbitkan signed authorization token (HMAC-SHA256)
+        var token = generateWargaAuthToken(wargaId);
+
         return jsonResponse({
           success: true,
           message: "Kredensial warga valid.",
@@ -1031,7 +1034,8 @@ function doPost(e) {
             nomorKK: cleanKk,
             blok: blok,
             hubunganKeluarga: "KEPALA_KELUARGA",
-            statusWarga: statusWargaVal
+            statusWarga: statusWargaVal,
+            token: token
           },
           errorCode: null
         });
@@ -1042,6 +1046,164 @@ function doPost(e) {
           message: "Terjadi kesalahan saat memverifikasi kredensial: " + (err && err.message ? err.message : "Error tidak diketahui"),
           data: null,
           errorCode: "VERIFY_FAILED"
+        });
+      }
+    }
+
+    // CR-PRE/19-SEP-001: getMyProfile Action Router (SSoT Profile & Family Read)
+    if (action === "getMyProfile") {
+      try {
+        var token = payload ? payload.token : null;
+        var verifiedPayload = verifyWargaAuthToken(token);
+
+        if (!verifiedPayload) {
+          return jsonResponse({
+            success: false,
+            message: "Sesi tidak valid atau telah kedaluwarsa. Silakan login kembali.",
+            data: null,
+            errorCode: "UNAUTHORIZED"
+          });
+        }
+
+        var authoritativeWargaId = String(verifiedPayload.sub);
+
+        // Akses Google Sheets WARGA
+        var ss = null;
+        try {
+          ss = SpreadsheetApp.getActiveSpreadsheet();
+        } catch (e) {
+          var sheetId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID") ||
+                        PropertiesService.getScriptProperties().getProperty("DATABASE_ID");
+          if (sheetId) {
+            ss = SpreadsheetApp.openById(sheetId);
+          }
+        }
+
+        if (!ss) {
+          return jsonResponse({
+            success: false,
+            message: "Database spreadsheet tidak ditemukan.",
+            data: null,
+            errorCode: "SPREADSHEET_NOT_FOUND"
+          });
+        }
+
+        var sheetWarga = ss.getSheetByName("WARGA");
+        if (!sheetWarga) {
+          return jsonResponse({
+            success: false,
+            message: "Sheet WARGA tidak ditemukan.",
+            data: null,
+            errorCode: "SHEET_NOT_FOUND"
+          });
+        }
+
+        var dataValues = sheetWarga.getDataRange().getValues();
+        if (dataValues.length <= 1) {
+          return jsonResponse({
+            success: false,
+            message: "Data warga kosong.",
+            data: null,
+            errorCode: "EMPTY_DATA"
+          });
+        }
+
+        var headers = dataValues[0];
+        var idxId = -1, idxKk = -1, idxNik = -1, idxNama = -1, idxBlok = -1;
+        var idxStatusWarga = -1, idxHub = -1, idxHp = -1, idxEmail = -1, idxGender = -1;
+
+        for (var h = 0; h < headers.length; h++) {
+          var hName = String(headers[h] || '').toUpperCase().trim();
+          if (hName === "ID_WARGA" || hName === "ID") idxId = h;
+          else if (hName === "NO_KK" || hName === "NOMOR_KK" || hName === "NO KK") idxKk = h;
+          else if (hName === "NIK") idxNik = h;
+          else if (hName === "NAMA_LENGKAP" || hName === "NAMA") idxNama = h;
+          else if (hName === "BLOK" || hName === "BLOK_RUMAH") idxBlok = h;
+          else if (hName === "STATUS_WARGA") idxStatusWarga = h;
+          else if (hName === "HUBUNGAN_KELUARGA" || hName === "HUBUNGAN") idxHub = h;
+          else if (hName === "NO_HP" || hName === "TELEPON" || hName === "HP") idxHp = h;
+          else if (hName === "EMAIL") idxEmail = h;
+          else if (hName === "JENIS_KELAMIN") idxGender = h;
+        }
+
+        if (idxId === -1) idxId = 0;
+        if (idxKk === -1) idxKk = 1;
+        if (idxNik === -1) idxNik = 2;
+        if (idxNama === -1) idxNama = 3;
+        if (idxBlok === -1) idxBlok = 15;
+        if (idxHub === -1) idxHub = 22;
+
+        var authoritativeRecord = null;
+        for (var r = 1; r < dataValues.length; r++) {
+          var rRow = dataValues[r];
+          if (String(rRow[idxId] || '').trim() === authoritativeWargaId) {
+            authoritativeRecord = rRow;
+            break;
+          }
+        }
+
+        if (!authoritativeRecord) {
+          return jsonResponse({
+            success: false,
+            message: "Data warga tidak ditemukan di SSoT.",
+            data: null,
+            errorCode: "WARGA_NOT_FOUND"
+          });
+        }
+
+        var authoritativeKk = String(authoritativeRecord[idxKk] || '').replace(/\\D/g, '');
+
+        function maskVal(val, s1, s2) {
+          if (!val) return "-";
+          var s = String(val).trim();
+          if (s.length <= (s1 + s2)) return s;
+          return s.slice(0, s1) + "******" + s.slice(-s2);
+        }
+
+        var familyMembers = [];
+        for (var f = 1; f < dataValues.length; f++) {
+          var fRow = dataValues[f];
+          var fRowKk = String(fRow[idxKk] || '').replace(/\\D/g, '');
+          if (fRowKk && fRowKk === authoritativeKk) {
+            familyMembers.push({
+              wargaId: String(fRow[idxId] || ''),
+              name: String(fRow[idxNama] || 'Anggota'),
+              relationship: idxHub >= 0 ? String(fRow[idxHub] || 'ANGGOTA') : 'ANGGOTA',
+              gender: idxGender >= 0 ? String(fRow[idxGender] || 'LAKI_LAKI') : 'LAKI_LAKI',
+              statusWarga: idxStatusWarga >= 0 ? String(fRow[idxStatusWarga] || 'TETAP') : 'TETAP'
+            });
+          }
+        }
+
+        var profileDto = {
+          idWarga: authoritativeWargaId,
+          name: String(authoritativeRecord[idxNama] || 'Warga'),
+          nik: idxNik >= 0 ? maskVal(authoritativeRecord[idxNik], 6, 4) : "-",
+          nomorKK: maskVal(authoritativeKk, 6, 4),
+          block: idxBlok >= 0 ? String(authoritativeRecord[idxBlok] || '-') : '-',
+          statusWarga: idxStatusWarga >= 0 ? String(authoritativeRecord[idxStatusWarga] || 'TETAP') : 'TETAP',
+          statusKeluarga: idxHub >= 0 ? String(authoritativeRecord[idxHub] || 'KEPALA_KELUARGA') : 'KEPALA_KELUARGA',
+          phone: idxHp >= 0 && authoritativeRecord[idxHp] ? String(authoritativeRecord[idxHp]).slice(0, 4) + '****' + String(authoritativeRecord[idxHp]).slice(-4) : "-",
+          email: idxEmail >= 0 && authoritativeRecord[idxEmail] ? String(authoritativeRecord[idxEmail]).charAt(0) + '******' + String(authoritativeRecord[idxEmail]).slice(String(authoritativeRecord[idxEmail]).indexOf('@')) : "-",
+          familyCount: familyMembers.length
+        };
+
+        return jsonResponse({
+          success: true,
+          message: "Profil warga berhasil dimuat dari SSoT.",
+          data: {
+            profile: profileDto,
+            family: familyMembers
+          },
+          errorCode: null
+        });
+
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal mengambil data profil: " + (err && err.message ? err.message : "Error"),
+          data: null,
+          errorCode: "GET_PROFILE_FAILED"
         });
       }
     }
@@ -1068,6 +1230,49 @@ function doPost(e) {
 function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function generateWargaAuthToken(wargaId) {
+  var secret = PropertiesService.getScriptProperties().getProperty("AUTH_SECRET_KEY");
+  if (!secret) return null;
+  var now = Math.floor(new Date().getTime() / 1000);
+  var exp = now + (7 * 24 * 60 * 60);
+  var payloadObj = {
+    typ: "SMART_RT_WARGA",
+    ver: 1,
+    sub: String(wargaId),
+    iat: now,
+    exp: exp,
+    jti: Utilities.getUuid()
+  };
+  var payloadBase64 = Utilities.base64EncodeWebSafe(JSON.stringify(payloadObj));
+  var signatureBytes = Utilities.computeHmacSha256Signature(payloadBase64, secret);
+  var signatureBase64 = Utilities.base64EncodeWebSafe(signatureBytes);
+  return payloadBase64 + "." + signatureBase64;
+}
+
+function verifyWargaAuthToken(tokenString) {
+  if (!tokenString || typeof tokenString !== "string") return null;
+  var parts = tokenString.split(".");
+  if (parts.length !== 2) return null;
+  var payloadBase64 = parts[0];
+  var receivedSigBase64 = parts[1];
+  var secret = PropertiesService.getScriptProperties().getProperty("AUTH_SECRET_KEY");
+  if (!secret) return null;
+  var expectedSigBytes = Utilities.computeHmacSha256Signature(payloadBase64, secret);
+  var expectedSigBase64 = Utilities.base64EncodeWebSafe(expectedSigBytes);
+  if (receivedSigBase64 !== expectedSigBase64) return null;
+  try {
+    var payloadJson = Utilities.newBlob(Utilities.base64DecodeWebSafe(payloadBase64)).getDataAsString("UTF-8");
+    var payload = JSON.parse(payloadJson);
+    if (payload.typ !== "SMART_RT_WARGA") return null;
+    var now = Math.floor(new Date().getTime() / 1000);
+    if (!payload.exp || now > payload.exp) return null;
+    if (!payload.sub) return null;
+    return payload;
+  } catch(e) {
+    return null;
+  }
 }`,
 
     CRUDS: `/**

@@ -6,6 +6,14 @@
 
 import { FundType } from './finance';
 
+export interface SSoTFamilyMember {
+  wargaId: string;
+  name: string;
+  relationship: string;
+  gender: string;
+  statusWarga: string;
+}
+
 export interface WargaProfileSummary {
   idWarga: string;
   namaLengkap: string;
@@ -22,6 +30,7 @@ export interface WargaProfileSummary {
   jumlahAnggotaKeluarga: number;
   statusVerifikasi?: 'MENUNGGU_VERIFIKASI' | 'TERVERIFIKASI' | 'DITOLAK' | string;
   consentGiven?: boolean;
+  familyMembers?: SSoTFamilyMember[];
 }
 
 export type WargaInvoiceFundType = 'RT_UMUM' | 'DANA_KEMATIAN' | 'OMPLOGAN';

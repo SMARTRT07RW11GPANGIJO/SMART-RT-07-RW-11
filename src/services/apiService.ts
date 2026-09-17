@@ -72,7 +72,7 @@ export const testGasConnection = async (url?: string): Promise<GASApiResponse> =
   }
 };
 
-export const syncDataWithGAS = async (action: string, payload?: any): Promise<GASApiResponse> => {
+export const syncDataWithGAS = async <T = any>(action: string, payload?: any): Promise<GASApiResponse<T>> => {
   const url = getGasWebappUrl();
 
   if (isPlaceholderGasUrl(url)) {
@@ -80,7 +80,7 @@ export const syncDataWithGAS = async (action: string, payload?: any): Promise<GA
       success: false,
       errorCode: 'BACKEND_NOT_CONNECTED',
       message: 'Backend belum terhubung. Konfigurasikan URL Apps Script WebApp di Pengaturan Sistem.',
-      data: { status: 'NOT_CONNECTED', action }
+      data: { status: 'NOT_CONNECTED', action } as unknown as T
     };
   }
 

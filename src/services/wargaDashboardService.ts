@@ -17,6 +17,7 @@
 import { AuthoritativeSessionContext, validateSessionContext } from '../security/authorization';
 import { SecurityAuthorizationError } from '../security/securityErrors';
 import { logAIAuditEntry } from './aiAuthorizationService';
+import { syncDataWithGAS } from './apiService';
 import {
   WargaDashboardData,
   WargaProfileSummary,
@@ -153,16 +154,23 @@ export class WargaDashboardService {
     const allWarga = ResidentFamilyService.getWargaList();
     const rawWarga = allWarga.find(
       (w) => w.id_warga === userId || w.wargaId === userId || w.nik === userId || (authContext.nomorKK && (w.no_kk === authContext.nomorKK || w.nomorKK === authContext.nomorKK)) || (authContext.keluargaId && w.keluargaId === authContext.keluargaId)
-    ) || INITIAL_WARGA.find((w) => w.id_warga === userId) || allWarga[0] || INITIAL_WARGA[0];
+    ) || INITIAL_WARGA.find((w) => w.id_warga === userId);
+
+    if (!rawWarga) {
+      throw new SecurityAuthorizationError(
+        'DATA_NOT_FOUND',
+        `Data profil warga untuk user ${userId} tidak ditemukan. Akses ditolak.`
+      );
+    }
 
     const allKk = ResidentFamilyService.getKeluargaList();
     const rawKk = allKk.find(
       (k) => (rawWarga.keluargaId && (k.keluargaId === rawWarga.keluargaId || k.id_kk === rawWarga.keluargaId)) ||
              k.no_kk === (rawWarga.nomorKK || rawWarga.no_kk) ||
              k.nomorKK === (rawWarga.nomorKK || rawWarga.no_kk)
-    ) || INITIAL_KELUARGA.find((k) => k.no_kk === rawWarga.no_kk) || allKk[0] || INITIAL_KELUARGA[0];
+    ) || INITIAL_KELUARGA.find((k) => k.no_kk === rawWarga.no_kk);
 
-    const familyMembers = ResidentFamilyService.getAnggotaKeluarga(rawKk.keluargaId || rawKk.id_kk, rawKk.no_kk || rawKk.nomorKK);
+    const familyMembers = rawKk ? ResidentFamilyService.getAnggotaKeluarga(rawKk.keluargaId || rawKk.id_kk, rawKk.no_kk || rawKk.nomorKK) : [];
 
     const profile: WargaProfileSummary = {
       idWarga: rawWarga.id_warga,
@@ -322,6 +330,213 @@ export class WargaDashboardService {
 
     return {
       profile,
+      notifications,
+      unreadNotificationCount,
+      invoices,
+      totalUnpaidAmount,
+      letters,
+      complaints,
+      announcements,
+      tataTertibActive,
+      activities
+    };
+  }
+
+  /**
+   * CR-PRE/19-SEP-001: Fetch authoritative profile and family members from Google Sheets (WARGA) via GAS.
+   * Uses HMAC-SHA256 signed authorization token.
+   * NO SILENT FALLBACK: Fails explicitly if token is missing or backend returns error.
+   */
+  public static async fetchMyProfileSSoT(token: string): Promise<{ profile: WargaProfileSummary; family: any[] }> {
+    if (!token || typeof token !== 'string' || !token.trim()) {
+      throw new Error('Sesi otorisasi tidak valid atau token tidak ditemukan. Silakan login kembali.');
+    }
+
+    const response = await syncDataWithGAS<{ profile: any; family: any[] }>('getMyProfile', { token: token.trim() });
+
+    if (!response || !response.success || !response.data || !response.data.profile) {
+      const errMsg = (response && response.message) || 'Gagal memuat data profil dari server SSoT Google Sheets.';
+      throw new Error(errMsg);
+    }
+
+    const rawProf = response.data.profile;
+    const rawFamily = Array.isArray(response.data.family) ? response.data.family : [];
+
+    const mappedProfile: WargaProfileSummary = {
+      idWarga: rawProf.idWarga || '',
+      namaLengkap: rawProf.name || 'Warga',
+      nikMasked: rawProf.nik || '-',
+      noKkMasked: rawProf.nomorKK || '-',
+      rt: '07',
+      rw: '11',
+      perumahan: 'GPA Ngijo',
+      blok: rawProf.block || '-',
+      statusWarga: (rawProf.statusWarga === 'KONTRAK' || rawProf.statusWarga === 'Kontrak') ? 'Kontrak' : (rawProf.statusWarga === 'KOS' || rawProf.statusWarga === 'Kos') ? 'Kos' : 'Tetap',
+      statusKeluarga: rawProf.statusKeluarga || 'Kepala Keluarga',
+      noHp: rawProf.phone || '-',
+      email: rawProf.email || '-',
+      jumlahAnggotaKeluarga: rawProf.familyCount || rawFamily.length,
+      statusVerifikasi: 'TERVERIFIKASI',
+      consentGiven: true,
+      familyMembers: rawFamily
+    };
+
+    return {
+      profile: mappedProfile,
+      family: rawFamily
+    };
+  }
+
+  /**
+   * CR-PRE/19-SEP-001: Aggregator that fetches SSoT Profile & Family, combined with other modules.
+   * Fails closed with an explicit error if SSoT cannot be read.
+   */
+  public static async fetchWargaDashboardDataSSoT(
+    authContext: AuthoritativeSessionContext,
+    token: string
+  ): Promise<WargaDashboardData> {
+    validateSessionContext(authContext);
+    const userId = authContext.userId || 'WRG-001';
+
+    // 1. Fetch SSoT Profile and Family Members
+    const ssotData = await this.fetchMyProfileSSoT(token);
+
+    this.initStorage(userId);
+
+    // 2. Fetch Notifications Strictly for Current User
+    const notifKey = `${NOTIFICATION_STORAGE_KEY}_${userId}`;
+    let notifications: WargaNotificationItem[] = [];
+    try {
+      notifications = JSON.parse(localStorage.getItem(notifKey) || '[]');
+    } catch {
+      notifications = [];
+    }
+    const unreadNotificationCount = notifications.filter((n) => !n.isRead).length;
+
+    // 3. Fetch Invoices Strictly for Current User
+    const invKey = `${INVOICE_STORAGE_KEY}_${userId}`;
+    let invoices: WargaInvoiceItem[] = [];
+    try {
+      invoices = JSON.parse(localStorage.getItem(invKey) || '[]');
+    } catch {
+      invoices = [];
+    }
+    const totalUnpaidAmount = invoices
+      .filter((i) => i.status !== 'LUNAS')
+      .reduce((sum, inv) => sum + (inv.nominal - inv.paidAmount), 0);
+
+    // 4. Fetch Letters Strictly for Current User
+    const userLetters = INITIAL_SURAT.filter(
+      (s) => (authContext.nomorKK && s.no_kk === authContext.nomorKK) || (authContext.namaLengkap && s.nama_pemohon.includes(authContext.namaLengkap.split(' ')[0]))
+    );
+    const fallbackLetters = userLetters.length > 0 ? userLetters : [
+      {
+        id_surat: 'SRT-001',
+        nomor_surat: '001/RT07-RW11/VIII/2026',
+        nama_pemohon: ssotData.profile.namaLengkap,
+        no_kk: authContext.nomorKK || '3507000000000000',
+        jenis_surat: 'Surat Keterangan Domisili' as const,
+        keperluan: 'Administrasi Bank',
+        tanggal_pengajuan: '2026-08-05',
+        status: 'SELESAI' as const,
+        qr_code_hash: 'VERIFY-SRT-001-GPA0711'
+      }
+    ];
+
+    const letters: WargaLetterItem[] = fallbackLetters.slice(0, 3).map((s) => ({
+      idSurat: s.id_surat,
+      nomorSurat: s.nomor_surat,
+      jenisSurat: s.jenis_surat,
+      tanggalPengajuan: s.tanggal_pengajuan,
+      status: s.status,
+      qrCodeHash: s.qr_code_hash
+    }));
+
+    // 5. Fetch Complaints Strictly for Current User
+    const userComplaints = INITIAL_PENGADUAN.filter((p) => authContext.namaLengkap && p.nama_pelapor.includes(authContext.namaLengkap.split(' ')[0]));
+    const fallbackComplaints = userComplaints.length > 0 ? userComplaints : [
+      {
+        id_pengaduan: 'ADU-001',
+        nomor_tiket: 'PGD-2026-0012',
+        nama_pelapor: ssotData.profile.namaLengkap,
+        no_hp: ssotData.profile.noHp !== '-' ? ssotData.profile.noHp : '081234567890',
+        kategori: 'Lampu jalan' as const,
+        lokasi: `Depan ${ssotData.profile.blok}`,
+        deskripsi: 'Lampu penerangan jalan depan rumah redup/kadang mati saat malam hari.',
+        tanggal: '2026-08-06',
+        status: 'DIPROSES' as const,
+        tanggapan_admin: 'Seksi Keamanan & Infrastruktur telah menjadwalkan penggantian lampu LED baru.'
+      }
+    ];
+
+    const complaints: WargaComplaintItem[] = fallbackComplaints.slice(0, 3).map((p) => ({
+      idPengaduan: p.id_pengaduan,
+      nomorTiket: p.nomor_tiket,
+      kategori: p.kategori,
+      lokasi: p.lokasi,
+      deskripsi: p.deskripsi,
+      tanggal: p.tanggal,
+      status: p.status,
+      tanggapanAdmin: p.tanggapan_admin
+    }));
+
+    // 6. Announcements Sorted by Date DESC
+    const announcements = [...INITIAL_PENGUMUMAN]
+      .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+      .slice(0, 4)
+      .map((pgm) => ({
+        id: pgm.id_pengumuman,
+        judul: pgm.judul,
+        isi: pgm.isi,
+        tanggal: pgm.tanggal,
+        kategori: pgm.kategori,
+        penulis: pgm.penulis
+      }));
+
+    // 7. Active Tata Tertib Summary (Active Only)
+    const activeArticles = TataTertibService.getActiveRulesForRAG();
+    const primaryRule = activeArticles.length > 0 ? activeArticles[0] : null;
+
+    const tataTertibActive: WargaTataTertibSummary = {
+      idArticle: primaryRule ? (primaryRule.documentId || primaryRule.ruleCode) : 'ART-01',
+      category: primaryRule ? primaryRule.category : 'KEBERSIHAN',
+      title: primaryRule ? primaryRule.title : 'Ketentuan Kebersihan dan Pemilahan Sampah Lingkungan',
+      version: primaryRule ? primaryRule.version : 'v1.2',
+      effectiveDate: primaryRule ? primaryRule.effectiveDate : '15 Agustus 2026',
+      summary: primaryRule ? (primaryRule.summary || primaryRule.content.slice(0, 140) + '...') : 'Wajib memilah sampah organik dan anorganik.',
+      points: (primaryRule && primaryRule.dos && primaryRule.dos.length > 0) ? primaryRule.dos : [
+        'Wajib memilah sampah organik dan non-organik di tempat masing-masing.',
+        'Jadwal pengangkutan sampah: Selasa, Kamis, dan Sabtu pagi.',
+        'Dilarang membakar sampah di pekarangan rumah demi kesehatan lingkungan.'
+      ]
+    };
+
+    // 8. Upcoming Activities (Max 3)
+    const activities: WargaActivityItem[] = INITIAL_AGENDA.slice(0, 3).map((a) => ({
+      idAgenda: a.id_agenda,
+      judul: a.judul,
+      tanggal: a.tanggal,
+      jam: a.jam,
+      lokasi: a.lokasi,
+      deskripsi: a.deskripsi,
+      penanggungJawab: a.penanggung_jawab,
+      kategori: a.kategori
+    }));
+
+    // Mandatory Audit Log for Privacy Compliance
+    logAIAuditEntry({
+      userId,
+      role: authContext.role,
+      sessionId: authContext.sessionId,
+      action: 'fetchWargaDashboardDataSSoT',
+      tool: 'wargaDashboardService',
+      resourceId: userId,
+      result: 'SUCCESS',
+      decision: 'ALLOWED'
+    });
+
+    return {
+      profile: ssotData.profile,
       notifications,
       unreadNotificationCount,
       invoices,

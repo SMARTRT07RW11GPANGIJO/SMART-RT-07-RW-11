@@ -21,6 +21,7 @@ export interface AuthoritativeSessionContext {
   forcePasswordChange?: boolean;
   isFirstLogin?: boolean;
   accountStatus?: 'PENDING_ACTIVATION' | 'PASSWORD_CHANGE_REQUIRED' | 'ACTIVE' | 'BLOCKED' | 'SUSPENDED';
+  authToken?: string;
 }
 
 /**

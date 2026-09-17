@@ -31,6 +31,7 @@ import {
 import { AuthoritativeSessionContext } from '../../security/authorization';
 import { WargaDashboardData, WargaInvoiceItem } from '../../types/wargaDashboard';
 import { WargaDashboardService } from '../../services/wargaDashboardService';
+import { IdentityAuthService } from '../../services/identityAuthService';
 import { WargaQrisPaymentModal } from './WargaQrisPaymentModal';
 import { WargaProfileModal } from './WargaProfileModal';
 import { WargaNotificationsModal } from './WargaNotificationsModal';
@@ -64,14 +65,22 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pushEnabled, setPushEnabled] = useState(false);
 
-  const loadDashboardData = () => {
+  const loadDashboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const result = WargaDashboardService.getWargaDashboardData(authContext);
-      setData(result);
+      const token = authContext.authToken || IdentityAuthService.getAuthToken(authContext.sessionId);
+      if (token) {
+        // CR-PRE/19-SEP-001: Strict SSoT Google Sheets read via signed token
+        const result = await WargaDashboardService.fetchWargaDashboardDataSSoT(authContext, token);
+        setData(result);
+      } else {
+        // Fallback to strict local DAL for local sessions without token (will fail closed if resident not found)
+        const result = WargaDashboardService.getWargaDashboardData(authContext);
+        setData(result);
+      }
     } catch (err: any) {
-      setError(err.message || 'Gagal memuat data Dashboard Warga.');
+      setError(err.message || 'Gagal memuat data Dashboard Warga dari server.');
     } finally {
       setIsLoading(false);
     }
