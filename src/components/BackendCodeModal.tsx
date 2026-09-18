@@ -976,15 +976,11 @@ function doPost(e) {
         if (idxHub === -1) idxHub = 22;
 
         var headRecord = null;
-        var fallbackRecord = null;
 
         for (var r = 1; r < dataValues.length; r++) {
           var row = dataValues[r];
           var rowKk = String(row[idxKk] || "").replace(/\\D/g, "");
           if (rowKk === cleanKk) {
-            if (!fallbackRecord) {
-              fallbackRecord = row;
-            }
             var hub = String(row[idxHub] || "").toUpperCase().trim();
             if (hub === "KEPALA_KELUARGA" || hub === "KEPALA KELUARGA") {
               headRecord = row;
@@ -993,7 +989,7 @@ function doPost(e) {
           }
         }
 
-        var targetRecord = headRecord || fallbackRecord;
+        var targetRecord = headRecord;
         if (!targetRecord) {
           return jsonResponse({
             success: false,
@@ -1015,13 +1011,30 @@ function doPost(e) {
           });
         }
 
-        var wargaId = String(targetRecord[idxId] || ("WRG-" + cleanKk.slice(-4)));
+        var rawWargaId = idxId >= 0 ? String(targetRecord[idxId] || "").trim() : "";
+        if (!rawWargaId) {
+          return jsonResponse({
+            success: false,
+            message: "Nomor KK atau tanggal lahir tidak sesuai.",
+            data: null,
+            errorCode: "INVALID_CREDENTIALS"
+          });
+        }
+        var wargaId = rawWargaId;
         var namaLengkap = String(targetRecord[idxNama] || "Warga");
         var blok = idxBlok >= 0 ? String(targetRecord[idxBlok] || "") : "";
         var statusWargaVal = idxStatusWarga >= 0 ? String(targetRecord[idxStatusWarga] || "TETAP") : "TETAP";
 
         // CR-PRE/19-SEP-001: Terbitkan signed authorization token (HMAC-SHA256)
         var token = generateWargaAuthToken(wargaId);
+        if (!token) {
+          return jsonResponse({
+            success: false,
+            message: "Terjadi kesalahan saat otorisasi sesi. Silakan coba beberapa saat lagi.",
+            data: null,
+            errorCode: "AUTH_TOKEN_ISSUANCE_FAILED"
+          });
+        }
 
         return jsonResponse({
           success: true,
@@ -1266,6 +1279,7 @@ function verifyWargaAuthToken(tokenString) {
     var payloadJson = Utilities.newBlob(Utilities.base64DecodeWebSafe(payloadBase64)).getDataAsString("UTF-8");
     var payload = JSON.parse(payloadJson);
     if (payload.typ !== "SMART_RT_WARGA") return null;
+    if (payload.ver !== 1) return null;
     var now = Math.floor(new Date().getTime() / 1000);
     if (!payload.exp || now > payload.exp) return null;
     if (!payload.sub) return null;

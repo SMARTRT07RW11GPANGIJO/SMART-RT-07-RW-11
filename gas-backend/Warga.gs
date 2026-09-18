@@ -211,17 +211,13 @@ function verifyWargaCredentials(payload) {
   if (idxBlok === -1) idxBlok = 15;
   if (idxHub === -1) idxHub = 22;
 
-  // 4. Cari record Kepala Keluarga berdasarkan NO_KK
+  // 4. Cari record Kepala Keluarga berdasarkan NO_KK (Strict, tanpa fallback)
   var headRecord = null;
-  var fallbackRecord = null;
 
   for (var i = 1; i < dataValues.length; i++) {
     var row = dataValues[i];
     var rowKk = String(row[idxKk] || '').replace(/\D/g, '');
     if (rowKk === cleanKk) {
-      if (!fallbackRecord) {
-        fallbackRecord = row;
-      }
       var hub = String(row[idxHub] || '').toUpperCase().trim();
       if (hub === "KEPALA_KELUARGA" || hub === "KEPALA KELUARGA") {
         headRecord = row;
@@ -230,8 +226,7 @@ function verifyWargaCredentials(payload) {
     }
   }
 
-  // Gunakan headRecord, atau fallbackRecord jika tidak ada penanda eksplisit KEPALA_KELUARGA
-  var targetRecord = headRecord || fallbackRecord;
+  var targetRecord = headRecord;
   if (!targetRecord) {
     return {
       success: false,
@@ -254,14 +249,31 @@ function verifyWargaCredentials(payload) {
     };
   }
 
-  // 6. Kredensial Cocok: Kembalikan data minimum tanpa informasi rahasia
-  var wargaId = String(targetRecord[idxId] || ('WRG-' + cleanKk.slice(-4)));
+  // 6. Kredensial Cocok: Pastikan ID_WARGA otoritatif ada dari record
+  var rawWargaId = idxId >= 0 ? String(targetRecord[idxId] || '').trim() : '';
+  if (!rawWargaId) {
+    return {
+      success: false,
+      message: "Nomor KK atau tanggal lahir tidak sesuai.",
+      data: null,
+      errorCode: "INVALID_CREDENTIALS"
+    };
+  }
+  var wargaId = rawWargaId;
   var namaLengkap = String(targetRecord[idxNama] || 'Warga');
   var blok = idxBlok >= 0 ? String(targetRecord[idxBlok] || '') : '';
   var statusWargaVal = idxStatusWarga >= 0 ? String(targetRecord[idxStatusWarga] || 'TETAP') : 'TETAP';
 
   // CR-PRE/19-SEP-001: Terbitkan signed authorization token (HMAC-SHA256)
   var token = generateWargaAuthToken(wargaId);
+  if (!token) {
+    return {
+      success: false,
+      message: "Terjadi kesalahan saat otorisasi sesi. Silakan coba beberapa saat lagi.",
+      data: null,
+      errorCode: "AUTH_TOKEN_ISSUANCE_FAILED"
+    };
+  }
 
   return {
     success: true,
@@ -349,6 +361,10 @@ function verifyWargaAuthToken(tokenString) {
     var payload = JSON.parse(payloadJson);
 
     if (payload.typ !== "SMART_RT_WARGA") {
+      return null;
+    }
+
+    if (payload.ver !== 1) {
       return null;
     }
 
