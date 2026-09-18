@@ -185,7 +185,10 @@ export class WargaDashboardService {
       statusKeluarga: rawWarga.hubunganKeluarga === 'KEPALA_KELUARGA' || rawWarga.id_warga === 'WRG-001' ? 'Kepala Keluarga' : (rawWarga.hubunganKeluarga || 'Anggota Keluarga'),
       noHp: rawWarga.no_hp || '',
       email: rawWarga.email || '',
-      jumlahAnggotaKeluarga: familyMembers.length > 0 ? familyMembers.length : (rawKk.jumlah_anggota || 1),
+      jumlahAnggotaKeluarga:
+        familyMembers.length > 0
+          ? familyMembers.length
+          : (rawKk?.jumlah_anggota ?? 0),
       statusVerifikasi: rawWarga.statusVerifikasi || 'TERVERIFIKASI',
       consentGiven: rawWarga.consentGiven ?? true
     };
