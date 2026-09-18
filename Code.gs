@@ -191,6 +191,51 @@ function doPost(e) {
       }
     }
 
+    // 10. CR-DATA/20-SEP-001: createWargaChangeRequest Action Router
+    if (action === "createWargaChangeRequest") {
+      try {
+        var resCreateWcr = createWargaChangeRequest(payload);
+        return jsonResponse(resCreateWcr);
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal memproses pengajuan perubahan data: " + (err && err.message ? err.message : "Error"),
+          data: null,
+          errorCode: "CREATE_WCR_FAILED"
+        });
+      }
+    }
+
+    // 11. CR-DATA/20-SEP-001: getMyWargaChangeRequests Action Router
+    if (action === "getMyWargaChangeRequests") {
+      try {
+        var resMyWcr = getMyWargaChangeRequests(payload);
+        return jsonResponse(resMyWcr);
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal mengambil riwayat pengajuan perubahan data: " + (err && err.message ? err.message : "Error"),
+          data: null,
+          errorCode: "GET_MY_WCR_FAILED"
+        });
+      }
+    }
+
+    // 12. CR-DATA/20-SEP-001: getWargaChangeRequest Action Router
+    if (action === "getWargaChangeRequest") {
+      try {
+        var resGetWcr = getWargaChangeRequest(payload);
+        return jsonResponse(resGetWcr);
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal mengambil detail pengajuan perubahan data: " + (err && err.message ? err.message : "Error"),
+          data: null,
+          errorCode: "GET_WCR_FAILED"
+        });
+      }
+    }
+
     // Safe default handler for unrecognized actions
     return jsonResponse({
       success: false,
