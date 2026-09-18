@@ -8,7 +8,7 @@ export const TypingIndicator: React.FC = () => {
         <Bot className="w-4 h-4 text-white animate-bounce" />
       </div>
       <div className="flex flex-col">
-        <span className="text-[11px] font-semibold text-[#0D2A4A]">RITA AI Assistant</span>
+        <span className="text-[11px] font-semibold text-[#0D2A4A]">SATRIA (SMART RT AI Assistant)</span>
         <div className="flex items-center gap-1 mt-0.5">
           <span className="text-[11px] text-slate-500 italic">Sedang mengetik & memproses data</span>
           <span className="flex gap-0.5 ml-1">

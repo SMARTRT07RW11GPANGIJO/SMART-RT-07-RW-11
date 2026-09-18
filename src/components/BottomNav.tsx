@@ -82,7 +82,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             }`}
           >
             <Bot className="w-5 h-5 text-[#D4A72C]" />
-            <span className="text-[10px] mt-0.5">Tanya AI</span>
+            <span className="text-[10px] mt-0.5">SATRIA</span>
           </button>
 
           <button

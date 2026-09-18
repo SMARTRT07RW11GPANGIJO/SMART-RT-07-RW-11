@@ -27,7 +27,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
             <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white leading-tight">RITA AI Chat</h3>
+            <h3 className="font-bold text-sm text-white leading-tight">SATRIA AI Chat</h3>
             <p className="text-[10px] text-slate-300">Riwayat Percakapan RT 07</p>
           </div>
         </div>

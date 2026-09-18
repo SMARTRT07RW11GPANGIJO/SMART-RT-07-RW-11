@@ -42,7 +42,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
     {
       id: 'INIT-1',
       sender: 'rita',
-      text: `Assalamu'alaikum & Selamat Datang 👋\n\nSaya **RITA** (RT Intelligent & Trusted Assistant), Asisten Digital **RT 07 RW 11 Perum GPA Ngijo**.\n\nBagaimana saya dapat membantu Bapak/Ibu hari ini?`,
+      text: `Assalamu'alaikum & Selamat Datang 👋\n\nSaya **SATRIA**, Asisten Pelayanan **SMART RT 07 RW 11 Perum GPA Ngijo**.\n\nAda yang dapat saya bantu mengenai administrasi surat, iuran, tata tertib, atau informasi warga hari ini?`,
       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
       quickActions: [
         { label: 'Cek Status Surat', action: 'cek_surat' },
@@ -91,7 +91,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
       }, 500);
     } catch (e) {
       setIsTyping(false);
-      addToast('error', 'Gangguan RITA Assistant', 'Terjadi kesalahan saat memproses pertanyaan Anda.');
+      addToast('error', 'Gangguan Layanan SATRIA', 'Terjadi kesalahan saat memproses pertanyaan Anda.');
     }
   };
 
@@ -132,7 +132,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
           penulis: prompt.data.penulis
         };
         onPublishAnnouncement(newAnn);
-        addToast('success', 'Pengumuman Diterbitkan!', 'Draft RITA berhasil dikonfirmasi & dipublikasi ke warga.');
+        addToast('success', 'Pengumuman Diterbitkan!', 'Draf pengumuman berhasil dikonfirmasi & dipublikasi ke warga.');
       }
 
       setMessages((prev) => [
@@ -151,7 +151,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
     setMessages((prev) =>
       prev.map((m) => (m.id === msgId ? { ...m, feedback: type } : m))
     );
-    addToast('info', 'Umpan Balik Diterima', 'Terima kasih atas penilaian Anda untuk RITA Assistant.');
+    addToast('info', 'Umpan Balik Diterima', 'Terima kasih atas penilaian Anda untuk SATRIA.');
   };
 
   return (
@@ -169,8 +169,8 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
             <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 border-2 border-[#123B5D] rounded-full animate-pulse" />
           </div>
           <div className="text-left hidden sm:block pr-1">
-            <span className="block text-xs font-black text-[#D4A72C] leading-none tracking-wide uppercase">RITA AI</span>
-            <span className="text-[11px] font-semibold text-white leading-none">Asisten Digital RT 07</span>
+            <span className="block text-xs font-black text-[#D4A72C] leading-none tracking-wide uppercase">SATRIA</span>
+            <span className="text-[11px] font-semibold text-white leading-none">Asisten Pelayanan SMART RT</span>
           </div>
         </button>
       )}
@@ -188,12 +188,12 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="font-extrabold text-sm text-white tracking-wide">RITA Assistant</h3>
+                  <h3 className="font-extrabold text-sm text-white tracking-wide">SATRIA</h3>
                   <span className="bg-[#D4A72C] text-[#123B5D] text-[9px] font-black px-1.5 py-0.2 rounded uppercase">
-                    AI RT 07
+                    SMART RT AI
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-300 font-medium">RT Intelligent & Trusted Assistant</p>
+                <p className="text-[11px] text-slate-300 font-medium">Asisten Pelayanan SMART RT 07 RW 11</p>
               </div>
             </div>
 
@@ -204,7 +204,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
                     {
                       id: `RESET-${Date.now()}`,
                       sender: 'rita',
-                      text: `Percakapan telah diperbarui. Silakan ajukan pertanyaan baru kepada RITA.`,
+                      text: `Percakapan telah diperbarui. Silakan ajukan pertanyaan baru kepada SATRIA.`,
                       timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
                     }
                   ]);
@@ -322,7 +322,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
             {isTyping && (
               <div className="flex items-center gap-2 text-slate-500 text-xs italic pl-2">
                 <Bot className="w-4 h-4 text-[#2E7D52] animate-bounce" />
-                <span>RITA sedang mengetik & memproses data...</span>
+                <span>SATRIA sedang memproses pertanyaan Anda...</span>
               </div>
             )}
 
@@ -354,7 +354,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
               </button>
             </form>
             <p className="text-[9px] text-slate-400 text-center mt-1.5 font-medium">
-              RITA AI RT 07 RW 11 GPA Ngijo — Asisten Digital & Privasi Terjaga
+              SATRIA • Asisten Pelayanan SMART RT 07 RW 11 Perum GPA Ngijo
             </p>
           </div>
 

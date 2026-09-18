@@ -26,7 +26,8 @@ import {
   HelpCircle,
   Phone,
   Info,
-  ShieldAlert
+  ShieldAlert,
+  Users
 } from 'lucide-react';
 import { AuthoritativeSessionContext } from '../../security/authorization';
 import { WargaDashboardData, WargaInvoiceItem } from '../../types/wargaDashboard';
@@ -205,7 +206,7 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 1. HEADER & GREETING CARD */}
+      {/* 1. HEADER & GREETING CARD (SATU PINTU PELAYANAN WARGA) */}
       {/* ========================================================================= */}
       <div className="bg-gradient-to-br from-[#123B5D] via-[#1A4B75] to-[#2E7D52] rounded-3xl p-5 sm:p-6 text-white shadow-xl border border-white/10 relative overflow-hidden">
         {/* Background glow decoration */}
@@ -218,7 +219,7 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="bg-[#20C878]/20 text-[#20C878] text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-[#20C878]/40">
-                WARGA
+                WARGA RT 07
               </span>
               <span className="bg-white/15 text-slate-100 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-white/20 backdrop-blur-xs flex items-center gap-1">
                 <Building className="w-3 h-3 text-[#E6B83F]" />
@@ -234,17 +235,17 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
             </div>
 
             <h1 className="text-xl sm:text-2xl font-black text-[#F7FAFC] tracking-tight leading-tight">
-              Selamat Datang di SMART RT 07 RW 11.
+              Satu Pintu Pelayanan Warga RT 07
             </h1>
 
             {profile?.namaLengkap && (
               <p className="text-xs sm:text-sm font-semibold text-[#E6B83F]">
-                Selamat datang, Bapak/Ibu {profile.namaLengkap}.
+                Assalamu'alaikum & Selamat datang, Bapak/Ibu {profile.namaLengkap}
               </p>
             )}
 
             <p className="text-xs text-slate-200 max-w-xl leading-relaxed">
-              Semua layanan warga kini lebih mudah diakses dalam satu portal.
+              Semua kebutuhan administrasi surat, iuran kas, pengaduan, dan informasi lingkungan terpadu dalam satu portal mandiri.
             </p>
           </div>
 
@@ -294,7 +295,7 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
               className="bg-white/15 hover:bg-white/25 border border-white/20 px-3.5 py-2 rounded-2xl text-white text-xs font-bold flex items-center gap-2 transition-all shadow-xs"
             >
               <div className="w-5 h-5 rounded-full bg-[#D4A72C] text-[#123B5D] font-black text-[10px] flex items-center justify-center">
-                {profile.namaLengkap.slice(0, 1)}
+                {profile.namaLengkap ? profile.namaLengkap.slice(0, 1) : 'W'}
               </div>
               <span className="hidden sm:inline text-xs font-bold">Profil</span>
             </button>
@@ -304,22 +305,20 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. PROFIL RINGKAS CARD */}
+      {/* 2. STATUS DATA SAYA, KELUARGA & INFORMASI RT (3-COLUMN OVERVIEW) */}
       {/* ========================================================================= */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#2E7D52] border border-emerald-200 flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
-            <User className="w-6 h-6" />
-          </div>
-          <div className="space-y-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-bold text-sm text-slate-800">{profile.namaLengkap}</h3>
-              <span className="bg-emerald-50 text-[#2E7D52] text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                Warga Aktif ({profile.statusWarga})
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+        
+        {/* KARTU 1: STATUS DATA SAYA & VERIFIKASI */}
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-[#123B5D]" /> Data Saya
               </span>
               {profile.statusVerifikasi === 'MENUNGGU_VERIFIKASI' ? (
                 <span className="bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Menunggu Verifikasi
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Menunggu
                 </span>
               ) : profile.statusVerifikasi === 'DITOLAK' ? (
                 <span className="bg-red-50 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-300">
@@ -331,35 +330,101 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500">
-              {profile.blok} • RT {profile.rt} / RW {profile.rw} • {profile.perumahan}
-            </p>
+
+            <div>
+              <h3 className="font-bold text-sm text-slate-800 truncate">{profile.namaLengkap}</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                NIK: <span className="font-mono text-slate-700 font-semibold">{profile.nikMasked || '3507************'}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Status Warga:</span>
+            <span className="font-bold text-[#123B5D] bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+              {profile.statusWarga || 'Tetap'}
+            </span>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsProfileOpen(true)}
-          className="self-start sm:self-center text-xs font-bold text-[#123B5D] hover:text-[#2E7D52] bg-slate-50 hover:bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200 transition-all flex items-center gap-1"
-        >
-          Lihat Profil Lengkap <ChevronRight className="w-3.5 h-3.5" />
-        </button>
+        {/* KARTU 2: KELUARGA (SSoT KELUARGA SAYA) */}
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#2E7D52]" /> Keluarga Saya
+              </span>
+              <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">
+                {profile.statusKeluarga || 'Kepala Keluarga'}
+              </span>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500">
+                No. KK: <span className="font-mono text-slate-700 font-semibold">{profile.noKkMasked || '3507************'}</span>
+              </p>
+              <h4 className="font-bold text-sm text-slate-800 mt-0.5 flex items-center gap-1.5">
+                <span>{profile.jumlahAnggotaKeluarga || 1} Anggota Terdaftar</span>
+              </h4>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="text-xs font-bold text-[#2E7D52] hover:text-[#1e5838] transition-colors flex items-center gap-1"
+            >
+              Lihat Profil & KK Digital <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* KARTU 3: INFORMASI RT 07 RW 11 GPA NGIJO */}
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5 text-[#D4A72C]" /> Wilayah RT 07
+              </span>
+              <span className="bg-amber-50 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                RW 11 GPA
+              </span>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-sm text-slate-800">{profile.blok || 'Blok Rumah'}</h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                RT {profile.rt || '07'} / RW {profile.rw || '11'} • Perum Graha Permata Anugrah, Ngijo
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Bantuan Layanan:</span>
+            <span className="font-bold text-[#123B5D]">SATRIA 24 Jam</span>
+          </div>
+        </div>
+
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. ⚡ LAYANAN CEPAT (QUICK ACTION GRID) */}
+      {/* 3. ⚡ LAYANAN SMART RT (QUICK ACTION GRID) */}
       {/* ========================================================================= */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <h2 className="font-bold text-sm text-slate-800 flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-[#D4A72C]" />
-            Layanan Cepat Warga
-          </h2>
-          <span className="text-[11px] text-slate-400 font-medium">Akses Mandiri 24 Jam</span>
+          <div>
+            <h2 className="font-bold text-sm text-slate-800 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#D4A72C]" />
+              Layanan Mandiri Warga
+            </h2>
+            <p className="text-[11px] text-slate-500">Pilih jenis pelayanan administrasi dan informasi yang Anda perlukan</p>
+          </div>
+          <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Akses Mandiri 24 Jam</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
           
-          {/* 1. Buat Surat */}
+          {/* 1. Ajukan Surat */}
           <button
             onClick={() => {
               if (onOpenLetterModal) onOpenLetterModal();
@@ -386,7 +451,7 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
             </div>
             <div>
               <h4 className="font-bold text-xs text-slate-800 group-hover:text-[#2E7D52]">Iuran RT</h4>
-              <p className="text-[10px] text-slate-400 leading-snug">Kas & Pembayaran</p>
+              <p className="text-[10px] text-slate-400 leading-snug">Kas & Bayar QRIS</p>
             </div>
           </button>
 
@@ -435,7 +500,7 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
             </div>
           </button>
 
-          {/* 6. AI Assistant */}
+          {/* 6. SATRIA (Asisten Pelayanan) */}
           <button
             onClick={() => onNavigate('ai-assistant')}
             className="group p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-emerald-50 border border-amber-200 hover:border-[#D4A72C] hover:shadow-md transition-all text-left flex flex-col justify-between space-y-3"
@@ -444,8 +509,11 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
               <Bot className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-xs text-[#123B5D] group-hover:text-[#2E7D52]">AI Assistant</h4>
-              <p className="text-[10px] text-slate-500 leading-snug">Tanya Info RT 24/7</p>
+              <h4 className="font-bold text-xs text-[#123B5D] group-hover:text-[#2E7D52] flex items-center gap-1">
+                <span>SATRIA</span>
+                <span className="text-[9px] bg-[#D4A72C]/20 text-[#123B5D] font-extrabold px-1 rounded">AI</span>
+              </h4>
+              <p className="text-[10px] text-slate-500 leading-snug">Asisten Pelayanan</p>
             </div>
           </button>
 
@@ -805,51 +873,59 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
           </div>
         </div>
 
-        {/* AI Assistant Quick Widget */}
-        <div className="bg-gradient-to-br from-[#0A2338] via-[#123B5D] to-[#1C452F] text-white rounded-3xl p-5 border border-emerald-400/30 shadow-md space-y-3 flex flex-col justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#D4A72C]">
-              <Bot className="w-4 h-4" />
-              <span>SMART RT AI ASSISTANT</span>
+        {/* SATRIA - Asisten Pelayanan SMART RT Widget */}
+        <div className="bg-gradient-to-br from-[#0A2338] via-[#123B5D] to-[#1C452F] text-white rounded-3xl p-5 sm:p-6 border border-emerald-400/30 shadow-md space-y-4 flex flex-col justify-between">
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#D4A72C]">
+                <Bot className="w-4 h-4 text-[#D4A72C]" />
+                <span>SATRIA — ASISTEN PELAYANAN</span>
+              </div>
+              <span className="bg-[#20C878]/20 text-[#20C878] text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-[#20C878]/30 uppercase">
+                SMART RT AI
+              </span>
             </div>
-            <h4 className="font-bold text-sm text-white">Ada yang bisa kami bantu seputar RT 07?</h4>
+
+            <h4 className="font-bold text-base text-white leading-snug">
+              Ada yang perlu dibantu seputar administrasi RT 07?
+            </h4>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Tanyakan prosedur surat, ketentuan iuran, aturan parkir, atau pengaduan secara instan.
+              SATRIA siap memandu Anda mengenai syarat surat pengantar, rincian iuran kas warga, tata tertib lingkungan, atau status pengaduan.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               <button
-                onClick={() => handleAiQuickPrompt('Bagaimana cara membuat surat?')}
-                className="text-left bg-white/10 hover:bg-white/20 p-2 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate"
+                onClick={() => handleAiQuickPrompt('Bagaimana cara membuat surat domisili?')}
+                className="text-left bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate flex items-center gap-1.5"
               >
-                📄 Cara buat surat domisili?
+                <span>📄 Syarat surat domisili?</span>
               </button>
               <button
-                onClick={() => handleAiQuickPrompt('Berapa nominal iuran bulanan RT?')}
-                className="text-left bg-white/10 hover:bg-white/20 p-2 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate"
+                onClick={() => handleAiQuickPrompt('Berapa rincian nominal iuran bulanan RT?')}
+                className="text-left bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate flex items-center gap-1.5"
               >
-                💰 Berapa iuran RT bulan ini?
+                <span>💰 Rincian iuran bulanan RT?</span>
               </button>
               <button
-                onClick={() => handleAiQuickPrompt('Bagaimana aturan parkir kendaraan?')}
-                className="text-left bg-white/10 hover:bg-white/20 p-2 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate"
+                onClick={() => handleAiQuickPrompt('Bagaimana aturan parkir mobil di lingkungan RT 07?')}
+                className="text-left bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate flex items-center gap-1.5"
               >
-                🚗 Aturan parkir di depan rumah?
+                <span>🚗 Ketentuan parkir kendaraan?</span>
               </button>
               <button
-                onClick={() => handleAiQuickPrompt('Bagaimana cara mengajukan pengaduan?')}
-                className="text-left bg-white/10 hover:bg-white/20 p-2 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate"
+                onClick={() => handleAiQuickPrompt('Bagaimana alur penyampaian pengaduan warga?')}
+                className="text-left bg-white/10 hover:bg-white/20 p-2.5 rounded-xl text-[11px] text-slate-200 border border-white/10 transition-all truncate flex items-center gap-1.5"
               >
-                🚨 Cara membuat tiket laporan?
+                <span>🚨 Alur laporan pengaduan?</span>
               </button>
             </div>
           </div>
 
           <button
             onClick={() => onNavigate('ai-assistant')}
-            className="w-full bg-[#2E7D52] hover:bg-[#236340] text-white font-bold py-2.5 rounded-2xl transition-all text-xs flex items-center justify-center gap-2 shadow-md"
+            className="w-full bg-[#2E7D52] hover:bg-[#236340] text-white font-bold py-2.5 rounded-2xl transition-all text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
           >
-            <Bot className="w-3.5 h-3.5 text-[#D4A72C]" /> Mulai Chat dengan AI Assistant
+            <Bot className="w-4 h-4 text-[#D4A72C]" /> Tanya SATRIA Sekarang
           </button>
         </div>
 

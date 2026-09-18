@@ -215,7 +215,7 @@ export const AIChat: React.FC<AIChatProps> = ({
         };
         updateActiveConversationMessages(assistantMsg);
         if (addToast) {
-          addToast('success', 'Perintah Dikonfirmasi', 'Tindakan berhasil dieksekusi oleh RITA AI.');
+          addToast('success', 'Perintah Dikonfirmasi', 'Tindakan berhasil dieksekusi oleh SATRIA.');
         }
       }
     } catch (e) {
@@ -387,7 +387,7 @@ export const AIChat: React.FC<AIChatProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-extrabold text-base text-white tracking-wide">
-                  RITA AI Web Chat
+                  SATRIA AI Web Chat
                 </h2>
                 <span className="bg-[#C89A2B] text-[#0D2A4A] text-[9px] font-black px-2 py-0.5 rounded uppercase">
                   TAHAP 8G

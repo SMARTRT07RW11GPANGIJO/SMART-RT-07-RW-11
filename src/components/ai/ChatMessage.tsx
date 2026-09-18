@@ -73,9 +73,9 @@ export const ChatMessageComponent: React.FC<ChatMessageProps> = ({
         {!isUser && (
           <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 text-[11px]">
             <div className="flex items-center gap-1.5 font-bold text-[#0D2A4A]">
-              <span>RITA AI Assistant</span>
+              <span>SATRIA</span>
               <span className="bg-[#2E7D52] text-white text-[9px] font-black px-1.5 py-0.2 rounded">
-                RT 07
+                SMART RT
               </span>
             </div>
             <span className="text-[10px] text-slate-400 font-medium">{message.timestamp}</span>

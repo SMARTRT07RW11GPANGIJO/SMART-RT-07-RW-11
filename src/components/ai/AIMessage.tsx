@@ -102,9 +102,9 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, onActionClick, on
         {isAssistant && (
           <div className="flex items-center justify-between gap-2 pb-2 mb-2 border-b border-slate-100 text-[11px] text-slate-400">
             <div className="flex items-center gap-1.5 font-semibold text-slate-600">
-              <span className="text-[#0D2A4A] font-bold">RITA Assistant</span>
+              <span className="text-[#0D2A4A] font-bold">SATRIA</span>
               <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase">
-                INTELLIGENT LAYER v1.0
+                SMART RT AI
               </span>
             </div>
 

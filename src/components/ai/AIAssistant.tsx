@@ -38,7 +38,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
       sender: 'assistant',
       text:
         `Assalamu'alaikum & Selamat Datang 👋\n\n` +
-        `Saya **RITA** (*RT Intelligent & Trusted Assistant*), asisten digital resmi **SMART RT 07 RW 11 Perum Graha Permata Anugrah (GPA) Desa Ngijo**.\n\n` +
+        `Saya **SATRIA** (*SMART RT AI Assistant*), asisten pelayanan resmi **SMART RT 07 RW 11 Perum Graha Permata Anugrah (GPA) Desa Ngijo**.\n\n` +
         `Saya siap membantu Bapak/Ibu mengenai:\n` +
         `• Syarat & Status Pelayanan **Surat Pengantar RT**\n` +
         `• Informasi Kondisi & Lokasi **Fasilitas Lingkungan** (GeoBase)\n` +
@@ -236,7 +236,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-base text-white">RITA AI Assistant</h2>
+              <h2 className="font-bold text-base text-white">SATRIA AI Assistant</h2>
               <span className="bg-[#C89A2B] text-[#0D2A4A] text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                 v1.0 OFFICIAL
               </span>
@@ -292,7 +292,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center gap-3 text-slate-600 text-sm">
               <RefreshCw className="w-4 h-4 text-[#2E7D52] animate-spin" />
-              <span>RITA sedang memeriksa sumber data terverifikasi...</span>
+              <span>SATRIA sedang memeriksa sumber data terverifikasi...</span>
             </div>
           </div>
         )}
