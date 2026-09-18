@@ -27,6 +27,10 @@ export const WargaProfileModal: React.FC<WargaProfileModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const familyMembers = Array.isArray(profile.familyMembers)
+    ? profile.familyMembers
+    : [];
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fadeIn">
       <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden relative my-auto">
@@ -136,6 +140,77 @@ export const WargaProfileModal: React.FC<WargaProfileModalProps> = ({
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Family Members */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h5 className="font-bold text-xs text-[#123B5D] uppercase tracking-wider">
+                Daftar Anggota Keluarga
+              </h5>
+              <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+                {familyMembers.length} Jiwa
+              </span>
+            </div>
+
+            {familyMembers.length > 0 ? (
+              <div className="space-y-2">
+                {familyMembers.map((member: any, index: number) => {
+                  const memberName =
+                    member?.name ||
+                    member?.namaLengkap ||
+                    member?.NAMA_LENGKAP ||
+                    'Nama warga tidak tersedia';
+
+                  const memberRelation =
+                    member?.statusKeluarga ||
+                    member?.hubunganKeluarga ||
+                    member?.HUBUNGAN_KELUARGA ||
+                    'Anggota Keluarga';
+
+                  const memberStatus =
+                    member?.statusWarga ||
+                    member?.STATUS_WARGA ||
+                    'Warga';
+
+                  return (
+                    <div
+                      key={member?.idWarga || member?.ID_WARGA || index}
+                      className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-[#123B5D] flex items-center justify-center text-[#D4A72C] font-black text-sm shrink-0">
+                        {String(memberName).slice(0, 2).toUpperCase()}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-sm text-slate-800 truncate">
+                          {memberName}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] font-bold text-[#123B5D] bg-slate-100 px-2 py-0.5 rounded-full">
+                            {memberRelation}
+                          </span>
+
+                          <span className="text-[10px] font-semibold text-[#2E7D52]">
+                            {memberStatus}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Users className="w-4 h-4 text-slate-300 shrink-0" />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-center">
+                <Users className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-slate-500">
+                  Data anggota keluarga belum tersedia.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Privacy Note */}
