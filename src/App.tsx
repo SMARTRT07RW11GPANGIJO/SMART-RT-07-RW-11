@@ -277,7 +277,13 @@ export default function App() {
         onLogout={handleLogout}
         sessionContext={sessionContext}
         openSecurityModal={() => setSecurityModalOpen(true)}
-        openSystemModal={() => setSystemModalOpen(true)}
+        openSystemModal={() => {
+          if (currentRole === 'ADMIN') {
+            setSystemModalOpen(true);
+          } else {
+            addToast('error', 'Akses Terbatas', 'System Config (7B) hanya dapat diakses oleh ADMIN.');
+          }
+        }}
         openMonitorModal={() => setMonitorModalOpen(true)}
         openAiPermissionsModal={() => setAiPermissionsModalOpen(true)}
         openAiToolsModal={() => setAiToolsModalOpen(true)}
@@ -561,6 +567,8 @@ export default function App() {
         isOpen={systemModalOpen}
         onClose={() => setSystemModalOpen(false)}
         addToast={addToast}
+        currentRole={currentRole}
+        sessionContext={sessionContext}
       />
 
       {/* Tahap 7H 24-Hour Production Monitoring Dashboard (/admin/system-monitor) */}

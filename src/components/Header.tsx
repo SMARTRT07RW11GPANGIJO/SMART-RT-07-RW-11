@@ -258,7 +258,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {openSystemModal && (
+            {openSystemModal && currentRole === 'ADMIN' && (
               <button
                 onClick={openSystemModal}
                 className="px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-400/50 shadow transition-all flex items-center gap-1.5"
