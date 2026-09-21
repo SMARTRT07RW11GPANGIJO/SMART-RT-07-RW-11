@@ -1,0 +1,68 @@
+{
+  "metadata": {
+    "backupIdentifier": "BKP-PRE-RESET-KELUARGA-20260920",
+    "sheetName": "KELUARGA",
+    "targetFolderId": "1BackupFolderRoot_SMART_RT07_GPA_PROD",
+    "sourceSpreadsheetId": "1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET",
+    "timestamp": "2026-09-20T05:15:44Z",
+    "columnCount": 9,
+    "bodyRowCount": 4,
+    "headers": [
+      "ID_KK",
+      "NO_KK",
+      "NAMA_KEPALA_KELUARGA",
+      "ALAMAT",
+      "BLOK",
+      "JUMLAH_ANGGOTA",
+      "STATUS_RUMAH",
+      "NO_HP",
+      "KETERANGAN"
+    ]
+  },
+  "data": [
+    {
+      "ID_KK": "KK-001",
+      "NO_KK": "3507120101150001",
+      "NAMA_KEPALA_KELUARGA": "Bambang Sugianto, S.T.",
+      "ALAMAT": "Perum GPA Ngijo Blok C-07",
+      "BLOK": "Blok C-07",
+      "JUMLAH_ANGGOTA": 4,
+      "STATUS_RUMAH": "Milik Sendiri",
+      "NO_HP": "081234567890",
+      "KETERANGAN": "Aktif"
+    },
+    {
+      "ID_KK": "KK-002",
+      "NO_KK": "3507120102180002",
+      "NAMA_KEPALA_KELUARGA": "Dr. Agus Hermawan",
+      "ALAMAT": "Perum GPA Ngijo Blok C-08",
+      "BLOK": "Blok C-08",
+      "JUMLAH_ANGGOTA": 3,
+      "STATUS_RUMAH": "Milik Sendiri",
+      "NO_HP": "081345678912",
+      "KETERANGAN": "Aktif"
+    },
+    {
+      "ID_KK": "KK-003",
+      "NO_KK": "3507120103200003",
+      "NAMA_KEPALA_KELUARGA": "Hendrik Prasetyo",
+      "ALAMAT": "Perum GPA Ngijo Blok C-12",
+      "BLOK": "Blok C-12",
+      "JUMLAH_ANGGOTA": 2,
+      "STATUS_RUMAH": "Sewa / Kontrak",
+      "NO_HP": "081567890123",
+      "KETERANGAN": "Kontrak 2 Tahun"
+    },
+    {
+      "ID_KK": "KK-004",
+      "NO_KK": "3507120104190004",
+      "NAMA_KEPALA_KELUARGA": "Eko Nurcahyo",
+      "ALAMAT": "Perum GPA Ngijo Blok C-05",
+      "BLOK": "Blok C-05",
+      "JUMLAH_ANGGOTA": 4,
+      "STATUS_RUMAH": "Milik Sendiri",
+      "NO_HP": "081789012345",
+      "KETERANGAN": "Aktif"
+    }
+  ]
+}

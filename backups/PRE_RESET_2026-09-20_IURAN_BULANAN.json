@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "backupIdentifier": "BKP-PRE-RESET-IURAN_BULANAN-20260920",
+    "sheetName": "IURAN_BULANAN",
+    "targetFolderId": "1BackupFolderRoot_SMART_RT07_GPA_PROD",
+    "sourceSpreadsheetId": "1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET",
+    "timestamp": "2026-09-20T05:15:44Z",
+    "columnCount": 10,
+    "bodyRowCount": 5,
+    "headers": [
+      "ID_IURAN",
+      "BULAN_TAHUN",
+      "ID_KK",
+      "NAMA_KEPALA_KELUARGA",
+      "BLOK",
+      "NOMINAL_TAGIHAN",
+      "NOMINAL_DIBAYAR",
+      "TANGGAL_BAYAR",
+      "STATUS",
+      "METODE_BAYAR"
+    ]
+  },
+  "data": [
+    {
+      "ID_IURAN": "IRN-202608-001",
+      "BULAN_TAHUN": "Agustus 2026",
+      "ID_KK": "KK-001",
+      "NAMA_KEPALA_KELUARGA": "Bambang Sugianto, S.T.",
+      "BLOK": "Blok C-07",
+      "NOMINAL_TAGIHAN": 50000,
+      "NOMINAL_DIBAYAR": 50000,
+      "TANGGAL_BAYAR": "2026-08-01",
+      "STATUS": "LUNAS",
+      "METODE_BAYAR": "QRIS RT"
+    },
+    {
+      "ID_IURAN": "IRN-202608-002",
+      "BULAN_TAHUN": "Agustus 2026",
+      "ID_KK": "KK-002",
+      "NAMA_KEPALA_KELUARGA": "Dr. Agus Hermawan",
+      "BLOK": "Blok C-08",
+      "NOMINAL_TAGIHAN": 50000,
+      "NOMINAL_DIBAYAR": 50000,
+      "TANGGAL_BAYAR": "2026-08-02",
+      "STATUS": "LUNAS",
+      "METODE_BAYAR": "Transfer Bank"
+    },
+    {
+      "ID_IURAN": "IRN-202608-003",
+      "BULAN_TAHUN": "Agustus 2026",
+      "ID_KK": "KK-003",
+      "NAMA_KEPALA_KELUARGA": "Hendrik Prasetyo",
+      "BLOK": "Blok C-12",
+      "NOMINAL_TAGIHAN": 50000,
+      "NOMINAL_DIBAYAR": 0,
+      "TANGGAL_BAYAR": "",
+      "STATUS": "BELUM LUNAS",
+      "METODE_BAYAR": ""
+    },
+    {
+      "ID_IURAN": "IRN-202608-004",
+      "BULAN_TAHUN": "Agustus 2026",
+      "ID_KK": "KK-004",
+      "NAMA_KEPALA_KELUARGA": "Eko Nurcahyo",
+      "BLOK": "Blok C-05",
+      "NOMINAL_TAGIHAN": 50000,
+      "NOMINAL_DIBAYAR": 50000,
+      "TANGGAL_BAYAR": "2026-08-01",
+      "STATUS": "LUNAS",
+      "METODE_BAYAR": "Tunai / Petugas"
+    },
+    {
+      "ID_IURAN": "IRN-202608-005",
+      "BULAN_TAHUN": "Agustus 2026",
+      "ID_KK": "KK-005",
+      "NAMA_KEPALA_KELUARGA": "H. Sudarsono",
+      "BLOK": "Blok C-01",
+      "NOMINAL_TAGIHAN": 50000,
+      "NOMINAL_DIBAYAR": 50000,
+      "TANGGAL_BAYAR": "2026-08-03",
+      "STATUS": "LUNAS",
+      "METODE_BAYAR": "Transfer Bank"
+    }
+  ]
+}

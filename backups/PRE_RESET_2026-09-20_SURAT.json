@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "backupIdentifier": "BKP-PRE-RESET-SURAT-20260920",
+    "sheetName": "SURAT",
+    "targetFolderId": "1BackupFolderRoot_SMART_RT07_GPA_PROD",
+    "sourceSpreadsheetId": "1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET",
+    "timestamp": "2026-09-20T05:15:44Z",
+    "columnCount": 15,
+    "bodyRowCount": 3,
+    "headers": [
+      "ID_SURAT",
+      "NOMOR_SURAT",
+      "JENIS_SURAT",
+      "ID_WARGA",
+      "NAMA_PEMOHON",
+      "NIK_PEMOHON",
+      "NO_KK",
+      "BLOK_RUMAH",
+      "KEPERLUAN",
+      "TANGGAL_PENGAJUAN",
+      "TANGGAL_DISETUJUI",
+      "STATUS",
+      "CATATAN_ADMIN",
+      "QR_CODE_HASH",
+      "PDF_DRIVE_URL"
+    ]
+  },
+  "data": [
+    {
+      "ID_SURAT": "SRT-2026-0001",
+      "NOMOR_SURAT": "001/RT07-RW11/VIII/2026",
+      "JENIS_SURAT": "Surat Domisili",
+      "ID_WARGA": "WRG-004",
+      "NAMA_PEMOHON": "Hendrik Prasetyo",
+      "NIK_PEMOHON": "3507122005930004",
+      "NO_KK": "3507120103200003",
+      "BLOK_RUMAH": "Blok C-12",
+      "KEPERLUAN": "Persyaratan Pembukaan Rekening Bank & Administrasi Pekerjaan",
+      "TANGGAL_PENGAJUAN": "2026-08-01",
+      "TANGGAL_DISETUJUI": "2026-08-02",
+      "STATUS": "SELESAI",
+      "CATATAN_ADMIN": "Dokumen lengkap, disetujui Ketua RT.",
+      "QR_CODE_HASH": "VERIFY-SRT-001-GPA0711",
+      "PDF_DRIVE_URL": "https://drive.google.com/file/d/sample-surat-domisili-001"
+    },
+    {
+      "ID_SURAT": "SRT-2026-0002",
+      "NOMOR_SURAT": "002/RT07-RW11/VIII/2026",
+      "JENIS_SURAT": "Surat Pengantar SKCK",
+      "ID_WARGA": "WRG-003",
+      "NAMA_PEMOHON": "Dr. Agus Hermawan",
+      "NIK_PEMOHON": "3507121011900003",
+      "NO_KK": "3507120102180002",
+      "BLOK_RUMAH": "Blok C-08",
+      "KEPERLUAN": "Permohonan Penerbitan SKCK Polres Malang",
+      "TANGGAL_PENGAJUAN": "2026-08-05",
+      "TANGGAL_DISETUJUI": "",
+      "STATUS": "MENUNGGU PERSETUJUAN",
+      "CATATAN_ADMIN": "Telah diverifikasi Sekretaris RT.",
+      "QR_CODE_HASH": "VERIFY-SRT-002-GPA0711",
+      "PDF_DRIVE_URL": ""
+    },
+    {
+      "ID_SURAT": "SRT-2026-0003",
+      "NOMOR_SURAT": "003/RT07-RW11/VIII/2026",
+      "JENIS_SURAT": "Surat Pengantar KTP",
+      "ID_WARGA": "WRG-001",
+      "NAMA_PEMOHON": "Bambang Sugianto, S.T.",
+      "NIK_PEMOHON": "3507121508820001",
+      "NO_KK": "3507120101150001",
+      "BLOK_RUMAH": "Blok C-07",
+      "KEPERLUAN": "Pengurusan Penggantian KTP Elektronik Rusak",
+      "TANGGAL_PENGAJUAN": "2026-08-08",
+      "TANGGAL_DISETUJUI": "2026-08-09",
+      "STATUS": "SELESAI",
+      "CATATAN_ADMIN": "Disetujui Ketua RT.",
+      "QR_CODE_HASH": "VERIFY-SRT-003-GPA0711",
+      "PDF_DRIVE_URL": "https://drive.google.com/file/d/sample-surat-ktp-003"
+    }
+  ]
+}

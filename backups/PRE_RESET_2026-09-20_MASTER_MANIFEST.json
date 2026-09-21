@@ -1,0 +1,92 @@
+{
+  "manifestId": "MANIFEST-PRE-RESET-20260920-051544",
+  "timestamp": "2026-09-20T05:15:44Z",
+  "appEnvironment": "production",
+  "appVersion": "1.0.0",
+  "gasVersion": "1.0-PROD",
+  "gasWebappUrl": "https://script.google.com/macros/s/AKfycbyN-MBDOxR684rNKeOykI_-67LrM0bWfKyMzmcs9t0ESWYM9MriyYYKRnw-XDVb4JQrsw/exec",
+  "backupFolderId": "1BackupFolderRoot_SMART_RT07_GPA_PROD",
+  "sourceDatabaseId": "1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET",
+  "totalSheetsBackedUp": 7,
+  "preservedComponents": [
+    "Google Sheets Headers & Schema",
+    "Google Apps Script Codebase & Properties",
+    "AUTH_SECRET_KEY & Password Security Engine (PBKDF2)",
+    "HMAC Token Validation & Session Engine",
+    "Privileged Officer System Accounts (pengurus_rt07, ketua_rt07, admin_rt07)",
+    "Security Audit Logs & Tata Tertib Rules",
+    "Production Lock & Anti-Reseed Guards (CR-PROD/19-SEP-002B)"
+  ],
+  "files": {
+    "WARGA": {
+      "fileName": "PRE_RESET_2026-09-20_WARGA.json",
+      "filePath": "/app/applet/backups/PRE_RESET_2026-09-20_WARGA.json",
+      "bytes": 4306,
+      "sha256": "1d29dd76cddba60a452bfbcd1c40a0aa53292e6cbdf385c6ad585ccc445f4ef2",
+      "columnCount": 20,
+      "bodyRowCount": 5,
+      "headerCount": 20,
+      "status": "CREATED"
+    },
+    "KELUARGA": {
+      "fileName": "PRE_RESET_2026-09-20_KELUARGA.json",
+      "filePath": "/app/applet/backups/PRE_RESET_2026-09-20_KELUARGA.json",
+      "bytes": 1839,
+      "sha256": "6ebb8b42562e1aef3f3e573bac93f7eb5048d810d55d047312f3367d93f74783",
+      "columnCount": 9,
+      "bodyRowCount": 4,
+      "headerCount": 9,
+      "status": "CREATED"
+    },
+    "SURAT": {
+      "fileName": "PRE_RESET_2026-09-20_SURAT.json",
+      "filePath": "/app/applet/backups/PRE_RESET_2026-09-20_SURAT.json",
+      "bytes": 2687,
+      "sha256": "b2e8daa056c0e230a8088011e69b29f82df1a42cf3968c54ec242e9b74146edd",
+      "columnCount": 15,
+      "bodyRowCount": 3,
+      "headerCount": 15,
+      "status": "CREATED"
+    },
+    "TRANSAKSI_KEUANGAN": {
+      "fileName": "PRE_RESET_2026-09-20_TRANSAKSI_KEUANGAN.json",
+      "filePath": "/app/applet/backups/PRE_RESET_2026-09-20_TRANSAKSI_KEUANGAN.json",
+      "bytes": 2496,
+      "sha256": "b4a3aedd25059bf0c5be43a1b1fee5e3707185c89a2d25d52c7f73f376b6d206",
+      "columnCount": 10,
+      "bodyRowCount": 5,
+      "headerCount": 10,
+      "status": "CREATED"
+    },
+    "IURAN_BULANAN": {
+      "fileName": "PRE_RESET_2026-09-20_IURAN_BULANAN.json",
+      "filePath": "/app/applet/backups/PRE_RESET_2026-09-20_IURAN_BULANAN.json",
+      "bytes": 2328,
+      "sha256": "45641acfd07e332c27c82a4242b389b6fca3b56752898cf26cea0a2e7be9990d",
+      "columnCount": 10,
+      "bodyRowCount": 5,
+      "headerCount": 10,
+      "status": "CREATED"
+    },
+    "PENGADUAN": {
+      "fileName": "PRE_RESET_2026-09-20_PENGADUAN.json",
+      "filePath": "/app/applet/backups/PRE_RESET_2026-09-20_PENGADUAN.json",
+      "bytes": 2024,
+      "sha256": "41d39e93871ddfbc1ee4c1ade682113c9ffc448926c66921a2ba7bc7c8bd090b",
+      "columnCount": 11,
+      "bodyRowCount": 3,
+      "headerCount": 11,
+      "status": "CREATED"
+    },
+    "PENGAJUAN_PERUBAHAN_WARGA": {
+      "fileName": "PRE_RESET_2026-09-20_PENGAJUAN_PERUBAHAN_WARGA.json",
+      "filePath": "/app/applet/backups/PRE_RESET_2026-09-20_PENGAJUAN_PERUBAHAN_WARGA.json",
+      "bytes": 826,
+      "sha256": "508049e621bc5a2343b873034fbed3aa11f230efc5fc47497be9b3fb00480526",
+      "columnCount": 18,
+      "bodyRowCount": 0,
+      "headerCount": 18,
+      "status": "CREATED"
+    }
+  }
+}

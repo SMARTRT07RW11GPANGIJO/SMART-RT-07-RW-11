@@ -12,8 +12,8 @@ function writeAuditLog(entry) {
     var sheet = ss.getSheetByName("AI_AUDIT_LOG");
     
     if (!sheet) {
-      sheet = ss.insertSheet("AI_AUDIT_LOG");
-      sheet.appendRow(["Timestamp", "UserId", "Role", "SessionId", "Action", "Tool", "ResourceId", "Decision", "Reason"]);
+      Logger.log("Audit log failed: Sheet AI_AUDIT_LOG does not exist.");
+      return false;
     }
 
     // Mask secrets if inadvertently passed
@@ -30,7 +30,9 @@ function writeAuditLog(entry) {
       entry.decision || "DENIED",
       cleanReason
     ]);
+    return true;
   } catch (err) {
     Logger.log("Audit log failed: " + err.toString());
+    return false;
   }
 }

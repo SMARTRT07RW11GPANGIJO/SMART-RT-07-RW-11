@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "backupIdentifier": "BKP-PRE-RESET-TRANSAKSI_KEUANGAN-20260920",
+    "sheetName": "TRANSAKSI_KEUANGAN",
+    "targetFolderId": "1BackupFolderRoot_SMART_RT07_GPA_PROD",
+    "sourceSpreadsheetId": "1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET",
+    "timestamp": "2026-09-20T05:15:44Z",
+    "columnCount": 10,
+    "bodyRowCount": 5,
+    "headers": [
+      "ID_TRANSAKSI",
+      "TANGGAL",
+      "JENIS",
+      "KATEGORI",
+      "KETERANGAN",
+      "PEMASUKAN",
+      "PENGELUARAN",
+      "SALDO_BERJALAN",
+      "PETUGAS",
+      "BUKTI_URL"
+    ]
+  },
+  "data": [
+    {
+      "ID_TRANSAKSI": "TRX-2026-001",
+      "TANGGAL": "2026-08-01",
+      "JENIS": "Pemasukan",
+      "KATEGORI": "Iuran Warga",
+      "KETERANGAN": "Penerimaan Iuran Bulanan 45 KK periode Agustus 2026",
+      "PEMASUKAN": 2250000,
+      "PENGELUARAN": 0,
+      "SALDO_BERJALAN": 18450000,
+      "PETUGAS": "Bendahara RT (Ibu Anisa)",
+      "BUKTI_URL": ""
+    },
+    {
+      "ID_TRANSAKSI": "TRX-2026-002",
+      "TANGGAL": "2026-08-03",
+      "JENIS": "Pengeluaran",
+      "KATEGORI": "Kebersihan & Sampah",
+      "KETERANGAN": "Honor Petugas Kebersihan & Pengangkutan Sampah Lingkungan",
+      "PEMASUKAN": 0,
+      "PENGELUARAN": 850000,
+      "SALDO_BERJALAN": 17600000,
+      "PETUGAS": "Bendahara RT (Ibu Anisa)",
+      "BUKTI_URL": ""
+    },
+    {
+      "ID_TRANSAKSI": "TRX-2026-003",
+      "TANGGAL": "2026-08-05",
+      "JENIS": "Pengeluaran",
+      "KATEGORI": "Perbaikan Infrastruktur",
+      "KETERANGAN": "Pembelian 5 Lampu LED Pos Kamling & Kabel Penerangan Jalan Blok C",
+      "PEMASUKAN": 0,
+      "PENGELUARAN": 320000,
+      "SALDO_BERJALAN": 17280000,
+      "PETUGAS": "Seksi Keamanan & Infrastruktur",
+      "BUKTI_URL": ""
+    },
+    {
+      "ID_TRANSAKSI": "TRX-2026-004",
+      "TANGGAL": "2026-08-07",
+      "JENIS": "Pemasukan",
+      "KATEGORI": "Sumbangan",
+      "KETERANGAN": "Sumbangan Kas Sukarela HLM HUT RI ke-81 dari Warga Blok C",
+      "PEMASUKAN": 1500000,
+      "PENGELUARAN": 0,
+      "SALDO_BERJALAN": 18780000,
+      "PETUGAS": "Panitia HUT RI RT 07",
+      "BUKTI_URL": ""
+    },
+    {
+      "ID_TRANSAKSI": "TRX-2026-005",
+      "TANGGAL": "2026-08-08",
+      "JENIS": "Pengeluaran",
+      "KATEGORI": "Acara / Sosial",
+      "KETERANGAN": "Bantuan Santunan Sosial Warga Sakit Rawat Inap Blok C",
+      "PEMASUKAN": 0,
+      "PENGELUARAN": 500000,
+      "SALDO_BERJALAN": 18280000,
+      "PETUGAS": "Seksi Sosial & Kerukunan",
+      "BUKTI_URL": ""
+    }
+  ]
+}

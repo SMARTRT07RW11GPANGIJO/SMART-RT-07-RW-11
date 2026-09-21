@@ -15,6 +15,7 @@ import { syncDataWithGAS } from './apiService';
 import { createDigitalDocumentFromSurat, getStoredDigitalDocuments, maskNIK, saveDigitalDocumentStore } from './documentService';
 import { AuditLogger } from './auditLoggerService';
 import { waServiceInstance } from './whatsappService';
+import { getProductionConfig } from './productionConfigService';
 import { DOCUMENT_BRANDING, getChairmanName, getChairmanTitle, getLetterPlace, assertDocumentOfficialIntegrity } from '../config/documentBranding';
 
 // ============================================================================
@@ -217,6 +218,9 @@ export class SuratService {
       }
     } catch (e) {
       console.error('[SuratService] Failed to parse stored surat list', e);
+    }
+    if (getProductionConfig().appEnv === 'production') {
+      return [];
     }
     return DEFAULT_SEED_SURAT;
   }

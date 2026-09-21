@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "backupIdentifier": "BKP-PRE-RESET-PENGAJUAN_PERUBAHAN_WARGA-20260920",
+    "sheetName": "PENGAJUAN_PERUBAHAN_WARGA",
+    "targetFolderId": "1BackupFolderRoot_SMART_RT07_GPA_PROD",
+    "sourceSpreadsheetId": "1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET",
+    "timestamp": "2026-09-20T05:15:44Z",
+    "columnCount": 18,
+    "bodyRowCount": 0,
+    "headers": [
+      "ID_PENGAJUAN",
+      "TIMESTAMP_AJUKAN",
+      "ID_WARGA_PENGAJU",
+      "JENIS_PENGAJUAN",
+      "ID_WARGA_TARGET",
+      "NO_KK_TARGET",
+      "DATA_LAMA",
+      "DATA_USULAN",
+      "ALASAN",
+      "BUKTI_REFERENSI",
+      "STATUS",
+      "CATATAN_VERIFIKASI",
+      "DIVERIFIKASI_OLEH",
+      "WAKTU_VERIFIKASI",
+      "DISETUJUI_OLEH",
+      "WAKTU_PERSETUJUAN",
+      "WAKTU_APPLIED",
+      "ERROR_APPLY"
+    ]
+  },
+  "data": []
+}

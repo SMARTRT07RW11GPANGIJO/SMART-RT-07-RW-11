@@ -34,6 +34,7 @@ import { TataTertibService } from './tataTertibService';
 import { waServiceInstance } from './whatsappService';
 import { AuditLog } from '../types/rt';
 import { ResidentFamilyService } from './residentFamilyService';
+import { getProductionConfig } from './productionConfigService';
 
 const NOTIFICATION_STORAGE_KEY = 'SMART_RT_WARGA_NOTIFICATIONS_V2';
 const INVOICE_STORAGE_KEY = 'SMART_RT_WARGA_INVOICES_V2';
@@ -43,9 +44,13 @@ export class WargaDashboardService {
    * Initializes local storage for notifications and invoices if not present
    */
   private static initStorage(userId: string) {
+    const isProd = getProductionConfig().appEnv === 'production';
     const notifKey = `${NOTIFICATION_STORAGE_KEY}_${userId}`;
     if (!localStorage.getItem(notifKey)) {
-      const defaultNotifications: WargaNotificationItem[] = [
+      if (isProd) {
+        localStorage.setItem(notifKey, JSON.stringify([]));
+      } else {
+        const defaultNotifications: WargaNotificationItem[] = [
         {
           id: 'NTF-001',
           type: 'SURAT',
@@ -93,11 +98,15 @@ export class WargaDashboardService {
         }
       ];
       localStorage.setItem(notifKey, JSON.stringify(defaultNotifications));
+      }
     }
 
     const invKey = `${INVOICE_STORAGE_KEY}_${userId}`;
     if (!localStorage.getItem(invKey)) {
-      const defaultInvoices: WargaInvoiceItem[] = [
+      if (isProd) {
+        localStorage.setItem(invKey, JSON.stringify([]));
+      } else {
+        const defaultInvoices: WargaInvoiceItem[] = [
         {
           id: `INV-RT-202608-${userId}`,
           fundType: 'RT_UMUM',
@@ -137,6 +146,7 @@ export class WargaDashboardService {
         }
       ];
       localStorage.setItem(invKey, JSON.stringify(defaultInvoices));
+      }
     }
   }
 
@@ -216,8 +226,9 @@ export class WargaDashboardService {
       .reduce((sum, inv) => sum + (inv.nominal - inv.paidAmount), 0);
 
     // 4. Fetch Letters Strictly for Current User
-    const userLetters = INITIAL_SURAT.filter((s) => s.id_warga === userId || s.nama_pemohon.includes(rawWarga.nama_lengkap.split(' ')[0]));
-    const fallbackLetters = userLetters.length > 0 ? userLetters : [
+    const isProd = getProductionConfig().appEnv === 'production';
+    const userLetters = isProd ? [] : INITIAL_SURAT.filter((s) => s.id_warga === userId || s.nama_pemohon.includes(rawWarga.nama_lengkap.split(' ')[0]));
+    const fallbackLetters = userLetters.length > 0 ? userLetters : (isProd ? [] : [
       {
         id_surat: 'SRT-2026-0001',
         nomor_surat: '001/RT07-RW11/VIII/2026',
@@ -234,7 +245,7 @@ export class WargaDashboardService {
         catatan_admin: 'Dokumen telah diverifikasi dan ditandatangani Ketua RT.',
         qr_code_hash: 'QR-DOC-001'
       }
-    ];
+    ]);
 
     const letters: WargaLetterItem[] = fallbackLetters.slice(0, 3).map((s) => ({
       idSurat: s.id_surat,
@@ -249,8 +260,8 @@ export class WargaDashboardService {
     }));
 
     // 5. Fetch Complaints Strictly for Current User
-    const userComplaints = INITIAL_PENGADUAN.filter((p) => p.no_hp === rawWarga.no_hp || p.nama_pelapor.includes(rawWarga.nama_lengkap.split(' ')[0]));
-    const fallbackComplaints = userComplaints.length > 0 ? userComplaints : [
+    const userComplaints = isProd ? [] : INITIAL_PENGADUAN.filter((p) => p.no_hp === rawWarga.no_hp || p.nama_pelapor.includes(rawWarga.nama_lengkap.split(' ')[0]));
+    const fallbackComplaints = userComplaints.length > 0 ? userComplaints : (isProd ? [] : [
       {
         id_pengaduan: 'ADU-001',
         nomor_tiket: 'PGD-2026-0012',
@@ -263,7 +274,7 @@ export class WargaDashboardService {
         status: 'DIPROSES' as const,
         tanggapan_admin: 'Seksi Keamanan & Infrastruktur telah menjadwalkan penggantian lampu LED baru.'
       }
-    ];
+    ]);
 
     const complaints: WargaComplaintItem[] = fallbackComplaints.slice(0, 3).map((p) => ({
       idPengaduan: p.id_pengaduan,

@@ -27,6 +27,7 @@ import { SecurityAuthorizationError } from '../security/securityErrors';
 import { AuditLogger } from './auditLoggerService';
 import { syncDataWithGAS } from './apiService';
 import { waServiceInstance } from './whatsappService';
+import { getProductionConfig } from './productionConfigService';
 
 // Storage Keys
 const STORAGE_KEY_LEDGER = 'SMART_RT_FINANCE_LEDGER_V2';
@@ -211,6 +212,9 @@ export class FinanceService {
       if (raw) return JSON.parse(raw);
     } catch (e) {
       console.error('[FinanceService] Failed to read stored ledger', e);
+    }
+    if (getProductionConfig().appEnv === 'production') {
+      return [];
     }
     // Save seed if empty
     this.saveLedger(INITIAL_SEED_LEDGER);

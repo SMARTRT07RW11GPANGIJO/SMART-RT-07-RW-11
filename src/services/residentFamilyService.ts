@@ -7,6 +7,7 @@ import {
   AuditLog
 } from '../types/rt';
 import { INITIAL_WARGA, INITIAL_KELUARGA, INITIAL_PEMILIK_RUMAH } from '../data/mockData';
+import { getProductionConfig } from './productionConfigService';
 
 const STORAGE_KEY_WARGA = 'SMART_RT_WARGA_V1';
 const STORAGE_KEY_KELUARGA = 'SMART_RT_KELUARGA_V1';
@@ -39,6 +40,9 @@ export class ResidentFamilyService {
         console.warn('Failed to parse stored warga, fallback to initial', e);
       }
     }
+    if (getProductionConfig().appEnv === 'production') {
+      return [];
+    }
     return [...INITIAL_WARGA];
   }
 
@@ -56,6 +60,9 @@ export class ResidentFamilyService {
         console.warn('Failed to parse stored keluarga, fallback to initial', e);
       }
     }
+    if (getProductionConfig().appEnv === 'production') {
+      return [];
+    }
     return [...INITIAL_KELUARGA];
   }
 
@@ -72,6 +79,9 @@ export class ResidentFamilyService {
       } catch (e) {
         console.warn('Failed to parse stored pemilik, fallback to initial', e);
       }
+    }
+    if (getProductionConfig().appEnv === 'production') {
+      return [];
     }
     return [...INITIAL_PEMILIK_RUMAH];
   }

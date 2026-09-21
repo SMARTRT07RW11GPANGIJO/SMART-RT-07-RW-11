@@ -17,6 +17,7 @@ import {
   formatRupiah
 } from '../types/finance';
 import { AuditLogger } from './auditLoggerService';
+import { getProductionConfig } from './productionConfigService';
 
 // Storage Keys strictly isolated per fund
 export const LEDGER_STORAGE_KEYS: Record<FundType, string> = {
@@ -230,6 +231,10 @@ export class FinancialRepository {
       } catch (e) {
         console.error(`[FinancialRepository] Failed to parse ledger for ${validFund}`, e);
       }
+    }
+
+    if (getProductionConfig().appEnv === 'production') {
+      return [];
     }
 
     // Initialize seeds if empty

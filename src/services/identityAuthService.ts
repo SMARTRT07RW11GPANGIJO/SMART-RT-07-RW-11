@@ -18,6 +18,7 @@ import { AuthoritativeSessionContext } from '../security/authorization';
 import { ResidentFamilyService } from './residentFamilyService';
 import { writeAuditLog, AUDIT_EVENTS, generateCorrelationId } from './auditLogService';
 import { syncDataWithGAS } from './apiService';
+import { getProductionConfig } from './productionConfigService';
 import { 
   PasswordSecurityEngine, 
   generateSecureSalt, 
@@ -187,57 +188,60 @@ export class IdentityAuthService {
       Object.entries(loaded).forEach(([k, v]) => accountsMap.set(k, v));
     } else {
       // 1. Provision Warga Accounts from Keluarga & Head of Family
+      const isProd = getProductionConfig().appEnv === 'production';
       const keluargaList = ResidentFamilyService.getKeluargaList();
       const wargaList = ResidentFamilyService.getWargaList();
 
-      keluargaList.forEach((k) => {
-        const noKK = (k.nomorKK || k.no_kk || '').trim();
-        if (!noKK || !/^\d{16}$/.test(noKK)) return;
+      if (!(isProd && wargaList.length === 0)) {
+        keluargaList.forEach((k) => {
+          const noKK = (k.nomorKK || k.no_kk || '').trim();
+          if (!noKK || !/^\d{16}$/.test(noKK)) return;
 
-        // Find Head of Family
-        let headOfFamily = wargaList.find(
-          (w) =>
-            (w.nomorKK === noKK || w.no_kk === noKK) &&
-            (w.hubunganKeluarga === 'KEPALA_KELUARGA' || w.id_warga === k.kepalaKeluargaWargaId)
-        );
+          // Find Head of Family
+          let headOfFamily = wargaList.find(
+            (w) =>
+              (w.nomorKK === noKK || w.no_kk === noKK) &&
+              (w.hubunganKeluarga === 'KEPALA_KELUARGA' || w.id_warga === k.kepalaKeluargaWargaId)
+          );
 
-        if (!headOfFamily) {
-          headOfFamily = wargaList.find((w) => w.nomorKK === noKK || w.no_kk === noKK);
-        }
+          if (!headOfFamily) {
+            headOfFamily = wargaList.find((w) => w.nomorKK === noKK || w.no_kk === noKK);
+          }
 
-        const dob = headOfFamily ? headOfFamily.tanggal_lahir : '1980-01-01';
-        const salt = generateSecureSalt(16);
-        const { hash } = PasswordSecurityEngine.hashPassword(dob, salt);
+          const dob = headOfFamily ? headOfFamily.tanggal_lahir : '1980-01-01';
+          const salt = generateSecureSalt(16);
+          const { hash } = PasswordSecurityEngine.hashPassword(dob, salt);
 
-        const residentId = headOfFamily ? headOfFamily.id_warga : (k.kepalaKeluargaWargaId || `WRG-${noKK.slice(-4)}`);
-        const familyId = k.keluargaId || k.id_kk || `KK-${noKK.slice(-4)}`;
+          const residentId = headOfFamily ? headOfFamily.id_warga : (k.kepalaKeluargaWargaId || `WRG-${noKK.slice(-4)}`);
+          const familyId = k.keluargaId || k.id_kk || `KK-${noKK.slice(-4)}`;
 
-        const account: AuthAccount = {
-          accountId: `ACC-KK-${noKK}`,
-          identifier: noKK,
-          username: noKK,
-          role: 'WARGA',
-          userId: residentId,
-          residentId: residentId,
-          familyId: familyId,
-          nomorKK: noKK,
-          namaLengkap: k.nama_kepala_keluarga || (headOfFamily ? headOfFamily.nama_lengkap : `Keluarga ${noKK}`),
-          passwordHash: hash,
-          salt: salt,
-          isFirstLogin: true,
-          firstLogin: true,
-          forcePasswordChange: true,
-          accountStatus: 'PASSWORD_CHANGE_REQUIRED',
-          status: 'PASSWORD_CHANGE_REQUIRED',
-          failedAttempts: 0,
-          failedLoginCount: 0,
-          initialDobRaw: dob,
-          createdAt: '2026-08-01T00:00:00.000Z',
-          updatedAt: '2026-08-01T00:00:00.000Z'
-        };
+          const account: AuthAccount = {
+            accountId: `ACC-KK-${noKK}`,
+            identifier: noKK,
+            username: noKK,
+            role: 'WARGA',
+            userId: residentId,
+            residentId: residentId,
+            familyId: familyId,
+            nomorKK: noKK,
+            namaLengkap: k.nama_kepala_keluarga || (headOfFamily ? headOfFamily.nama_lengkap : `Keluarga ${noKK}`),
+            passwordHash: hash,
+            salt: salt,
+            isFirstLogin: true,
+            firstLogin: true,
+            forcePasswordChange: true,
+            accountStatus: 'PASSWORD_CHANGE_REQUIRED',
+            status: 'PASSWORD_CHANGE_REQUIRED',
+            failedAttempts: 0,
+            failedLoginCount: 0,
+            initialDobRaw: dob,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z'
+          };
 
-        accountsMap.set(noKK, account);
-      });
+          accountsMap.set(noKK, account);
+        });
+      }
 
       // 2. Provision Privileged Officer Accounts
       const officerSeeds: Array<{

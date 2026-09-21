@@ -1,0 +1,65 @@
+{
+  "metadata": {
+    "backupIdentifier": "BKP-PRE-RESET-PENGADUAN-20260920",
+    "sheetName": "PENGADUAN",
+    "targetFolderId": "1BackupFolderRoot_SMART_RT07_GPA_PROD",
+    "sourceSpreadsheetId": "1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET",
+    "timestamp": "2026-09-20T05:15:44Z",
+    "columnCount": 11,
+    "bodyRowCount": 3,
+    "headers": [
+      "ID_PENGADUAN",
+      "NOMOR_TIKET",
+      "NAMA_PELAPOR",
+      "NO_HP",
+      "KATEGORI",
+      "LOKASI",
+      "DESKRIPSI",
+      "FOTO_URL",
+      "TANGGAL",
+      "STATUS",
+      "TANGGAPAN_ADMIN"
+    ]
+  },
+  "data": [
+    {
+      "ID_PENGADUAN": "ADU-001",
+      "NOMOR_TIKET": "ADU-2026-0001",
+      "NAMA_PELAPOR": "Ahmad Dahlan (Blok C-10)",
+      "NO_HP": "081299887766",
+      "KATEGORI": "Lampu jalan",
+      "LOKASI": "Pertigaan Pos Kamling Utama Blok C",
+      "DESKRIPSI": "Lampu jalan utama mati sejak 2 hari lalu, kondisi gelap saat malam hari.",
+      "FOTO_URL": "",
+      "TANGGAL": "2026-08-06",
+      "STATUS": "DIPROSES",
+      "TANGGAPAN_ADMIN": "Sudah dibelikan bohlam LED baru oleh Seksi Infrastruktur, dijadwalkan pasang sore ini."
+    },
+    {
+      "ID_PENGADUAN": "ADU-002",
+      "NOMOR_TIKET": "ADU-2026-0002",
+      "NAMA_PELAPOR": "Ibu Rahayu (Blok C-03)",
+      "NO_HP": "081377665544",
+      "KATEGORI": "Kebersihan",
+      "LOKASI": "Taman Depan Blok C",
+      "DESKRIPSI": "Ada dahan pohon peneduh yang rapuh dan menutupi kabel listrik.",
+      "FOTO_URL": "",
+      "TANGGAL": "2026-08-07",
+      "STATUS": "BARU",
+      "TANGGAPAN_ADMIN": ""
+    },
+    {
+      "ID_PENGADUAN": "ADU-003",
+      "NOMOR_TIKET": "ADU-2026-0003",
+      "NAMA_PELAPOR": "Budi Santoso (Blok C-09)",
+      "NO_HP": "081234567890",
+      "KATEGORI": "Keamanan",
+      "LOKASI": "Portal Pintu Masuk Timur",
+      "DESKRIPSI": "Gembok portal timur macet dan perlu diganti pelumas/baru.",
+      "FOTO_URL": "",
+      "TANGGAL": "2026-08-08",
+      "STATUS": "SELESAI",
+      "TANGGAPAN_ADMIN": "Sudah diganti gembok baru oleh Seksi Keamanan."
+    }
+  ]
+}

@@ -49,6 +49,7 @@ import { RitaAssistantWidget } from './components/RitaAssistantWidget';
 import { AIAssistantPage } from './pages/AIAssistant';
 import { IdentityAuthService } from './services/identityAuthService';
 import { ResidentFamilyService } from './services/residentFamilyService';
+import { getProductionConfig } from './services/productionConfigService';
 import { AuthoritativeSessionContext } from './security/authorization';
 import { LoginModal } from './components/LoginModal';
 import { FirstLoginChangePasswordModal } from './components/FirstLoginChangePasswordModal';
@@ -97,12 +98,13 @@ export default function App() {
   };
 
   // Master States
+  const isProd = getProductionConfig().appEnv === 'production';
   const [wargaList, setWargaList] = useState<Warga[]>(() => ResidentFamilyService.loadInitialWarga());
   const [keluargaList, setKeluargaList] = useState<Keluarga[]>(() => ResidentFamilyService.loadInitialKeluarga());
-  const [suratList, setSuratList] = useState<SuratPengantar[]>(INITIAL_SURAT);
-  const [transaksiList, setTransaksiList] = useState<TransaksiKeuangan[]>(INITIAL_TRANSAKSI);
-  const [iuranList, setIuranList] = useState<TagihanIuran[]>(INITIAL_IURAN);
-  const [pengaduanList, setPengaduanList] = useState<Pengaduan[]>(INITIAL_PENGADUAN);
+  const [suratList, setSuratList] = useState<SuratPengantar[]>(() => isProd ? [] : INITIAL_SURAT);
+  const [transaksiList, setTransaksiList] = useState<TransaksiKeuangan[]>(() => isProd ? [] : INITIAL_TRANSAKSI);
+  const [iuranList, setIuranList] = useState<TagihanIuran[]>(() => isProd ? [] : INITIAL_IURAN);
+  const [pengaduanList, setPengaduanList] = useState<Pengaduan[]>(() => isProd ? [] : INITIAL_PENGADUAN);
   const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>(INITIAL_PENGUMUMAN);
   const [agendaList, setAgendaList] = useState<AgendaKegiatan[]>(INITIAL_AGENDA);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOG);
