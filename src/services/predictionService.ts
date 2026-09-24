@@ -19,6 +19,8 @@ import { UserRole } from '../types/rt';
 import { INITIAL_WARGA, INITIAL_KELUARGA, INITIAL_SURAT, INITIAL_PENGADUAN, INITIAL_AGENDA } from '../data/mockData';
 import { activityCalendarService } from './activityCalendarService';
 import { facilityService } from './facilityService';
+import { ResidentFamilyService } from './residentFamilyService';
+import { getProductionConfig } from './productionConfigService';
 
 const PREDICTION_AUDIT_STORAGE_KEY = 'smart_rt_prediction_audit_logs_v1';
 const PREDICTION_ITEMS_STORAGE_KEY = 'smart_rt_prediction_items_v1';
@@ -94,9 +96,23 @@ export class PredictionService {
 
   // 1. Authoritative Feature Extraction (Strict PDP - Zero PII / Anonymized Only)
   public extractAnonymizedFeatures(): AnonymizedPredictionFeatureVector {
+    const isProd = getProductionConfig().appEnv === 'production';
     // SSoT 1: Warga Master
-    const wargaList = INITIAL_WARGA;
-    const keluargaList = INITIAL_KELUARGA;
+    let wargaList: any[] = [];
+    let keluargaList: any[] = [];
+    if (isProd) {
+      try {
+        wargaList = ResidentFamilyService.getWargaList() || [];
+        keluargaList = ResidentFamilyService.getKeluargaList() || [];
+      } catch {
+        wargaList = [];
+        keluargaList = [];
+      }
+    } else {
+      // Deterministic synthetic data for automated test runners and dev environment
+      wargaList = INITIAL_WARGA;
+      keluargaList = INITIAL_KELUARGA;
+    }
     const totalActiveWarga = wargaList.filter(w => w.status_warga === 'Tetap' || w.status_warga === 'Kontrak' || w.statusWarga === 'TETAP' || w.statusWarga === 'KONTRAK_SEWA').length;
     const totalKK = keluargaList.length;
 

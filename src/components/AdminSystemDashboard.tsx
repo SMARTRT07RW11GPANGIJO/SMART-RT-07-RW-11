@@ -34,7 +34,6 @@ import {
   AppEnvironment 
 } from '../services/productionConfigService';
 import { syncDataWithGAS } from '../services/apiService';
-import { IdentityAuthService } from '../services/identityAuthService';
 import { AuthoritativeSessionContext } from '../security/authorization';
 import { UserRole } from '../security/roles';
 
@@ -75,6 +74,12 @@ export const AdminSystemDashboard: React.FC<AdminSystemDashboardProps> = ({
   const [resetEnvironment, setResetEnvironment] = useState<string>(REQUIRED_ENV);
   const [confirmationPhrase, setConfirmationPhrase] = useState<string>('');
 
+  // Gate 2: Authorization State (Memory-only, no local/session/cookie persistence)
+  const [resetAuthorizationCode, setResetAuthorizationCode] = useState<string>('');
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [isAuthorizingReset, setIsAuthorizingReset] = useState<boolean>(false);
+  const [resetAuthorizationMessage, setResetAuthorizationMessage] = useState<string>('');
+
   const [isExecutingReset, setIsExecutingReset] = useState<boolean>(false);
   const [resetExecutionResult, setResetExecutionResult] = useState<{
     status: 'IDLE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'FAILED_PARTIAL' | 'DENIED' | 'ALREADY_COMPLETED';
@@ -87,24 +92,76 @@ export const AdminSystemDashboard: React.FC<AdminSystemDashboardProps> = ({
     message: ''
   });
 
-  // Session token acquisition from existing authenticated session
-  const sessionToken = sessionContext?.authToken || (sessionContext?.sessionId ? IdentityAuthService.getAuthToken(sessionContext.sessionId) : null);
-  const hasValidAdminSession = currentRole === 'ADMIN' && sessionContext?.isValid === true && Boolean(sessionToken);
+  // Admin Session validation
+  const hasValidAdminSession = currentRole === 'ADMIN' && sessionContext?.isValid === true;
+  const hasResetAuthorization = Boolean(resetToken);
 
   // Strict Precondition validation
   const isCrIdValid = crId.trim() === REQUIRED_CR_ID;
   const isManifestValid = backupManifestId.trim() === REQUIRED_MANIFEST_ID;
   const isEnvValid = resetEnvironment === REQUIRED_ENV;
   const isPhraseValid = confirmationPhrase.trim() === REQUIRED_CONFIRMATION_PHRASE;
+
   const isPreconditionMet = 
     currentRole === 'ADMIN' &&
-    Boolean(sessionToken) &&
+    sessionContext?.isValid === true &&
+    hasResetAuthorization &&
     isCrIdValid &&
     isManifestValid &&
     backupVerified === true &&
     isEnvValid &&
     isPhraseValid &&
-    !isExecutingReset;
+    !isExecutingReset &&
+    !isAuthorizingReset;
+
+  const handleAuthorizeProductionReset = async () => {
+    if (currentRole !== 'ADMIN') {
+      addToast('error', 'Akses Ditolak', 'Hanya role ADMIN yang diizinkan meminta otorisasi reset produksi.');
+      return;
+    }
+
+    if (!sessionContext?.isValid) {
+      addToast('error', 'Sesi Tidak Valid', 'Sesi ADMIN tidak aktif atau tidak valid. Silakan login kembali.');
+      return;
+    }
+
+    if (!isCrIdValid) {
+      addToast('error', 'CR ID Invalid', `CR ID wajib bernilai '${REQUIRED_CR_ID}'.`);
+      return;
+    }
+
+    if (!resetAuthorizationCode.trim()) {
+      addToast('error', 'Kode Otorisasi Kosong', 'Harap masukkan Authorization Code untuk mengaktifkan token reset.');
+      return;
+    }
+
+    setIsAuthorizingReset(true);
+    setResetAuthorizationMessage('Menghubungi server GAS untuk otorisasi reset produksi...');
+
+    try {
+      const response = await syncDataWithGAS('authorizeProductionReset', {
+        crId: crId.trim(),
+        authorizationCode: resetAuthorizationCode.trim()
+      });
+
+      if (response && response.success === true && response?.data?.resetToken) {
+        setResetToken(response.data.resetToken);
+        setResetAuthorizationCode('');
+        setResetAuthorizationMessage('Otorisasi berhasil. Reset Token aktif dalam memory halaman.');
+        addToast('success', 'Otorisasi Berhasil', 'Reset Token aktif di memory.');
+      } else {
+        const errorMsg = response?.message || 'Gagal memvalidasi kode otorisasi reset.';
+        setResetAuthorizationMessage(`Gagal: ${errorMsg}`);
+        addToast('error', 'Otorisasi Ditolak', errorMsg);
+      }
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Terjadi kesalahan koneksi saat memverifikasi kode otorisasi.';
+      setResetAuthorizationMessage(`Error: ${errorMsg}`);
+      addToast('error', 'Koneksi Gagal', errorMsg);
+    } finally {
+      setIsAuthorizingReset(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -147,8 +204,13 @@ export const AdminSystemDashboard: React.FC<AdminSystemDashboardProps> = ({
       return;
     }
 
-    if (!sessionToken) {
-      addToast('error', 'Sesi Tidak Ditemukan', 'Sesi ADMIN autentik tidak aktif atau token tidak ditemukan. Harap login kembali sebagai ADMIN.');
+    if (!sessionContext?.isValid) {
+      addToast('error', 'Sesi Tidak Valid', 'Sesi ADMIN autentik tidak aktif atau tidak valid. Harap login kembali sebagai ADMIN.');
+      return;
+    }
+
+    if (!hasResetAuthorization || !resetToken) {
+      addToast('error', 'Otorisasi Diperlukan', 'Reset Token belum diaktifkan. Harap masukkan Kode Otorisasi terlebih dahulu.');
       return;
     }
 
@@ -198,7 +260,7 @@ export const AdminSystemDashboard: React.FC<AdminSystemDashboardProps> = ({
 
     try {
       const response = await syncDataWithGAS('controlledProductionReset', {
-        sessionToken,
+        resetToken,
         crId: crId.trim(),
         backupManifestId: backupManifestId.trim(),
         backupVerified: true,
@@ -618,12 +680,12 @@ export const AdminSystemDashboard: React.FC<AdminSystemDashboardProps> = ({
                 {hasValidAdminSession ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-lg">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Sesi ADMIN Terverifikasi
+                    Sesi ADMIN Valid
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-300 px-2 py-0.5 rounded-lg">
                     <XCircle className="w-3.5 h-3.5" />
-                    Sesi Token Tidak Ditemukan
+                    Sesi Tidak Valid
                   </span>
                 )}
               </div>
@@ -650,6 +712,83 @@ export const AdminSystemDashboard: React.FC<AdminSystemDashboardProps> = ({
                   <code className="bg-rose-100 px-1.5 py-0.5 rounded text-[10px] font-mono">PENGAJUAN_PERUBAHAN_WARGA</code>
                 </div>
               </div>
+            </div>
+
+            {/* RESET AUTHORIZATION — ONE TIME (Gate 2) */}
+            <div className="bg-amber-50/70 border border-amber-300 rounded-xl p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-2">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-amber-700" />
+                  <h4 className="font-black text-xs text-amber-900 tracking-wide uppercase">
+                    RESET AUTHORIZATION — ONE TIME
+                  </h4>
+                </div>
+                <div>
+                  {hasResetAuthorization ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-lg">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                      RESET TOKEN AKTIF
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-lg">
+                      <Lock className="w-3.5 h-3.5 text-amber-700" />
+                      MENUNGGU OTORISASI
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-[11px] text-amber-900 leading-relaxed">
+                Masukkan Kode Otorisasi Reset yang dikeluarkan Project Director/Sistem. Token otorisasi reset bersifat sementara dan <strong>hanya disimpan dalam memory halaman</strong> (tidak disimpan ke localStorage, sessionStorage, cookie, atau IndexedDB).
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-2 items-center">
+                <input
+                  type="password"
+                  id="input-reset-authorization-code"
+                  value={resetAuthorizationCode}
+                  onChange={(e) => setResetAuthorizationCode(e.target.value)}
+                  disabled={isAuthorizingReset || hasResetAuthorization}
+                  placeholder={hasResetAuthorization ? "Token reset sudah aktif di memory" : "Masukkan Authorization Code..."}
+                  className="w-full sm:flex-1 p-2.5 bg-white border border-amber-300 rounded-xl font-mono text-xs text-slate-800 disabled:bg-slate-100 disabled:text-slate-500"
+                />
+                <button
+                  type="button"
+                  id="btn-authorize-reset"
+                  onClick={handleAuthorizeProductionReset}
+                  disabled={isAuthorizingReset || hasResetAuthorization || !resetAuthorizationCode.trim() || currentRole !== 'ADMIN' || !sessionContext?.isValid}
+                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                    hasResetAuthorization
+                      ? 'bg-emerald-700 text-white cursor-default'
+                      : !resetAuthorizationCode.trim() || isAuthorizingReset || currentRole !== 'ADMIN' || !sessionContext?.isValid
+                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer active:scale-95'
+                  }`}
+                >
+                  {isAuthorizingReset ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>MEMVALIDASI...</span>
+                    </>
+                  ) : hasResetAuthorization ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>TEROTORISASI</span>
+                    </>
+                  ) : (
+                    <>
+                      <Key className="w-3.5 h-3.5" />
+                      <span>AKTIFKAN OTORISASI</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {resetAuthorizationMessage && (
+                <div className={`text-[11px] font-medium pt-1 ${hasResetAuthorization ? 'text-emerald-800' : 'text-rose-700'}`}>
+                  {resetAuthorizationMessage}
+                </div>
+              )}
             </div>
 
             {/* Reset Parameters Form */}
@@ -776,25 +915,29 @@ export const AdminSystemDashboard: React.FC<AdminSystemDashboardProps> = ({
                   {currentRole === 'ADMIN' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
                   <span>1. Role ADMIN</span>
                 </div>
-                <div className={`flex items-center gap-1.5 font-medium ${Boolean(sessionToken) ? 'text-emerald-700' : 'text-rose-600'}`}>
-                  {Boolean(sessionToken) ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
-                  <span>2. Session Token Aktif</span>
+                <div className={`flex items-center gap-1.5 font-medium ${sessionContext?.isValid ? 'text-emerald-700' : 'text-rose-600'}`}>
+                  {sessionContext?.isValid ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
+                  <span>2. Sesi ADMIN Valid</span>
+                </div>
+                <div className={`flex items-center gap-1.5 font-medium ${hasResetAuthorization ? 'text-emerald-700' : 'text-rose-600'}`}>
+                  {hasResetAuthorization ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
+                  <span>3. Reset Authorization Token Aktif</span>
                 </div>
                 <div className={`flex items-center gap-1.5 font-medium ${isCrIdValid ? 'text-emerald-700' : 'text-rose-600'}`}>
                   {isCrIdValid ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
-                  <span>3. CR ID Valid</span>
+                  <span>4. CR ID Valid</span>
                 </div>
                 <div className={`flex items-center gap-1.5 font-medium ${isManifestValid ? 'text-emerald-700' : 'text-rose-600'}`}>
                   {isManifestValid ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
-                  <span>4. Manifest ID Valid</span>
+                  <span>5. Manifest ID Valid</span>
                 </div>
                 <div className={`flex items-center gap-1.5 font-medium ${backupVerified ? 'text-emerald-700' : 'text-rose-600'}`}>
                   {backupVerified ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
-                  <span>5. Backup Verified (true)</span>
+                  <span>6. Backup Verified</span>
                 </div>
                 <div className={`flex items-center gap-1.5 font-medium ${isPhraseValid ? 'text-emerald-700' : 'text-rose-600'}`}>
                   {isPhraseValid ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />}
-                  <span>6. Frasa Konfirmasi Cocok</span>
+                  <span>7. Frasa Konfirmasi Cocok</span>
                 </div>
               </div>
             </div>

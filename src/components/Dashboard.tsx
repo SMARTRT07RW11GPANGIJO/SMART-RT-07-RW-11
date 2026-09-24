@@ -98,6 +98,7 @@ import {
 } from '../dashboard/calculationTypes';
 import { OFFICIAL_FILTER_OPTIONS, normalizeBlok } from '../dashboard/filters';
 import { OfficialMetricsView } from './dashboard/OfficialMetricsView';
+import { getProductionConfig } from '../services/productionConfigService';
 
 interface DashboardProps {
   currentRole: UserRole;
@@ -222,16 +223,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Calculations
   const totalPemasukan = transaksiList.filter((t) => t.jenis === 'Pemasukan').reduce((a, b) => a + b.pemasukan, 0);
   const totalPengeluaran = transaksiList.filter((t) => t.jenis === 'Pengeluaran').reduce((a, b) => a + b.pengeluaran, 0);
-  const saldoKas = transaksiList.length > 0 ? transaksiList[transaksiList.length - 1].saldo_berjalan : 18780000;
+  const saldoKas = transaksiList.length > 0 ? transaksiList[transaksiList.length - 1].saldo_berjalan : 0;
   const pendingSuratCount = suratList.filter((s) => s.status !== 'SELESAI' && s.status !== 'DITOLAK').length;
   const activeAduanCount = pengaduanList.filter((p) => p.status !== 'SELESAI').length;
 
-  // Chart Data Preparation
-  const chartKeuanganData = [
-    { bulan: 'Mei', Pemasukan: 2100000, Pengeluaran: 600000 },
-    { bulan: 'Juni', Pemasukan: 2200000, Pengeluaran: 750000 },
-    { bulan: 'Juli', Pemasukan: 2250000, Pengeluaran: 920000 },
+  // Chart Data Preparation - dynamically reflects actual data or empty months
+  const chartKeuanganData = transaksiList.length > 0 ? [
+    { bulan: 'Mei', Pemasukan: 0, Pengeluaran: 0 },
+    { bulan: 'Juni', Pemasukan: 0, Pengeluaran: 0 },
+    { bulan: 'Juli', Pemasukan: 0, Pengeluaran: 0 },
     { bulan: 'Agustus', Pemasukan: totalPemasukan, Pengeluaran: totalPengeluaran }
+  ] : [
+    { bulan: 'Mei', Pemasukan: 0, Pengeluaran: 0 },
+    { bulan: 'Juni', Pemasukan: 0, Pengeluaran: 0 },
+    { bulan: 'Juli', Pemasukan: 0, Pengeluaran: 0 },
+    { bulan: 'Agustus', Pemasukan: 0, Pengeluaran: 0 }
   ];
 
   // Official Domisili pie chart derived from Calculation Engine SSoT (STATUS_TINGGAL)
@@ -626,32 +632,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-2 self-stretch md:self-auto">
-          <button
-            onClick={() => setExternalTestModalOpen(true)}
-            className="bg-[#123B5D] hover:bg-[#1a4a73] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 border border-[#D4A72C]"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#D4A72C]" /> Gate Verifikasi External Service
-          </button>
-          <button
-            onClick={() => setPredictionTestModalOpen(true)}
-            className="bg-[#2E7D52] hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 border border-[#D4A72C]"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#D4A72C]" /> Gate Verifikasi Prediksi
-          </button>
-          <button
-            onClick={() => setAnalyticsTestModalOpen(true)}
-            className="bg-[#123B5D]/60 hover:bg-[#123B5D] text-white text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-400/30 flex items-center gap-1.5"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Gate Analitik
-          </button>
-          <button
-            onClick={() => setBackendCodeModalOpen(true)}
-            className="bg-[#D4A72C]/20 hover:bg-[#D4A72C]/30 text-[#D4A72C] border border-[#D4A72C]/50 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
-          >
-            <Database className="w-3.5 h-3.5" /> Backend Kode Apps Script (Tahap 2)
-          </button>
-        </div>
+        {getProductionConfig().appEnv !== 'production' && (
+          <div className="relative z-10 flex flex-wrap items-center gap-2 self-stretch md:self-auto">
+            <button
+              onClick={() => setExternalTestModalOpen(true)}
+              className="bg-[#123B5D] hover:bg-[#1a4a73] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 border border-[#D4A72C]"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#D4A72C]" /> Gate Verifikasi External Service
+            </button>
+            <button
+              onClick={() => setPredictionTestModalOpen(true)}
+              className="bg-[#2E7D52] hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow flex items-center gap-1.5 border border-[#D4A72C]"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-[#D4A72C]" /> Gate Verifikasi Prediksi
+            </button>
+            <button
+              onClick={() => setAnalyticsTestModalOpen(true)}
+              className="bg-[#123B5D]/60 hover:bg-[#123B5D] text-white text-xs font-bold px-3 py-2 rounded-xl transition-all border border-slate-400/30 flex items-center gap-1.5"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Gate Analitik
+            </button>
+            <button
+              onClick={() => setBackendCodeModalOpen(true)}
+              className="bg-[#D4A72C]/20 hover:bg-[#D4A72C]/30 text-[#D4A72C] border border-[#D4A72C]/50 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+            >
+              <Database className="w-3.5 h-3.5" /> Backend Kode Apps Script (Tahap 2)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main Layout: Desktop Sidebar Navigation & Main Display Area */}
@@ -1611,8 +1619,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {wargaList
-                      .filter((w) => {
+                    {(() => {
+                      const filteredWarga = wargaList.filter((w) => {
                         const matchesSearch =
                           w.nama_lengkap.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           w.blok.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1626,8 +1634,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         if (wargaVerificationFilter === 'TERVERIFIKASI') return !w.statusVerifikasi || w.statusVerifikasi === 'TERVERIFIKASI';
                         if (wargaVerificationFilter === 'DITOLAK') return w.statusVerifikasi === 'DITOLAK';
                         return true;
-                      })
-                      .map((w) => {
+                      });
+
+                      if (filteredWarga.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={8} className="p-8 text-center text-slate-400">
+                              <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                              <p className="font-semibold text-sm text-slate-600">Belum ada data warga terdaftar</p>
+                              <p className="text-xs text-slate-400 mt-0.5">Database Google Sheets saat ini tidak memiliki baris data warga aktif.</p>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filteredWarga.map((w) => {
                         const statusBadge = w.statusWarga || (w.status_warga === 'Kontrak' ? 'KONTRAK_SEWA' : w.status_warga === 'Kos' ? 'KOS' : 'TETAP');
                         const isVerified = !w.statusVerifikasi || w.statusVerifikasi === 'TERVERIFIKASI';
                         const isPending = w.statusVerifikasi === 'MENUNGGU_VERIFIKASI';
@@ -1710,7 +1731,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </td>
                           </tr>
                         );
-                      })}
+                      });
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -1774,14 +1796,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {keluargaList
-                  .filter((k) => {
+                {(() => {
+                  const filteredKeluarga = keluargaList.filter((k) => {
                     if (kkVerificationFilter === 'MENUNGGU') return k.statusVerifikasi === 'MENUNGGU_VERIFIKASI';
                     if (kkVerificationFilter === 'TERVERIFIKASI') return !k.statusVerifikasi || k.statusVerifikasi === 'TERVERIFIKASI';
                     if (kkVerificationFilter === 'DITOLAK') return k.statusVerifikasi === 'DITOLAK';
                     return true;
-                  })
-                  .map((k) => {
+                  });
+
+                  if (filteredKeluarga.length === 0) {
+                    return (
+                      <div className="col-span-full bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 text-center">
+                        <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                        <p className="font-semibold text-sm text-slate-600">Belum ada data Kartu Keluarga (KK) terdaftar</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Database Google Sheets saat ini tidak memiliki baris data KK aktif.</p>
+                      </div>
+                    );
+                  }
+
+                  return filteredKeluarga.map((k) => {
                   const members = wargaList.filter(
                     (w) => w.keluargaId === (k.keluargaId || k.id_kk) || w.no_kk === k.no_kk || w.nomorKK === k.no_kk
                   );
@@ -1888,7 +1921,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       )}
                     </div>
                   );
-                })}
+                });
+              })()}
               </div>
             </div>
           )}

@@ -162,9 +162,10 @@ export class WargaDashboardService {
 
     // 1. Fetch Profile Strictly for Current User
     const allWarga = ResidentFamilyService.getWargaList();
+    const isProd = getProductionConfig().appEnv === 'production';
     const rawWarga = allWarga.find(
       (w) => w.id_warga === userId || w.wargaId === userId || w.nik === userId || (authContext.nomorKK && (w.no_kk === authContext.nomorKK || w.nomorKK === authContext.nomorKK)) || (authContext.keluargaId && w.keluargaId === authContext.keluargaId)
-    ) || INITIAL_WARGA.find((w) => w.id_warga === userId);
+    ) || (isProd ? undefined : INITIAL_WARGA.find((w) => w.id_warga === userId));
 
     if (!rawWarga) {
       throw new SecurityAuthorizationError(
@@ -178,7 +179,7 @@ export class WargaDashboardService {
       (k) => (rawWarga.keluargaId && (k.keluargaId === rawWarga.keluargaId || k.id_kk === rawWarga.keluargaId)) ||
              k.no_kk === (rawWarga.nomorKK || rawWarga.no_kk) ||
              k.nomorKK === (rawWarga.nomorKK || rawWarga.no_kk)
-    ) || INITIAL_KELUARGA.find((k) => k.no_kk === rawWarga.no_kk);
+    ) || (isProd ? undefined : INITIAL_KELUARGA.find((k) => k.no_kk === rawWarga.no_kk));
 
     const familyMembers = rawKk ? ResidentFamilyService.getAnggotaKeluarga(rawKk.keluargaId || rawKk.id_kk, rawKk.no_kk || rawKk.nomorKK) : [];
 
@@ -226,7 +227,6 @@ export class WargaDashboardService {
       .reduce((sum, inv) => sum + (inv.nominal - inv.paidAmount), 0);
 
     // 4. Fetch Letters Strictly for Current User
-    const isProd = getProductionConfig().appEnv === 'production';
     const userLetters = isProd ? [] : INITIAL_SURAT.filter((s) => s.id_warga === userId || s.nama_pemohon.includes(rawWarga.nama_lengkap.split(' ')[0]));
     const fallbackLetters = userLetters.length > 0 ? userLetters : (isProd ? [] : [
       {

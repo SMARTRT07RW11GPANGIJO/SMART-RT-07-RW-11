@@ -18,7 +18,7 @@ import {
   MessageSquare,
   Bot
 } from 'lucide-react';
-import { Pengumuman, AgendaKegiatan, TransaksiKeuangan } from '../types/rt';
+import { Pengumuman, AgendaKegiatan, TransaksiKeuangan, Warga, Keluarga } from '../types/rt';
 import { WhatsAppBotSimulator } from './WhatsAppBotSimulator';
 
 interface LandingProps {
@@ -29,6 +29,8 @@ interface LandingProps {
   announcements: Pengumuman[];
   agendas: AgendaKegiatan[];
   transactions: TransaksiKeuangan[];
+  wargaList?: Warga[];
+  keluargaList?: Keluarga[];
 }
 
 export const LandingPage: React.FC<LandingProps> = ({
@@ -38,7 +40,9 @@ export const LandingPage: React.FC<LandingProps> = ({
   openLoginModal,
   announcements,
   agendas,
-  transactions
+  transactions,
+  wargaList = [],
+  keluargaList = []
 }) => {
 
   const totalPemasukan = transactions
@@ -49,7 +53,7 @@ export const LandingPage: React.FC<LandingProps> = ({
     .filter((t) => t.jenis === 'Pengeluaran')
     .reduce((acc, curr) => acc + curr.pengeluaran, 0);
 
-  const saldoKas = transactions.length > 0 ? transactions[transactions.length - 1].saldo_berjalan : 18780000;
+  const saldoKas = transactions.length > 0 ? transactions[transactions.length - 1].saldo_berjalan : 0;
 
   return (
     <div className="space-y-16 pb-12">
@@ -98,12 +102,16 @@ export const LandingPage: React.FC<LandingProps> = ({
             {/* Quick Metrics Badge */}
             <div className="pt-6 border-t border-slate-700/60 grid grid-cols-3 gap-4 max-w-lg mx-auto lg:mx-0 text-center lg:text-left">
               <div>
-                <span className="block text-2xl font-black text-[#D4A72C]">45 KK</span>
+                <span className="block text-2xl font-black text-[#D4A72C]">
+                  {keluargaList.length > 0 ? `${keluargaList.length} KK` : '0 KK'}
+                </span>
                 <span className="text-[11px] text-slate-400 font-medium">Keluarga Terdaftar</span>
               </div>
               <div>
-                <span className="block text-2xl font-black text-[#2E7D52]">180+</span>
-                <span className="text-[11px] text-slate-400 font-medium">Jiwa Warga RT 07</span>
+                <span className="block text-2xl font-black text-[#2E7D52]">
+                  {wargaList.length > 0 ? `${wargaList.length} Jiwa` : '0 Jiwa'}
+                </span>
+                <span className="text-[11px] text-slate-400 font-medium">Warga RT 07</span>
               </div>
               <div>
                 <span className="block text-2xl font-black text-[#D4A72C]">24/7</span>

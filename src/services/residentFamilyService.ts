@@ -27,6 +27,16 @@ export class ResidentFamilyService {
 
   // Load from persistent local storage or fallback to fixture
   public static loadInitialWarga(): Warga[] {
+    if (getProductionConfig().appEnv === 'production') {
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.removeItem(STORAGE_KEY_WARGA);
+        } catch (e) {
+          console.warn('Failed to clean stored warga cache in production', e);
+        }
+      }
+      return [];
+    }
     if (typeof localStorage !== 'undefined') {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_WARGA);
@@ -40,13 +50,20 @@ export class ResidentFamilyService {
         console.warn('Failed to parse stored warga, fallback to initial', e);
       }
     }
-    if (getProductionConfig().appEnv === 'production') {
-      return [];
-    }
     return [...INITIAL_WARGA];
   }
 
   public static loadInitialKeluarga(): Keluarga[] {
+    if (getProductionConfig().appEnv === 'production') {
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.removeItem(STORAGE_KEY_KELUARGA);
+        } catch (e) {
+          console.warn('Failed to clean stored keluarga cache in production', e);
+        }
+      }
+      return [];
+    }
     if (typeof localStorage !== 'undefined') {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_KELUARGA);
@@ -60,13 +77,20 @@ export class ResidentFamilyService {
         console.warn('Failed to parse stored keluarga, fallback to initial', e);
       }
     }
-    if (getProductionConfig().appEnv === 'production') {
-      return [];
-    }
     return [...INITIAL_KELUARGA];
   }
 
   public static loadInitialPemilik(): PemilikRumah[] {
+    if (getProductionConfig().appEnv === 'production') {
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.removeItem(STORAGE_KEY_PEMILIK);
+        } catch (e) {
+          console.warn('Failed to clean stored pemilik cache in production', e);
+        }
+      }
+      return [];
+    }
     if (typeof localStorage !== 'undefined') {
       try {
         const raw = localStorage.getItem(STORAGE_KEY_PEMILIK);
@@ -79,9 +103,6 @@ export class ResidentFamilyService {
       } catch (e) {
         console.warn('Failed to parse stored pemilik, fallback to initial', e);
       }
-    }
-    if (getProductionConfig().appEnv === 'production') {
-      return [];
     }
     return [...INITIAL_PEMILIK_RUMAH];
   }

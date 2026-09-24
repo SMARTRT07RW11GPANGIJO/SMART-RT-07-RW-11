@@ -313,6 +313,8 @@ export default function App() {
             announcements={pengumumanList}
             agendas={agendaList}
             transactions={transaksiList}
+            wargaList={wargaList}
+            keluargaList={keluargaList}
           />
         )}
 

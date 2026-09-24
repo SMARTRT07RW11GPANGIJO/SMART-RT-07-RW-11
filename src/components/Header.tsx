@@ -142,18 +142,6 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              onClick={() => handleNavClick('ai-chat')}
-              className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
-                currentTab === 'ai-chat' 
-                  ? 'bg-[#2E7D52] text-white shadow-sm border border-[#D4A72C]' 
-                  : 'text-[#E9D8B4] bg-[#0A2338] hover:bg-[#2E7D52] hover:text-white border border-[#D4A72C]/40'
-              }`}
-            >
-              <Bot className="w-4 h-4 text-[#D4A72C]" />
-              AI CHAT (8G)
-            </button>
-
-            <button
               onClick={() => handleNavClick('dashboard')}
               className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                 currentTab === 'dashboard' 
@@ -162,276 +150,6 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               PORTAL DASHBOARD
-            </button>
-
-            <button
-              onClick={() => handleNavClick('fasilitas')}
-              className={`px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${
-                currentTab === 'fasilitas' || currentTab === 'gis'
-                  ? 'bg-[#2E7D52] text-white shadow-sm border border-[#D4A72C]' 
-                  : 'text-emerald-100 bg-[#0E3554] hover:bg-[#2E7D52] hover:text-white border border-emerald-400/40'
-              }`}
-            >
-              🗺️ FASILITAS & GIS
-            </button>
-
-            {openOmplonganModal && (
-              <button
-                onClick={openOmplonganModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-[#C62828] via-[#123B5D] to-[#2E7D52] hover:from-[#A32020] hover:to-[#236340] text-white border border-[#D4A72C]/60 transition-all flex items-center gap-1.5 shadow-md transform hover:scale-[1.02]"
-              >
-                🇮🇩 OMPLONGAN AGUSTUSAN
-              </button>
-            )}
-
-            {openDeathFundModal && (
-              <button
-                onClick={openDeathFundModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-teal-800 to-emerald-900 hover:from-teal-700 hover:to-emerald-800 text-teal-100 border border-teal-400/60 transition-all flex items-center gap-1.5 shadow-md transform hover:scale-[1.02]"
-              >
-                🕊️ DANA KEMATIAN
-              </button>
-            )}
-
-            {openGoogleSheetsModal && (
-              <button
-                onClick={openGoogleSheetsModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-emerald-800/90 hover:bg-emerald-700 text-emerald-100 border border-emerald-400/60 transition-all flex items-center gap-1.5 shadow"
-              >
-                📊 GOOGLE SHEETS
-              </button>
-            )}
-
-            {openFinanceModal && (
-              <button
-                onClick={openFinanceModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#D4A72C]/30 hover:bg-[#D4A72C]/40 text-[#D4A72C] border border-[#D4A72C]/60 transition-all flex items-center gap-1.5 shadow"
-              >
-                💰 KEUANGAN RT
-              </button>
-            )}
-
-            {openTataTertibModal && (
-              <button
-                onClick={openTataTertibModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 border border-emerald-400/50 transition-all flex items-center gap-1.5 shadow"
-              >
-                📜 TATA TERTIB
-              </button>
-            )}
-
-            <button
-              onClick={() => handleNavClick('verify')}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                currentTab === 'verify' 
-                  ? 'bg-[#2E7D52] text-white shadow-sm' 
-                  : 'text-slate-200 hover:bg-white/10 hover:text-white'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-[#D4A72C]" />
-              VERIFIKASI SURAT
-            </button>
-
-            <button
-              onClick={openArchiveModal}
-              className="px-3 py-2 rounded-lg text-sm font-semibold bg-blue-900/60 hover:bg-blue-800 text-blue-200 border border-blue-400/40 transition-all flex items-center gap-1.5"
-            >
-              <FileText className="w-4 h-4 text-emerald-400" />
-              ARSIP SURAT (TAHAP 5)
-            </button>
-
-            <button
-              onClick={openWaModal}
-              className="px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-700/80 hover:bg-emerald-600 text-white border border-emerald-400/50 shadow transition-all flex items-center gap-1.5"
-            >
-              <MessageSquare className="w-4 h-4 text-emerald-300" />
-              WA BOT (TAHAP 4)
-            </button>
-
-            {openSecurityModal && (
-              <button
-                onClick={openSecurityModal}
-                className="px-3 py-2 rounded-lg text-sm font-semibold bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-400/50 shadow transition-all flex items-center gap-1.5"
-              >
-                <ShieldCheck className="w-4 h-4 text-purple-300" />
-                SECURITY & BACKUP
-              </button>
-            )}
-
-            {openSystemModal && currentRole === 'ADMIN' && (
-              <button
-                onClick={openSystemModal}
-                className="px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-400/50 shadow transition-all flex items-center gap-1.5"
-              >
-                <Server className="w-4 h-4 text-emerald-300" />
-                SYSTEM CONFIG (7B)
-              </button>
-            )}
-
-            {openMonitorModal && (
-              <button
-                onClick={openMonitorModal}
-                className="px-3 py-2 rounded-lg text-sm font-semibold bg-amber-900/80 hover:bg-amber-800 text-amber-200 border border-amber-400/50 shadow transition-all flex items-center gap-1.5 animate-pulse"
-              >
-                <Activity className="w-4 h-4 text-amber-300" />
-                24H MONITOR (7H)
-              </button>
-            )}
-
-            {openAiPermissionsModal && (
-              <button
-                onClick={openAiPermissionsModal}
-                className="px-3 py-2 rounded-lg text-sm font-semibold bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-400/50 shadow transition-all flex items-center gap-1.5"
-              >
-                <ShieldCheck className="w-4 h-4 text-purple-300" />
-                AI PERMISSIONS (8A)
-              </button>
-            )}
-
-            {openAiToolsModal && (
-              <button
-                onClick={openAiToolsModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-blue-700 hover:bg-blue-600 text-white border border-blue-400/50 shadow transition-all flex items-center gap-1.5"
-              >
-                <Bot className="w-4 h-4 text-blue-200" />
-                AI TOOLS & AUTOMATION (8I)
-              </button>
-            )}
-
-            {openAiAuditModal && (
-              <button
-                onClick={openAiAuditModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-indigo-700 hover:bg-indigo-600 text-white border border-indigo-400/50 shadow transition-all flex items-center gap-1.5"
-              >
-                <Activity className="w-4 h-4 text-indigo-200" />
-                AI AUDIT & ANALYTICS (8J)
-              </button>
-            )}
-
-            {openAiEvalModal && (
-              <button
-                onClick={openAiEvalModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-purple-700 hover:bg-purple-600 text-white border border-purple-400/50 shadow transition-all flex items-center gap-1.5"
-              >
-                <Award className="w-4 h-4 text-purple-200" />
-                AI EVALUATION (8L)
-              </button>
-            )}
-
-            {openAiProductionModal && (
-              <button
-                onClick={openAiProductionModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 shadow transition-all flex items-center gap-1.5"
-              >
-                <Server className="w-4 h-4 text-emerald-400" />
-                AI PRODUCTION (8M)
-              </button>
-            )}
-
-            {openProductionMonitoringModal && (
-              <button
-                onClick={openProductionMonitoringModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#0D2A4A]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
-              >
-                <Activity className="w-4 h-4 text-[#C89A2B] animate-pulse" />
-                PROD MONITORING (9A)
-              </button>
-            )}
-
-            {openProductionAlertsModal && (
-              <button
-                onClick={openProductionAlertsModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#5A1E1B] hover:bg-[#5A1E1B]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
-              >
-                <Bell className="w-4 h-4 text-[#C89A2B] animate-bounce" />
-                PROD ALERTS (9B)
-              </button>
-            )}
-
-            {openBackupVerificationModal && (
-              <button
-                onClick={openBackupVerificationModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#0D2A4A]/80 text-white border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                BACKUP VERIFY (9C)
-              </button>
-            )}
-
-            {openDisasterRecoveryModal && (
-              <button
-                onClick={openDisasterRecoveryModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#5A1E1B] hover:bg-[#5A1E1B]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
-              >
-                <Flame className="w-4 h-4 text-rose-400 animate-pulse" />
-                DR DRILL (9D)
-              </button>
-            )}
-
-            {openSecurityOpsModal && (
-              <button
-                onClick={openSecurityOpsModal}
-                className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#0D2A4A]/80 text-[#E9D8B4] border border-[#C89A2B]/60 shadow-lg transition-all flex items-center gap-1.5"
-              >
-                <Lock className="w-4 h-4 text-indigo-400" />
-                SEC OPS (9E)
-              </button>
-            )}
-
-            <button
-              onClick={() => openContinuousEvalModal ? openContinuousEvalModal() : setTab('ai-continuous-eval')}
-              className="px-3 py-2 rounded-lg text-sm font-bold bg-indigo-950 hover:bg-indigo-900 text-indigo-200 border border-indigo-500/50 shadow-lg transition-all flex items-center gap-1.5"
-            >
-              <Activity className="w-4 h-4 text-indigo-400" />
-              AI EVAL 9F
-            </button>
-
-            <button
-              onClick={() => setTab('ai-knowledge-9g')}
-              className="px-3 py-2 rounded-lg text-sm font-bold bg-blue-950 hover:bg-blue-900 text-blue-200 border border-blue-500/50 shadow-lg transition-all flex items-center gap-1.5"
-            >
-              <BookOpen className="w-4 h-4 text-blue-400" />
-              KM 9G
-            </button>
-
-            <button
-              onClick={() => setTab('ai-feedback-9h')}
-              className="px-3 py-2 rounded-lg text-sm font-bold bg-amber-950 hover:bg-amber-900 text-amber-200 border border-amber-500/50 shadow-lg transition-all flex items-center gap-1.5"
-            >
-              <MessageSquare className="w-4 h-4 text-amber-400" />
-              FEEDBACK 9H
-            </button>
-
-            <button
-              onClick={() => setTab('control-center-9j')}
-              className="px-3 py-2 rounded-lg text-sm font-bold bg-emerald-950 hover:bg-emerald-900 text-emerald-200 border border-emerald-500/50 shadow-lg transition-all flex items-center gap-1.5"
-            >
-              <Terminal className="w-4 h-4 text-emerald-400" />
-              CONTROL 9J
-            </button>
-
-            <button
-              onClick={() => setTab('system-docs-9k')}
-              className="px-3 py-2 rounded-lg text-sm font-bold bg-[#0D2A4A] hover:bg-[#1E3A5F] text-emerald-300 border border-emerald-400/60 shadow-lg transition-all flex items-center gap-1.5"
-            >
-              <BookOpen className="w-4 h-4 text-emerald-400" />
-              SYSTEM DOCS 9K
-            </button>
-
-            <button
-              onClick={() => setTab('system-training-9l')}
-              className="px-3 py-2 rounded-lg text-sm font-bold bg-[#122E1F] hover:bg-[#1C452F] text-emerald-300 border border-emerald-400/60 shadow-lg transition-all flex items-center gap-1.5"
-            >
-              <GraduationCap className="w-4 h-4 text-emerald-400" />
-              TRAINING 9L
-            </button>
-
-            <button
-              onClick={() => setTab('official-launch-9m')}
-              className="px-3 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-emerald-900 to-slate-900 hover:from-emerald-800 hover:to-slate-800 text-emerald-300 border border-emerald-400 shadow-xl transition-all flex items-center gap-1.5"
-            >
-              <Rocket className="w-4 h-4 text-emerald-400 animate-pulse" />
-              LAUNCH 2.0
             </button>
           </nav>
 
@@ -501,10 +219,19 @@ export const Header: React.FC<HeaderProps> = ({
                 <button onClick={() => setRole('ADMIN')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='ADMIN'?'text-[#2E7D52] font-bold':''}`}>ADMIN RT (Full Access)</button>
               </div>
             </div>
+
+            {/* Hamburger button for Desktop & Tablet */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10 border border-slate-700 ml-1"
+              title="Menu Navigasi Lengkap"
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5 text-[#D4A72C]" />}
+            </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex lg:hidden items-center gap-2">
+          {/* Mobile Menu Button (< sm) */}
+          <div className="flex sm:hidden items-center gap-2">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg text-slate-200 hover:text-white hover:bg-white/10"
@@ -515,72 +242,158 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Role-Based Navigation Drawer (Desktop & Mobile) */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#0A2338] border-b border-slate-700 px-4 pt-2 pb-6 space-y-3">
-          <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-800">
-            <button
-              onClick={() => handleNavClick('landing')}
-              className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'landing' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300'}`}
-            >
-              HOME
-            </button>
-            <button
-              onClick={() => handleNavClick('dashboard')}
-              className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'dashboard' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300'}`}
-            >
-              PORTAL DASHBOARD
-            </button>
-            <button
-              onClick={() => handleNavClick('fasilitas')}
-              className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'fasilitas' || currentTab === 'gis' ? 'bg-[#2E7D52] text-white' : 'bg-emerald-950 text-emerald-200 border border-emerald-500/40'}`}
-            >
-              🗺️ FASILITAS & GIS
-            </button>
-            <button
-              onClick={() => handleNavClick('verify')}
-              className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'verify' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300'}`}
-            >
-              VERIFIKASI SURAT
-            </button>
-            <button
-              onClick={() => { openWaModal(); setMobileMenuOpen(false); }}
-              className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-700 text-white flex items-center justify-center gap-1"
-            >
-              <MessageSquare className="w-3.5 h-3.5" /> WA BOT
-            </button>
-            {openOmplonganModal && (
+        <div className="bg-[#0A2338] border-b border-slate-700 px-4 sm:px-8 pt-3 pb-6 space-y-4 shadow-2xl animate-fadeIn">
+          {/* Section 1: Modul Utama & Layanan Publik */}
+          <div>
+            <span className="text-[10px] font-bold tracking-wider uppercase text-slate-400 block mb-2">
+              Layanan Warga & Lingkungan RT 07
+            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
               <button
-                onClick={() => { openOmplonganModal(); setMobileMenuOpen(false); }}
-                className="col-span-1 px-3 py-2 rounded-lg text-xs font-bold text-center bg-gradient-to-r from-[#C62828] via-[#123B5D] to-[#2E7D52] text-white border border-[#D4A72C]/60 shadow"
+                onClick={() => handleNavClick('landing')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'landing' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
               >
-                🇮🇩 OMPLONGAN
+                HOME
               </button>
-            )}
-            {openDeathFundModal && (
               <button
-                onClick={() => { openDeathFundModal(); setMobileMenuOpen(false); }}
-                className="col-span-1 px-3 py-2 rounded-lg text-xs font-bold text-center bg-gradient-to-r from-teal-800 to-emerald-900 text-teal-100 border border-teal-400/60 shadow"
+                onClick={() => handleNavClick('dashboard')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'dashboard' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
               >
-                🕊️ DANA KEMATIAN
+                PORTAL DASHBOARD
               </button>
-            )}
-            {openGoogleSheetsModal && (
               <button
-                onClick={() => { openGoogleSheetsModal(); setMobileMenuOpen(false); }}
-                className="col-span-1 px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-800 text-emerald-100 border border-emerald-400/60 shadow flex items-center justify-center gap-1"
+                onClick={() => handleNavClick('fasilitas')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'fasilitas' || currentTab === 'gis' ? 'bg-[#2E7D52] text-white' : 'bg-emerald-950 text-emerald-200 border border-emerald-500/40 hover:bg-emerald-900'}`}
               >
-                <FileSpreadsheet className="w-3.5 h-3.5" /> SHEETS
+                🗺️ FASILITAS & GIS
               </button>
-            )}
-            {openTataTertibModal && (
               <button
-                onClick={() => { openTataTertibModal(); setMobileMenuOpen(false); }}
-                className="col-span-1 px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-900/90 text-emerald-200 border border-emerald-400/50 shadow flex items-center justify-center gap-1"
+                onClick={() => handleNavClick('verify')}
+                className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'verify' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
               >
-                📜 TATA TERTIB
+                <ShieldCheck className="w-3.5 h-3.5 inline mr-1 text-[#D4A72C]" /> VERIFIKASI SURAT
               </button>
-            )}
+              <button
+                onClick={() => { openWaModal(); setMobileMenuOpen(false); }}
+                className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-700 text-white hover:bg-emerald-600 flex items-center justify-center gap-1"
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> WA BOT
+              </button>
+              {openTataTertibModal && (
+                <button
+                  onClick={() => { openTataTertibModal(); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-900/90 text-emerald-200 border border-emerald-400/50 hover:bg-emerald-800 flex items-center justify-center gap-1 shadow"
+                >
+                  📜 TATA TERTIB
+                </button>
+              )}
+              {openDeathFundModal && (
+                <button
+                  onClick={() => { openDeathFundModal(); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-gradient-to-r from-teal-800 to-emerald-900 text-teal-100 border border-teal-400/60 hover:from-teal-700 shadow"
+                >
+                  🕊️ DANA KEMATIAN
+                </button>
+              )}
+              {openOmplonganModal && (
+                <button
+                  onClick={() => { openOmplonganModal(); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-gradient-to-r from-[#C62828] via-[#123B5D] to-[#2E7D52] text-white border border-[#D4A72C]/60 hover:brightness-110 shadow"
+                >
+                  🇮🇩 OMPLONGAN
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Section 2: Panel Pengurus RT & Admin (Role-Based) */}
+          {(currentRole === 'PENGURUS' || currentRole === 'KETUA_RT' || currentRole === 'ADMIN') && (
+            <div className="pt-2 border-t border-slate-800">
+              <span className="text-[10px] font-bold tracking-wider uppercase text-amber-400 block mb-2">
+                Panel Pengurus RT & Administrasi (Role: {currentRole})
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                {openGoogleSheetsModal && (
+                  <button
+                    onClick={() => { openGoogleSheetsModal(); setMobileMenuOpen(false); }}
+                    className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-800 text-emerald-100 border border-emerald-400/60 shadow hover:bg-emerald-700 flex items-center justify-center gap-1"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-300" /> GOOGLE SHEETS
+                  </button>
+                )}
+                {openFinanceModal && (
+                  <button
+                    onClick={() => { openFinanceModal(); setMobileMenuOpen(false); }}
+                    className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#D4A72C]/30 text-[#D4A72C] border border-[#D4A72C]/60 hover:bg-[#D4A72C]/40 shadow flex items-center justify-center gap-1"
+                  >
+                    💰 KEUANGAN RT
+                  </button>
+                )}
+                <button
+                  onClick={() => { openArchiveModal(); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-blue-900/70 text-blue-200 border border-blue-400/40 hover:bg-blue-800 flex items-center justify-center gap-1"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-300" /> ARSIP SURAT
+                </button>
+                {openSecurityOpsModal && (
+                  <button
+                    onClick={() => { openSecurityOpsModal(); setMobileMenuOpen(false); }}
+                    className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#0D2A4A] text-[#E9D8B4] border border-[#C89A2B]/60 hover:bg-[#1E3A5F] flex items-center justify-center gap-1"
+                  >
+                    <Lock className="w-3.5 h-3.5 text-indigo-400" /> SEC OPS
+                  </button>
+                )}
+                {openDisasterRecoveryModal && (
+                  <button
+                    onClick={() => { openDisasterRecoveryModal(); setMobileMenuOpen(false); }}
+                    className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#5A1E1B] text-[#E9D8B4] border border-[#C89A2B]/60 hover:bg-[#7A2824] flex items-center justify-center gap-1"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-rose-400" /> DR DRILL
+                  </button>
+                )}
+                {openBackupVerificationModal && (
+                  <button
+                    onClick={() => { openBackupVerificationModal(); setMobileMenuOpen(false); }}
+                    className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#0D2A4A] text-white border border-[#C89A2B]/60 hover:bg-[#1E3A5F] flex items-center justify-center gap-1"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> BACKUP VERIFY
+                  </button>
+                )}
+                <button
+                  onClick={() => { setTab('control-center-9j'); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-950 text-emerald-200 border border-emerald-500/50 hover:bg-emerald-900 flex items-center justify-center gap-1"
+                >
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400" /> CONTROL CENTER
+                </button>
+                <button
+                  onClick={() => { setTab('system-docs-9k'); setMobileMenuOpen(false); }}
+                  className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#0D2A4A] text-emerald-300 border border-emerald-400/60 hover:bg-[#1E3A5F] flex items-center justify-center gap-1"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-400" /> DOKUMENTASI
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Action Buttons */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-800">
+            <button
+              onClick={() => { openLetterModal(); setMobileMenuOpen(false); }}
+              className="w-full bg-[#2E7D52] hover:bg-[#236340] text-white font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              AJUKAN SURAT PENGANTAR
+            </button>
+
+            <button
+              onClick={() => { openComplaintModal(); setMobileMenuOpen(false); }}
+              className="w-full bg-[#C62828] hover:bg-[#A32020] text-white font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2"
+            >
+              <HelpCircle className="w-4 h-4" />
+              KIRIM PENGADUAN WARGA
+            </button>
           </div>
 
           {/* Mobile Login / User Profile */}

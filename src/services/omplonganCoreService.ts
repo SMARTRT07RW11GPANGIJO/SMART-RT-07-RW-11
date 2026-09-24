@@ -27,6 +27,8 @@ import { AuthoritativeSessionContext, validateSessionContext } from '../security
 import { SecurityAuthorizationError } from '../security/securityErrors';
 import { waServiceInstance } from './whatsappService';
 import { INITIAL_WARGA } from '../data/mockData';
+import { ResidentFamilyService } from './residentFamilyService';
+import { getProductionConfig } from './productionConfigService';
 
 // Storage Keys
 const STORAGE_KEY_KEGIATAN = 'SMART_RT_OMPLONGAN_KEGIATAN_V1';
@@ -963,8 +965,20 @@ export class OmplonganCoreService {
     const totalTransaksi = items.filter((i) => i.nominal > 0).length;
     const rataRataNominal = totalTransaksi > 0 ? Math.round(totalTerkumpul / totalTransaksi) : 0;
 
+    const isProd = getProductionConfig().appEnv === 'production';
+    let wargaCount = 0;
+    try {
+      const liveWarga = ResidentFamilyService.getWargaList();
+      wargaCount = liveWarga.length;
+      if (wargaCount === 0 && !isProd) {
+        wargaCount = INITIAL_WARGA.length || 85;
+      }
+    } catch {
+      wargaCount = isProd ? 0 : (INITIAL_WARGA.length || 85);
+    }
+
     return {
-      totalWarga: INITIAL_WARGA.length || 85,
+      totalWarga: wargaCount,
       totalTarget,
       totalTerkumpul,
       totalPengeluaran,
@@ -985,11 +999,23 @@ export class OmplonganCoreService {
     const items = this.getStoredItems();
     const activeKegiatan = this.getActiveKegiatan();
     const targetPerKK = activeKegiatan.targetPerKeluarga || 100000;
+    const isProd = getProductionConfig().appEnv === 'production';
+
+    let baseWargaList: any[] = [];
+    try {
+      baseWargaList = ResidentFamilyService.getWargaList();
+      if ((!baseWargaList || baseWargaList.length === 0) && !isProd) {
+        baseWargaList = [...INITIAL_WARGA];
+      }
+    } catch {
+      baseWargaList = isProd ? [] : [...INITIAL_WARGA];
+    }
+    baseWargaList = baseWargaList || [];
 
     // If role is WARGA, strictly enforce data minimization (IDOR Protection)
     const allowedWargaList = session.role === 'WARGA'
-      ? INITIAL_WARGA.filter((w) => w.id_warga === session.userId || w.nik === session.userId)
-      : INITIAL_WARGA;
+      ? baseWargaList.filter((w) => w.id_warga === session.userId || w.nik === session.userId)
+      : baseWargaList;
 
     const rekap: OmplonganRekapWarga[] = allowedWargaList.map((w) => {
       const wargaItems = items.filter((i) => i.wargaId === w.id_warga || i.namaWarga.toLowerCase().includes(w.nama_lengkap.toLowerCase()));

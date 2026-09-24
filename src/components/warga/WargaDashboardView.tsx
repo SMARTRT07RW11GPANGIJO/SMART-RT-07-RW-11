@@ -544,56 +544,64 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
         </div>
 
         {/* Invoices List */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {invoices.map((inv) => (
-            <div
-              key={inv.id}
-              className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
-                inv.status === 'LUNAS'
-                  ? 'bg-emerald-50/40 border-emerald-200'
-                  : 'bg-amber-50/40 border-amber-200 hover:shadow-sm'
-              }`}
-            >
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    {inv.periode}
-                  </span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      inv.status === 'LUNAS'
-                        ? 'bg-emerald-100 text-[#2E7D52] border border-emerald-300'
-                        : 'bg-amber-100 text-amber-800 border border-amber-300'
-                    }`}
-                  >
-                    {inv.status === 'LUNAS' ? '🟢 LUNAS' : '🟡 BELUM BAYAR'}
-                  </span>
+        {invoices.length === 0 ? (
+          <div className="bg-slate-50 p-6 rounded-2xl border border-dashed border-slate-300 text-center">
+            <Wallet className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+            <p className="font-semibold text-xs text-slate-600">Tidak ada tagihan aktif</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Semua kewajiban iuran Anda telah lunas atau belum diterbitkan tagihan baru.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {invoices.map((inv) => (
+              <div
+                key={inv.id}
+                className={`p-4 rounded-2xl border transition-all flex flex-col justify-between space-y-3 ${
+                  inv.status === 'LUNAS'
+                    ? 'bg-emerald-50/40 border-emerald-200'
+                    : 'bg-amber-50/40 border-amber-200 hover:shadow-sm'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      {inv.periode}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        inv.status === 'LUNAS'
+                          ? 'bg-emerald-100 text-[#2E7D52] border border-emerald-300'
+                          : 'bg-amber-100 text-amber-800 border border-amber-300'
+                      }`}
+                    >
+                      {inv.status === 'LUNAS' ? '🟢 LUNAS' : '🟡 BELUM BAYAR'}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-xs text-slate-800">{inv.title}</h4>
+                  <p className="text-[11px] text-slate-500">{inv.description}</p>
                 </div>
-                <h4 className="font-bold text-xs text-slate-800">{inv.title}</h4>
-                <p className="text-[11px] text-slate-500">{inv.description}</p>
-              </div>
 
-              <div className="flex items-center justify-between border-t border-slate-200/60 pt-2 text-xs">
-                <span className="font-black text-slate-800">
-                  Rp {inv.nominal.toLocaleString('id-ID')}
-                </span>
-
-                {inv.status !== 'LUNAS' ? (
-                  <button
-                    onClick={() => setSelectedInvoice(inv)}
-                    className="bg-[#2E7D52] hover:bg-[#236340] text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs transition-all flex items-center gap-1"
-                  >
-                    <QrCode className="w-3.5 h-3.5" /> Bayar QRIS
-                  </button>
-                ) : (
-                  <span className="text-[10px] text-[#2E7D52] font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> {inv.paymentMethod || 'Lunas'}
+                <div className="flex items-center justify-between border-t border-slate-200/60 pt-2 text-xs">
+                  <span className="font-black text-slate-800">
+                    Rp {inv.nominal.toLocaleString('id-ID')}
                   </span>
-                )}
+
+                  {inv.status !== 'LUNAS' ? (
+                    <button
+                      onClick={() => setSelectedInvoice(inv)}
+                      className="bg-[#2E7D52] hover:bg-[#236340] text-white text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-xs transition-all flex items-center gap-1"
+                    >
+                      <QrCode className="w-3.5 h-3.5" /> Bayar QRIS
+                    </button>
+                  ) : (
+                    <span className="text-[10px] text-[#2E7D52] font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {inv.paymentMethod || 'Lunas'}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
           <span className="flex items-center gap-1">

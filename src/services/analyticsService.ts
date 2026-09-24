@@ -21,6 +21,7 @@ import { ResidentFamilyService } from './residentFamilyService';
 import { activityCalendarService } from './activityCalendarService';
 import { facilityService } from './facilityService';
 import { INITIAL_WARGA, INITIAL_KELUARGA, INITIAL_PENGADUAN, INITIAL_IURAN } from '../data/mockData';
+import { getProductionConfig } from './productionConfigService';
 
 export interface AnalyticsActorSession {
   userId: string;
@@ -122,26 +123,29 @@ export class AnalyticsService {
 
   // 1. Demografi Agregat
   public getDemographics(actor: AnalyticsActorSession): DemographicAnalytics {
+    const isProd = getProductionConfig().appEnv === 'production';
     // Read from ResidentFamilyService SSoT
     let wargaList: Warga[] = [];
     try {
       wargaList = ResidentFamilyService.getWargaList();
     } catch {
+      wargaList = isProd ? [] : [...INITIAL_WARGA];
+    }
+    if ((!wargaList || wargaList.length === 0) && !isProd) {
       wargaList = [...INITIAL_WARGA];
     }
-    if (!wargaList || wargaList.length === 0) {
-      wargaList = [...INITIAL_WARGA];
-    }
+    wargaList = wargaList || [];
 
     let keluargaList: Keluarga[] = [];
     try {
       keluargaList = ResidentFamilyService.getKeluargaList();
     } catch {
+      keluargaList = isProd ? [] : [...INITIAL_KELUARGA];
+    }
+    if ((!keluargaList || keluargaList.length === 0) && !isProd) {
       keluargaList = [...INITIAL_KELUARGA];
     }
-    if (!keluargaList || keluargaList.length === 0) {
-      keluargaList = [...INITIAL_KELUARGA];
-    }
+    keluargaList = keluargaList || [];
 
     const totalWarga = wargaList.length;
     const totalKK = keluargaList.length;
@@ -275,8 +279,8 @@ export class AnalyticsService {
       statusAktif: {
         aktif: totalWarga,
         nonAktif: 0,
-        baru: 3,
-        pindah: 1,
+        baru: isProd ? 0 : 3,
+        pindah: isProd ? 0 : 1,
         meninggal: 0
       },
       maritalStatus: maritalMap,
@@ -288,13 +292,15 @@ export class AnalyticsService {
 
   // 2. Status Hunian
   public getHousingAnalytics(actor: AnalyticsActorSession): HousingAnalytics {
+    const isProd = getProductionConfig().appEnv === 'production';
     let wargaList: Warga[] = [];
     try {
       wargaList = ResidentFamilyService.getWargaList();
     } catch {
-      wargaList = [...INITIAL_WARGA];
+      wargaList = isProd ? [] : [...INITIAL_WARGA];
     }
-    if (!wargaList || wargaList.length === 0) wargaList = [...INITIAL_WARGA];
+    if ((!wargaList || wargaList.length === 0) && !isProd) wargaList = [...INITIAL_WARGA];
+    wargaList = wargaList || [];
 
     let pemilik = 0;
     let kontrak = 0;
@@ -340,12 +346,19 @@ export class AnalyticsService {
         total: blockMap[blok].total
       }));
 
-    const trends = [
-      { period: 'Jan-Feb', pemilik: Math.max(1, pemilik - 2), kontrak: Math.max(0, kontrak - 1), kos },
-      { period: 'Mar-Apr', pemilik: Math.max(1, pemilik - 1), kontrak, kos },
-      { period: 'Mei-Jun', pemilik, kontrak, kos },
-      { period: 'Jul-Ags', pemilik, kontrak, kos }
-    ];
+    const trends = totalHunian === 0
+      ? [
+          { period: 'Jan-Feb', pemilik: 0, kontrak: 0, kos: 0 },
+          { period: 'Mar-Apr', pemilik: 0, kontrak: 0, kos: 0 },
+          { period: 'Mei-Jun', pemilik: 0, kontrak: 0, kos: 0 },
+          { period: 'Jul-Ags', pemilik: 0, kontrak: 0, kos: 0 }
+        ]
+      : [
+          { period: 'Jan-Feb', pemilik: Math.max(1, pemilik - 2), kontrak: Math.max(0, kontrak - 1), kos },
+          { period: 'Mar-Apr', pemilik: Math.max(1, pemilik - 1), kontrak, kos },
+          { period: 'Mei-Jun', pemilik, kontrak, kos },
+          { period: 'Jul-Ags', pemilik, kontrak, kos }
+        ];
 
     return {
       pemilik,
@@ -362,21 +375,24 @@ export class AnalyticsService {
 
   // 3. Analitik Keluarga
   public getFamilyAnalytics(actor: AnalyticsActorSession): FamilyAnalytics {
+    const isProd = getProductionConfig().appEnv === 'production';
     let keluargaList: Keluarga[] = [];
     try {
       keluargaList = ResidentFamilyService.getKeluargaList();
     } catch {
-      keluargaList = [...INITIAL_KELUARGA];
+      keluargaList = isProd ? [] : [...INITIAL_KELUARGA];
     }
-    if (!keluargaList || keluargaList.length === 0) keluargaList = [...INITIAL_KELUARGA];
+    if ((!keluargaList || keluargaList.length === 0) && !isProd) keluargaList = [...INITIAL_KELUARGA];
+    keluargaList = keluargaList || [];
 
     let wargaList: Warga[] = [];
     try {
       wargaList = ResidentFamilyService.getWargaList();
     } catch {
-      wargaList = [...INITIAL_WARGA];
+      wargaList = isProd ? [] : [...INITIAL_WARGA];
     }
-    if (!wargaList || wargaList.length === 0) wargaList = [...INITIAL_WARGA];
+    if ((!wargaList || wargaList.length === 0) && !isProd) wargaList = [...INITIAL_WARGA];
+    wargaList = wargaList || [];
 
     const totalKK = keluargaList.length;
     let sumMembers = 0;
@@ -436,21 +452,24 @@ export class AnalyticsService {
 
   // 4. Analitik Administrasi & Kelengkapan Data
   public getCompletenessAnalytics(actor: AnalyticsActorSession): AdminCompletenessAnalytics {
+    const isProd = getProductionConfig().appEnv === 'production';
     let wargaList: Warga[] = [];
     try {
       wargaList = ResidentFamilyService.getWargaList();
     } catch {
-      wargaList = [...INITIAL_WARGA];
+      wargaList = isProd ? [] : [...INITIAL_WARGA];
     }
-    if (!wargaList || wargaList.length === 0) wargaList = [...INITIAL_WARGA];
+    if ((!wargaList || wargaList.length === 0) && !isProd) wargaList = [...INITIAL_WARGA];
+    wargaList = wargaList || [];
 
     let keluargaList: Keluarga[] = [];
     try {
       keluargaList = ResidentFamilyService.getKeluargaList();
     } catch {
-      keluargaList = [...INITIAL_KELUARGA];
+      keluargaList = isProd ? [] : [...INITIAL_KELUARGA];
     }
-    if (!keluargaList || keluargaList.length === 0) keluargaList = [...INITIAL_KELUARGA];
+    if ((!keluargaList || keluargaList.length === 0) && !isProd) keluargaList = [...INITIAL_KELUARGA];
+    keluargaList = keluargaList || [];
 
     let wargaWithValidNIK = 0;
     let wargaWithValidPhone = 0;
@@ -959,6 +978,10 @@ export class AnalyticsService {
 
   // Seed default official report if storage is empty
   private seedDefaultReportsIfEmpty(): void {
+    const isProd = getProductionConfig().appEnv === 'production';
+    if (isProd) {
+      return;
+    }
     if (this.reports.length === 0) {
       const defaultActor: AnalyticsActorSession = {
         userId: 'KETUA-RT-01',
