@@ -160,7 +160,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-50 bg-[#123B5D] hover:bg-[#0A2338] text-white p-3.5 rounded-2xl shadow-2xl border-2 border-[#D4A72C] flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 group"
+          className="fixed bottom-20 right-4 lg:bottom-5 lg:right-5 z-50 bg-[#123B5D] hover:bg-[#0A2338] text-white p-3.5 rounded-2xl shadow-2xl border-2 border-[#D4A72C] flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 group"
         >
           <div className="relative">
             <div className="w-10 h-10 rounded-xl bg-[#2E7D52] flex items-center justify-center text-white border border-[#D4A72C]">

@@ -105,8 +105,8 @@ export default function App() {
   const [transaksiList, setTransaksiList] = useState<TransaksiKeuangan[]>(() => isProd ? [] : INITIAL_TRANSAKSI);
   const [iuranList, setIuranList] = useState<TagihanIuran[]>(() => isProd ? [] : INITIAL_IURAN);
   const [pengaduanList, setPengaduanList] = useState<Pengaduan[]>(() => isProd ? [] : INITIAL_PENGADUAN);
-  const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>(INITIAL_PENGUMUMAN);
-  const [agendaList, setAgendaList] = useState<AgendaKegiatan[]>(INITIAL_AGENDA);
+  const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>(() => isProd ? [] : INITIAL_PENGUMUMAN);
+  const [agendaList, setAgendaList] = useState<AgendaKegiatan[]>(() => isProd ? [] : INITIAL_AGENDA);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOG);
 
   // Tahap 5 Digital Documents State

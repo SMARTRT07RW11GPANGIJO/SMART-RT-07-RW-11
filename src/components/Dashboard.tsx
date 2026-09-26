@@ -171,6 +171,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIdCard, setSelectedIdCard] = useState<Pengurus | null>(null);
 
+  // Authoritative session integration for profile display
+  const currentSession = useMemo(() => {
+    return IdentityAuthService.getActiveSession();
+  }, []);
+
+  const loggedInWarga = useMemo(() => {
+    if (!currentSession) return null;
+    return wargaList.find(
+      (w) => w.id_warga === currentSession.userId || (currentSession.namaLengkap && w.nama_lengkap.toLowerCase() === currentSession.namaLengkap.toLowerCase())
+    );
+  }, [currentSession, wargaList]);
+
   // Form Modals State
   const [wargaModalOpen, setWargaModalOpen] = useState(false);
   const [kkModalOpen, setKkModalOpen] = useState(false);
@@ -545,7 +557,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="bg-amber-500 text-white px-4 py-2.5 text-xs font-bold flex items-center justify-between shadow-md max-w-5xl mx-auto rounded-2xl mt-4">
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4" />
-              <span>Simulasi Pratinjau: Tampilan Dashboard Warga v2.0</span>
+              <span>Simulasi Pratinjau: Portal Warga</span>
             </div>
             <button
               onClick={() => setActiveSubTab('overview')}
@@ -656,7 +668,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               onClick={() => setBackendCodeModalOpen(true)}
               className="bg-[#D4A72C]/20 hover:bg-[#D4A72C]/30 text-[#D4A72C] border border-[#D4A72C]/50 text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
             >
-              <Database className="w-3.5 h-3.5" /> Backend Kode Apps Script (Tahap 2)
+              <Database className="w-3.5 h-3.5" /> Integrasi Apps Script
             </button>
           </div>
         )}
@@ -668,12 +680,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Desktop Navigation Sidebar (Structured by Core Domains) */}
         <div className="hidden lg:block lg:col-span-3 space-y-4 bg-white p-4 rounded-3xl border border-slate-200 shadow-sm h-fit">
           
-          {/* Group 1: Data & Operasional Utama */}
-          <div className="space-y-1">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
-              🏛️ DATA & OPERASIONAL
-            </span>
-
+          {/* Overview Quick Link */}
+          <div>
             <button
               onClick={() => setActiveSubTab('overview')}
               className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
@@ -681,8 +689,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <LayoutDashboard className="w-4 h-4 text-[#D4A72C]" />
-              Overview Dashboard
+              <span>Overview Dashboard</span>
             </button>
+          </div>
+
+          {/* Group 1: WARGA */}
+          <div className="space-y-1 pt-2 border-t border-slate-100">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
+              👥 WARGA
+            </span>
 
             <button
               onClick={() => setActiveSubTab('warga')}
@@ -692,7 +707,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <Users className="w-4 h-4 text-[#2E7D52]" />
-                <span>Data Warga RT</span>
+                <span>Data Warga</span>
               </div>
               <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-black">
                 {wargaList.length}
@@ -713,6 +728,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 {keluargaList.length}
               </span>
             </button>
+
+            <button
+              onClick={() => setActiveSubTab('profil')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'profil' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <UserCheck className="w-4 h-4 text-emerald-600" />
+              <span>Profil Saya</span>
+            </button>
+          </div>
+
+          {/* Group 2: PELAYANAN */}
+          <div className="space-y-1 pt-2 border-t border-slate-100">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
+              📋 PELAYANAN
+            </span>
 
             <button
               onClick={() => setActiveSubTab('surat')}
@@ -749,70 +781,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </button>
 
             <button
-              onClick={() => setActiveSubTab('agenda')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-                activeSubTab === 'agenda' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
+              onClick={() => openTataTertibModal ? openTataTertibModal() : null}
+              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-xs"
             >
               <div className="flex items-center gap-2.5">
-                <Calendar className="w-4 h-4 text-[#2E7D52]" />
-                <span>Kalender Kegiatan RT</span>
+                <BookOpen className="w-4 h-4 text-emerald-700" />
+                <span>Tata Tertib Warga</span>
               </div>
-              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
-                v1.0
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('fasilitas')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-                activeSubTab === 'fasilitas' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <MapPin className="w-4 h-4 text-[#D4A72C]" />
-                <span>Fasilitas Lingkungan & GIS</span>
-              </div>
-              <span className="bg-[#123B5D] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
-                v1.0
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('analitik')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-                activeSubTab === 'analitik' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <TrendingUp className="w-4 h-4 text-[#D4A72C]" />
-                <span>Analitik & Laporan RT</span>
-              </div>
-              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
-                v1.0
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('prediksi')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-                activeSubTab === 'prediksi' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span>Prediksi Kebutuhan RT</span>
-              </div>
-              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
-                v1.0
+              <span className="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+                12 Bab
               </span>
             </button>
           </div>
 
-          {/* Group 2: Keuangan & Amanat Warga (Terisolasi) */}
+          {/* Group 3: KEUANGAN */}
           <div className="space-y-1 pt-2 border-t border-slate-100">
             <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
-              💰 KEUANGAN TERISOLASI
+              💰 KEUANGAN
             </span>
 
             <button
@@ -822,7 +807,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <Wallet className="w-4 h-4 text-[#2E7D52]" />
-              <span>Kas RT (Operasional)</span>
+              <span>Kas Operasional RT</span>
             </button>
 
             <button
@@ -833,7 +818,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               <div className="flex items-center gap-2.5">
                 <CreditCard className="w-4 h-4 text-emerald-600" />
-                <span>Iuran Bulanan Warga</span>
+                <span>Iuran Bulanan</span>
               </div>
               <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                 Rp 50rb
@@ -847,7 +832,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">🇮🇩</span>
-                  <span>Omplongan Agustusan</span>
+                  <span>Omplongan</span>
                 </div>
                 <span className="bg-red-500/30 border border-white/30 text-[9px] px-1.5 py-0.5 rounded font-black text-amber-200">
                   KHUSUS
@@ -862,32 +847,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm">🕊️</span>
-                  <span>Dana Kematian RT 07</span>
+                  <span>Dana Kematian</span>
                 </div>
                 <span className="bg-teal-950/80 border border-teal-300/40 text-[9px] px-1.5 py-0.5 rounded font-black text-teal-200">
                   SOSIAL
                 </span>
               </button>
             )}
-
-            <button
-              onClick={() => openTataTertibModal ? openTataTertibModal() : null}
-              className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 transition-all shadow-sm"
-            >
-              <div className="flex items-center gap-2.5">
-                <BookOpen className="w-4 h-4 text-emerald-700" />
-                <span>Tata Tertib Warga</span>
-              </div>
-              <span className="bg-emerald-700 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                12 Bab
-              </span>
-            </button>
           </div>
 
-          {/* Group 3: Komunikasi & Tata Kelola */}
+          {/* Group 4: INFORMASI & KEGIATAN */}
           <div className="space-y-1 pt-2 border-t border-slate-100">
             <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
-              ⚙️ TATA KELOLA & SISTEM
+              📢 INFORMASI & KEGIATAN
             </span>
 
             <button
@@ -897,8 +869,55 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <Megaphone className="w-4 h-4 text-purple-600" />
-              Pengumuman & Broadcast
+              <span>Papan Pengumuman</span>
             </button>
+
+            <button
+              onClick={() => setActiveSubTab('agenda')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'agenda' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Calendar className="w-4 h-4 text-[#2E7D52]" />
+              <span>Kalender Kegiatan</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('fasilitas')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'fasilitas' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <MapPin className="w-4 h-4 text-[#D4A72C]" />
+              <span>Fasilitas Lingkungan & GIS</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('analitik')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'analitik' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-[#D4A72C]" />
+              <span>Analitik RT</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('prediksi')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'prediksi' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Activity className="w-4 h-4 text-emerald-500" />
+              <span>Prediksi Kebutuhan RT</span>
+            </button>
+          </div>
+
+          {/* Group 5: ADMINISTRASI & SISTEM */}
+          <div className="space-y-1 pt-2 border-t border-slate-100">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
+              ⚙️ ADMINISTRASI & SISTEM
+            </span>
 
             <button
               onClick={() => setActiveSubTab('pengurus')}
@@ -907,30 +926,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <Users className="w-4 h-4 text-indigo-600" />
-              Profil Pengurus & ID Card
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('profil')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-                activeSubTab === 'profil' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <UserCheck className="w-4 h-4 text-emerald-600" />
-              Profil Saya & KK Digital
+              <span>Profil Pengurus & ID Card</span>
             </button>
 
             <button
               onClick={() => setActiveSubTab('warga-view')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-50 text-emerald-900 border border-emerald-300 hover:bg-emerald-100 shadow-xs`}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all bg-emerald-50/70 text-emerald-900 border border-emerald-300 hover:bg-emerald-100 shadow-xs`}
             >
-              <div className="flex items-center gap-2.5">
-                <Eye className="w-4 h-4 text-[#2E7D52]" />
-                <span>📱 Tampilan Warga v2.0</span>
-              </div>
-              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold">
-                LIVE
-              </span>
+              <Eye className="w-4 h-4 text-[#2E7D52]" />
+              <span>Pratinjau Portal Warga</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('prodops')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'prodops' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>ProdOps & SecOps</span>
             </button>
 
             <button
@@ -940,37 +954,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <History className="w-4 h-4 text-slate-500" />
-              Audit Log Sistem
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('eksternal')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-                activeSubTab === 'eksternal' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Cloud className="w-4 h-4 text-[#D4A72C]" />
-                <span>Integrasi Eksternal</span>
-              </div>
-              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
-                v1.0
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab('prodops')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
-                activeSubTab === 'prodops' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Production Ops & SecOps</span>
-              </div>
-              <span className="bg-[#2E7D52] text-white text-[9px] px-2 py-0.5 rounded-full font-bold border border-[#D4A72C]">
-                v1.0
-              </span>
+              <span>Audit Log</span>
             </button>
 
             <button
@@ -980,7 +964,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               }`}
             >
               <Settings className="w-4 h-4 text-[#D4A72C]" />
-              Google Sheets & GAS Sync
+              <span>Google Sheets & GAS Sync</span>
             </button>
 
             {openGoogleSheetsModal && (
@@ -997,6 +981,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </span>
               </button>
             )}
+
+            <button
+              onClick={() => setActiveSubTab('eksternal')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                activeSubTab === 'eksternal' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <Cloud className="w-4 h-4 text-[#D4A72C]" />
+              <span>Integrasi Eksternal</span>
+            </button>
           </div>
 
         </div>
@@ -1027,7 +1021,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 { id: 'pengumuman', label: 'Pengumuman', icon: Megaphone },
                 { id: 'pengurus', label: 'Pengurus', icon: Users },
                 { id: 'profil', label: 'Profil', icon: UserCheck },
-                { id: 'warga-view', label: 'View Warga', icon: Eye },
+                { id: 'warga-view', label: 'Pratinjau Warga', icon: Eye },
                 { id: 'eksternal', label: 'Eksternal', icon: Cloud },
                 { id: 'prodops', label: 'ProdOps', icon: ShieldCheck },
                 { id: 'audit', label: 'Audit', icon: History },
@@ -1073,14 +1067,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </span>
               </div>
 
-              {/* Gate 3.16: Calculation Engine Integration Bridge (Controlled Foundation) */}
+              {/* Demografi & Filter Kependudukan RT 07 */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-[#123B5D]" />
                     <div>
-                      <h4 className="font-bold text-sm text-[#123B5D]">SSoT Calculation Engine (Gate 3.16 Foundation)</h4>
-                      <p className="text-[11px] text-slate-500">Pipeline Terkunci: Validate → Active → Filter → Aggregate → Reconcile</p>
+                      <h4 className="font-bold text-sm text-[#123B5D]">Demografi & Filter Kependudukan RT 07</h4>
+                      <p className="text-[11px] text-slate-500">Pusat Validasi, Filter, & Agregasi Data Kependudukan</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1310,8 +1304,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <ShieldCheck className="w-5 h-5 text-[#2E7D52]" />
                     <h4 className="font-bold text-sm text-[#123B5D]">Tiga Pos Keuangan RT 07 (Amanat Terisolasi)</h4>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-white px-2.5 py-0.5 rounded-full border border-slate-200">
-                    🔒 Zero-Aggregate Ledger Isolation
+                  <span className="text-[10px] font-bold text-emerald-700 bg-white px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    🔒 Rekening & Pos Terpisah
                   </span>
                 </div>
 
@@ -1941,7 +1935,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onClick={openArchiveModal}
                       className="bg-[#123B5D] hover:bg-[#0A2338] text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow border border-emerald-400/40"
                     >
-                      <FileCheck className="w-4 h-4 text-emerald-400" /> Arsip Surat (Tahap 5)
+                      <FileCheck className="w-4 h-4 text-emerald-400" /> Arsip Dokumen Digital
                     </button>
                   )}
                   <button
@@ -1954,7 +1948,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="space-y-3">
-                {suratList.map((s) => (
+                {suratList.length === 0 ? (
+                  <div className="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 text-center">
+                    <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-sm text-slate-600">Belum ada permohonan surat</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Belum ada permohonan surat pengantar dari warga yang tercatat.</p>
+                  </div>
+                ) : (
+                  suratList.map((s) => (
                   <div key={s.id_surat} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="space-y-1 text-xs">
                       <div className="flex items-center gap-2">
@@ -2000,7 +2001,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </button>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           )}
@@ -2049,7 +2050,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {transaksiList.map((t) => (
+                    {transaksiList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center bg-slate-50">
+                          <Wallet className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                          <p className="font-semibold text-sm text-slate-600">Belum ada transaksi kas tercatat</p>
+                          <p className="text-xs text-slate-400 mt-0.5">Seluruh arus kas masuk dan pengeluaran operasional akan tercatat di sini.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      transaksiList.map((t) => (
                       <tr key={t.id_transaksi} className="hover:bg-slate-50">
                         <td className="p-3 font-semibold text-slate-700">{t.tanggal}</td>
                         <td className="p-3">
@@ -2066,7 +2076,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </td>
                         <td className="p-3 font-bold font-mono text-[#123B5D]">Rp {t.saldo_berjalan.toLocaleString('id-ID')}</td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
@@ -2087,7 +2097,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {iuranList.map((ir) => (
+                {iuranList.length === 0 ? (
+                  <div className="col-span-full bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 text-center">
+                    <CreditCard className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-sm text-slate-600">Belum ada data iuran</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Data tagihan dan rekapitulasi iuran bulanan warga akan tampil di sini.</p>
+                  </div>
+                ) : (
+                  iuranList.map((ir) => (
                   <div key={ir.id_iuran} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 flex items-center justify-between shadow-sm">
                     <div className="space-y-1">
                       <h4 className="font-bold text-sm text-slate-800">{ir.nama_kepala_keluarga} ({ir.blok})</h4>
@@ -2127,7 +2144,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       )}
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           )}
@@ -2149,7 +2166,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="space-y-3">
-                {pengaduanList.map((ad) => (
+                {pengaduanList.length === 0 ? (
+                  <div className="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 text-center">
+                    <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-sm text-slate-600">Belum ada tiket pengaduan aktif</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Seluruh laporan dan aspirasi warga yang masuk akan ditampilkan di sini.</p>
+                  </div>
+                ) : (
+                  pengaduanList.map((ad) => (
                   <div key={ad.id_pengaduan} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-mono font-bold text-xs text-[#123B5D] bg-sky-100 px-2.5 py-0.5 rounded-lg border border-sky-200">
@@ -2177,7 +2201,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                     )}
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           )}
@@ -2199,18 +2223,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="space-y-4">
-                {pengumumanList.map((pgm) => (
-                  <div key={pgm.id_pengumuman} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-2 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="bg-[#2E7D52] text-white font-bold text-[10px] px-2.5 py-0.5 rounded-full">
-                        {pgm.kategori}
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium">{pgm.tanggal} • {pgm.penulis}</span>
-                    </div>
-                    <h4 className="font-bold text-[#123B5D] text-base">{pgm.judul}</h4>
-                    <p className="text-xs text-slate-700 leading-relaxed">{pgm.isi}</p>
+                {pengumumanList.length === 0 ? (
+                  <div className="bg-slate-50 p-8 rounded-3xl border border-dashed border-slate-300 text-center">
+                    <Megaphone className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                    <p className="font-semibold text-sm text-slate-600">Belum ada pengumuman</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Informasi dan pengumuman resmi RT akan ditampilkan di sini.</p>
                   </div>
-                ))}
+                ) : (
+                  pengumumanList.map((pgm) => (
+                    <div key={pgm.id_pengumuman} className="bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-2 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="bg-[#2E7D52] text-white font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                          {pgm.kategori}
+                        </span>
+                        <span className="text-xs text-slate-400 font-medium">{pgm.tanggal} • {pgm.penulis}</span>
+                      </div>
+                      <h4 className="font-bold text-[#123B5D] text-base">{pgm.judul}</h4>
+                      <p className="text-xs text-slate-700 leading-relaxed">{pgm.isi}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

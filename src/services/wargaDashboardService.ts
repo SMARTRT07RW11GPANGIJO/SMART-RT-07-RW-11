@@ -288,7 +288,7 @@ export class WargaDashboardService {
     }));
 
     // 6. Announcements Sorted by Date DESC
-    const announcements = [...INITIAL_PENGUMUMAN]
+    const announcements = (isProd ? [] : [...INITIAL_PENGUMUMAN])
       .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
       .slice(0, 4)
       .map((pgm) => ({
@@ -319,7 +319,7 @@ export class WargaDashboardService {
     };
 
     // 8. Upcoming Activities (Max 3)
-    const activities: WargaActivityItem[] = INITIAL_AGENDA.slice(0, 3).map((a) => ({
+    const activities: WargaActivityItem[] = (isProd ? [] : INITIAL_AGENDA).slice(0, 3).map((a) => ({
       idAgenda: a.id_agenda,
       judul: a.judul,
       tanggal: a.tanggal,
@@ -411,6 +411,7 @@ export class WargaDashboardService {
   ): Promise<WargaDashboardData> {
     validateSessionContext(authContext);
     const userId = authContext.userId || 'WRG-001';
+    const isProd = getProductionConfig().appEnv === 'production';
 
     // 1. Fetch SSoT Profile and Family Members
     const ssotData = await this.fetchMyProfileSSoT(token);
@@ -440,10 +441,12 @@ export class WargaDashboardService {
       .reduce((sum, inv) => sum + (inv.nominal - inv.paidAmount), 0);
 
     // 4. Fetch Letters Strictly for Current User
-    const userLetters = INITIAL_SURAT.filter(
-      (s) => (authContext.nomorKK && s.no_kk === authContext.nomorKK) || (authContext.namaLengkap && s.nama_pemohon.includes(authContext.namaLengkap.split(' ')[0]))
-    );
-    const fallbackLetters = userLetters.length > 0 ? userLetters : [
+    const userLetters = isProd
+      ? []
+      : INITIAL_SURAT.filter(
+          (s) => (authContext.nomorKK && s.no_kk === authContext.nomorKK) || (authContext.namaLengkap && s.nama_pemohon.includes(authContext.namaLengkap.split(' ')[0]))
+        );
+    const fallbackLetters = userLetters.length > 0 ? userLetters : (isProd ? [] : [
       {
         id_surat: 'SRT-001',
         nomor_surat: '001/RT07-RW11/VIII/2026',
@@ -455,7 +458,7 @@ export class WargaDashboardService {
         status: 'SELESAI' as const,
         qr_code_hash: 'VERIFY-SRT-001-GPA0711'
       }
-    ];
+    ]);
 
     const letters: WargaLetterItem[] = fallbackLetters.slice(0, 3).map((s) => ({
       idSurat: s.id_surat,
@@ -467,8 +470,10 @@ export class WargaDashboardService {
     }));
 
     // 5. Fetch Complaints Strictly for Current User
-    const userComplaints = INITIAL_PENGADUAN.filter((p) => authContext.namaLengkap && p.nama_pelapor.includes(authContext.namaLengkap.split(' ')[0]));
-    const fallbackComplaints = userComplaints.length > 0 ? userComplaints : [
+    const userComplaints = isProd
+      ? []
+      : INITIAL_PENGADUAN.filter((p) => authContext.namaLengkap && p.nama_pelapor.includes(authContext.namaLengkap.split(' ')[0]));
+    const fallbackComplaints = userComplaints.length > 0 ? userComplaints : (isProd ? [] : [
       {
         id_pengaduan: 'ADU-001',
         nomor_tiket: 'PGD-2026-0012',
@@ -481,7 +486,7 @@ export class WargaDashboardService {
         status: 'DIPROSES' as const,
         tanggapan_admin: 'Seksi Keamanan & Infrastruktur telah menjadwalkan penggantian lampu LED baru.'
       }
-    ];
+    ]);
 
     const complaints: WargaComplaintItem[] = fallbackComplaints.slice(0, 3).map((p) => ({
       idPengaduan: p.id_pengaduan,
@@ -495,7 +500,7 @@ export class WargaDashboardService {
     }));
 
     // 6. Announcements Sorted by Date DESC
-    const announcements = [...INITIAL_PENGUMUMAN]
+    const announcements = (isProd ? [] : [...INITIAL_PENGUMUMAN])
       .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
       .slice(0, 4)
       .map((pgm) => ({
@@ -526,7 +531,7 @@ export class WargaDashboardService {
     };
 
     // 8. Upcoming Activities (Max 3)
-    const activities: WargaActivityItem[] = INITIAL_AGENDA.slice(0, 3).map((a) => ({
+    const activities: WargaActivityItem[] = (isProd ? [] : INITIAL_AGENDA).slice(0, 3).map((a) => ({
       idAgenda: a.id_agenda,
       judul: a.judul,
       tanggal: a.tanggal,

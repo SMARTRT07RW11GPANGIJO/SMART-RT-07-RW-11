@@ -1,17 +1,37 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import {
+  initializeAuth,
   getAuth,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  inMemoryPersistence,
   signInWithPopup,
   GoogleAuthProvider,
   onAuthStateChanged,
   User,
-  signOut as firebaseSignOut
+  signOut as firebaseSignOut,
+  Auth
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 // Ensure Firebase is initialized only once
-export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-export const firebaseAuth = getAuth(firebaseApp);
+export const firebaseApp: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+/**
+ * Configure Firebase Auth with browserLocalPersistence / inMemoryPersistence
+ * to prevent IndexedDB "Database is closing/hidden" errors in embedded iframes.
+ */
+function createSafeFirebaseAuth(): Auth {
+  try {
+    return initializeAuth(firebaseApp, {
+      persistence: [browserLocalPersistence, browserSessionPersistence, inMemoryPersistence]
+    });
+  } catch {
+    return getAuth(firebaseApp);
+  }
+}
+
+export const firebaseAuth: Auth = createSafeFirebaseAuth();
 
 export const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets',
@@ -38,19 +58,32 @@ export const initAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: () => void
 ) => {
-  return onAuthStateChanged(firebaseAuth, async (user: User | null) => {
-    if (user) {
-      if (cachedAccessToken) {
-        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
-      } else if (!isSigningIn) {
-        // User is signed in with Firebase, but in-memory access token is not yet cached (e.g. page refreshed)
+  try {
+    return onAuthStateChanged(
+      firebaseAuth,
+      async (user: User | null) => {
+        if (user) {
+          if (cachedAccessToken) {
+            if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
+          } else if (!isSigningIn) {
+            // User is signed in with Firebase, but in-memory access token is not yet cached (e.g. page refreshed)
+            if (onAuthFailure) onAuthFailure();
+          }
+        } else {
+          cachedAccessToken = null;
+          if (onAuthFailure) onAuthFailure();
+        }
+      },
+      (error) => {
+        console.warn('Firebase Auth state listener error (safely handled):', error);
         if (onAuthFailure) onAuthFailure();
       }
-    } else {
-      cachedAccessToken = null;
-      if (onAuthFailure) onAuthFailure();
-    }
-  });
+    );
+  } catch (err) {
+    console.warn('Firebase initAuth initialization warning:', err);
+    if (onAuthFailure) onAuthFailure();
+    return () => {};
+  }
 };
 
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {

@@ -23,7 +23,7 @@ import { WhatsAppBotSimulator } from './WhatsAppBotSimulator';
 
 interface LandingProps {
   setTab: (tab: string) => void;
-  openLetterModal: () => void;
+  openLetterModal?: () => void;
   openComplaintModal: () => void;
   openLoginModal?: () => void;
   announcements: Pengumuman[];
@@ -44,6 +44,14 @@ export const LandingPage: React.FC<LandingProps> = ({
   wargaList = [],
   keluargaList = []
 }) => {
+
+  const handleAjukanSuratClick = () => {
+    if (openLoginModal) {
+      openLoginModal();
+    } else {
+      setTab('dashboard');
+    }
+  };
 
   const totalPemasukan = transactions
     .filter((t) => t.jenis === 'Pemasukan')
@@ -83,7 +91,7 @@ export const LandingPage: React.FC<LandingProps> = ({
 
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">
               <button
-                onClick={openLetterModal}
+                onClick={handleAjukanSuratClick}
                 className="bg-[#2E7D52] hover:bg-[#236340] text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-xl transition-all shadow-lg border border-[#D4A72C]/40 flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
@@ -185,7 +193,7 @@ export const LandingPage: React.FC<LandingProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           
           <div 
-            onClick={openLetterModal}
+            onClick={handleAjukanSuratClick}
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all group cursor-pointer border-t-4 border-t-[#2E7D52]"
           >
             <div className="w-12 h-12 bg-emerald-100 text-[#2E7D52] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform font-bold">

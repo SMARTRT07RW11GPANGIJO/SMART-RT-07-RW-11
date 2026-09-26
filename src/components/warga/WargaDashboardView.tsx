@@ -26,7 +26,6 @@ import {
   HelpCircle,
   Phone,
   Info,
-  ShieldAlert,
   Users
 } from 'lucide-react';
 import { AuthoritativeSessionContext } from '../../security/authorization';
@@ -36,7 +35,6 @@ import { IdentityAuthService } from '../../services/identityAuthService';
 import { WargaQrisPaymentModal } from './WargaQrisPaymentModal';
 import { WargaProfileModal } from './WargaProfileModal';
 import { WargaNotificationsModal } from './WargaNotificationsModal';
-import { SecurityIsolationTestModal } from './SecurityIsolationTestModal';
 
 interface WargaDashboardViewProps {
   authContext: AuthoritativeSessionContext;
@@ -58,7 +56,6 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
   // Modals state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [isSecurityAuditOpen, setIsSecurityAuditOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<WargaInvoiceItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -251,16 +248,6 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
 
           {/* Quick Header Actions (Notification & Profile) */}
           <div className="flex items-center gap-2.5 shrink-0 self-start md:self-center">
-            {/* Security Isolation Compliance Audit Button */}
-            <button
-              onClick={() => setIsSecurityAuditOpen(true)}
-              className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 p-2.5 rounded-2xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
-              title="Audit Keamanan & IDOR Test Suite"
-            >
-              <ShieldAlert className="w-4 h-4 text-[#D4A72C]" />
-              <span className="hidden sm:inline text-[11px]">Audit IDOR</span>
-            </button>
-
             {/* Push notification toggle button */}
             <button
               onClick={handleTogglePushNotification}
@@ -970,12 +957,6 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
         onMarkAsRead={handleMarkNotificationRead}
         onMarkAllAsRead={handleMarkAllNotificationsRead}
         onNavigate={(target) => onNavigate(target)}
-      />
-
-      {/* Security Isolation Compliance Audit & IDOR Test Modal */}
-      <SecurityIsolationTestModal
-        isOpen={isSecurityAuditOpen}
-        onClose={() => setIsSecurityAuditOpen(false)}
       />
 
     </div>

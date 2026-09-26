@@ -5,7 +5,7 @@ import {
   Building2, 
   ShieldCheck, 
   User, 
-  FileText, 
+  FileText,
   HelpCircle, 
   Smartphone, 
   Menu, 
@@ -33,7 +33,7 @@ interface HeaderProps {
   setRole: (role: UserRole) => void;
   currentTab: string;
   setTab: (tab: string) => void;
-  openLetterModal: () => void;
+  openLetterModal?: () => void;
   openComplaintModal: () => void;
   openArchModal: () => void;
   openWaModal: () => void;
@@ -155,14 +155,6 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Actions & Role Switcher */}
           <div className="hidden sm:flex items-center gap-2.5">
-            <button
-              onClick={openLetterModal}
-              className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-3 py-2 rounded-lg transition-all shadow border border-[#D4A72C]/30 flex items-center gap-1.5 cursor-pointer"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              AJUKAN SURAT
-            </button>
-
             {/* Real Identity Authentication Button or Authenticated Pill */}
             {sessionContext && sessionContext.isValid && currentRole !== 'PUBLIC' ? (
               <div className="flex items-center gap-2 bg-[#0A2338] border border-emerald-500/40 rounded-xl px-2.5 py-1.5 shadow-sm">
@@ -342,7 +334,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => { openSecurityOpsModal(); setMobileMenuOpen(false); }}
                     className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#0D2A4A] text-[#E9D8B4] border border-[#C89A2B]/60 hover:bg-[#1E3A5F] flex items-center justify-center gap-1"
                   >
-                    <Lock className="w-3.5 h-3.5 text-indigo-400" /> SEC OPS
+                    <Lock className="w-3.5 h-3.5 text-indigo-400" /> Keamanan Sistem
                   </button>
                 )}
                 {openDisasterRecoveryModal && (
@@ -350,7 +342,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => { openDisasterRecoveryModal(); setMobileMenuOpen(false); }}
                     className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#5A1E1B] text-[#E9D8B4] border border-[#C89A2B]/60 hover:bg-[#7A2824] flex items-center justify-center gap-1"
                   >
-                    <Flame className="w-3.5 h-3.5 text-rose-400" /> DR DRILL
+                    <Flame className="w-3.5 h-3.5 text-rose-400" /> Pemulihan Sistem
                   </button>
                 )}
                 {openBackupVerificationModal && (
@@ -358,35 +350,27 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => { openBackupVerificationModal(); setMobileMenuOpen(false); }}
                     className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#0D2A4A] text-white border border-[#C89A2B]/60 hover:bg-[#1E3A5F] flex items-center justify-center gap-1"
                   >
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> BACKUP VERIFY
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Verifikasi Backup
                   </button>
                 )}
                 <button
                   onClick={() => { setTab('control-center-9j'); setMobileMenuOpen(false); }}
                   className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-emerald-950 text-emerald-200 border border-emerald-500/50 hover:bg-emerald-900 flex items-center justify-center gap-1"
                 >
-                  <Terminal className="w-3.5 h-3.5 text-emerald-400" /> CONTROL CENTER
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400" /> Pusat Kontrol
                 </button>
                 <button
                   onClick={() => { setTab('system-docs-9k'); setMobileMenuOpen(false); }}
                   className="px-3 py-2 rounded-lg text-xs font-bold text-center bg-[#0D2A4A] text-emerald-300 border border-emerald-400/60 hover:bg-[#1E3A5F] flex items-center justify-center gap-1"
                 >
-                  <BookOpen className="w-3.5 h-3.5 text-emerald-400" /> DOKUMENTASI
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-400" /> Panduan Sistem
                 </button>
               </div>
             </div>
           )}
 
           {/* Quick Action Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-800">
-            <button
-              onClick={() => { openLetterModal(); setMobileMenuOpen(false); }}
-              className="w-full bg-[#2E7D52] hover:bg-[#236340] text-white font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2"
-            >
-              <FileText className="w-4 h-4" />
-              AJUKAN SURAT PENGANTAR
-            </button>
-
+          <div className="pt-2 border-t border-slate-800">
             <button
               onClick={() => { openComplaintModal(); setMobileMenuOpen(false); }}
               className="w-full bg-[#C62828] hover:bg-[#A32020] text-white font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2"
@@ -436,24 +420,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )
             )}
-          </div>
-
-          <div className="space-y-2 pt-1">
-            <button
-              onClick={() => { openLetterModal(); setMobileMenuOpen(false); }}
-              className="w-full bg-[#2E7D52] text-white font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2"
-            >
-              <FileText className="w-4 h-4" />
-              AJUKAN SURAT PENGANTAR
-            </button>
-
-            <button
-              onClick={() => { openComplaintModal(); setMobileMenuOpen(false); }}
-              className="w-full bg-[#C62828] text-white font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2"
-            >
-              <HelpCircle className="w-4 h-4" />
-              KIRIM PENGADUAN WARGA
-            </button>
           </div>
 
           {/* Role selector in mobile */}
