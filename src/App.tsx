@@ -315,6 +315,7 @@ export default function App() {
             transactions={transaksiList}
             wargaList={wargaList}
             keluargaList={keluargaList}
+            currentRole={currentRole}
           />
         )}
 
@@ -351,6 +352,8 @@ export default function App() {
             openOmplonganModal={() => setOmplonganModalOpen(true)}
             openGoogleSheetsModal={() => setGoogleSheetsModalOpen(true)}
             openDeathFundModal={() => setDeathFundModalOpen(true)}
+            openLoginModal={() => setLoginModalOpen(true)}
+            onNavigateToLanding={() => setTab('landing')}
             activeSubTab={activeSubTab}
             setActiveSubTab={setActiveSubTab}
             addToast={addToast}

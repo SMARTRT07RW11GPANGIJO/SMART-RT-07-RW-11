@@ -102,6 +102,19 @@ export const Header: React.FC<HeaderProps> = ({
     setMobileMenuOpen(false);
   };
 
+  const handlePortalDashboardClick = () => {
+    setMobileMenuOpen(false);
+    if (currentRole === 'PUBLIC') {
+      if (openLoginModal) {
+        openLoginModal();
+      } else {
+        handleNavClick('dashboard');
+      }
+    } else {
+      handleNavClick('dashboard');
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-[#123B5D] text-white shadow-md border-b border-[#2E7D52]/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -142,7 +155,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              onClick={() => handleNavClick('dashboard')}
+              onClick={handlePortalDashboardClick}
               className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                 currentTab === 'dashboard' 
                   ? 'bg-[#2E7D52] text-white shadow-sm' 
@@ -250,7 +263,7 @@ export const Header: React.FC<HeaderProps> = ({
                 HOME
               </button>
               <button
-                onClick={() => handleNavClick('dashboard')}
+                onClick={handlePortalDashboardClick}
                 className={`px-3 py-2 rounded-lg text-xs font-bold text-center ${currentTab === 'dashboard' ? 'bg-[#2E7D52] text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
               >
                 PORTAL DASHBOARD

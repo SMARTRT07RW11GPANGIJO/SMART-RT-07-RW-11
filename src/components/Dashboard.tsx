@@ -33,6 +33,7 @@ import {
   Download, 
   QrCode,
   Lock,
+  LogIn,
   CreditCard,
   FileCheck,
   Megaphone,
@@ -129,6 +130,8 @@ interface DashboardProps {
   openOmplonganModal?: () => void;
   openGoogleSheetsModal?: () => void;
   openDeathFundModal?: () => void;
+  openLoginModal?: () => void;
+  onNavigateToLanding?: () => void;
   activeSubTab: string;
   setActiveSubTab: (tab: any) => void;
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
@@ -163,6 +166,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   openOmplonganModal,
   openGoogleSheetsModal,
   openDeathFundModal,
+  openLoginModal,
+  onNavigateToLanding,
   activeSubTab,
   setActiveSubTab,
   addToast
@@ -597,6 +602,47 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onOpenLetterModal={openLetterModal}
           onOpenComplaintModal={openComplaintModal}
         />
+      </div>
+    );
+  }
+
+  // DEFENSE IN DEPTH: Guard against unauthenticated PUBLIC access to Pengurus Control Center
+  if (currentRole === 'PUBLIC') {
+    return (
+      <div className="max-w-xl mx-auto my-12 p-6 sm:p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
+          <Lock className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 uppercase tracking-wider">
+            Akses Terbatas
+          </span>
+          <h2 className="text-xl sm:text-2xl font-black text-[#123B5D]">
+            Portal Dashboard RT 07
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+            Halaman ini khusus untuk Warga dan Pengurus RT 07 RW 11 yang telah terdaftar. Silakan masuk menggunakan akun resmi Anda untuk mengakses layanan dan administrasi lingkungan.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          {openLoginModal && (
+            <button
+              onClick={openLoginModal}
+              className="w-full sm:w-auto bg-[#D4A72C] hover:bg-[#c49822] text-[#123B5D] font-black text-xs px-6 py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <LogIn className="w-4 h-4" />
+              Masuk / Login Resmi
+            </button>
+          )}
+          {onNavigateToLanding && (
+            <button
+              onClick={onNavigateToLanding}
+              className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs px-6 py-3 rounded-xl transition-all border border-slate-200 cursor-pointer"
+            >
+              Kembali ke Beranda
+            </button>
+          )}
+        </div>
       </div>
     );
   }

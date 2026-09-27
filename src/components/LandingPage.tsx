@@ -31,6 +31,7 @@ interface LandingProps {
   transactions: TransaksiKeuangan[];
   wargaList?: Warga[];
   keluargaList?: Keluarga[];
+  currentRole?: string;
 }
 
 export const LandingPage: React.FC<LandingProps> = ({
@@ -42,11 +43,22 @@ export const LandingPage: React.FC<LandingProps> = ({
   agendas,
   transactions,
   wargaList = [],
-  keluargaList = []
+  keluargaList = [],
+  currentRole = 'PUBLIC'
 }) => {
 
   const handleAjukanSuratClick = () => {
     if (openLoginModal) {
+      openLoginModal();
+    } else {
+      setTab('dashboard');
+    }
+  };
+
+  const handleMasukPortalClick = () => {
+    if (currentRole && currentRole !== 'PUBLIC') {
+      setTab('dashboard');
+    } else if (openLoginModal) {
       openLoginModal();
     } else {
       setTab('dashboard');
@@ -99,7 +111,7 @@ export const LandingPage: React.FC<LandingProps> = ({
               </button>
 
               <button
-                onClick={() => setTab('dashboard')}
+                onClick={handleMasukPortalClick}
                 className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-xl transition-all border border-slate-500 backdrop-blur-md flex items-center gap-2"
               >
                 <Users className="w-4 h-4 text-[#D4A72C]" />
@@ -211,7 +223,7 @@ export const LandingPage: React.FC<LandingProps> = ({
           </div>
 
           <div 
-            onClick={() => setTab('dashboard')}
+            onClick={handleMasukPortalClick}
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all group cursor-pointer border-t-4 border-t-[#123B5D]"
           >
             <div className="w-12 h-12 bg-blue-100 text-[#123B5D] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform font-bold">
@@ -247,7 +259,7 @@ export const LandingPage: React.FC<LandingProps> = ({
           </div>
 
           <div 
-            onClick={() => setTab('dashboard')}
+            onClick={handleMasukPortalClick}
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all group cursor-pointer border-t-4 border-t-[#D4A72C]"
           >
             <div className="w-12 h-12 bg-amber-100 text-[#D4A72C] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform font-bold">
@@ -265,7 +277,7 @@ export const LandingPage: React.FC<LandingProps> = ({
           </div>
 
           <div 
-            onClick={() => setTab('dashboard')}
+            onClick={handleMasukPortalClick}
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md border border-slate-200 transition-all group cursor-pointer border-t-4 border-t-[#2E7D52]"
           >
             <div className="w-12 h-12 bg-[#2E7D52]/10 text-[#2E7D52] rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform font-bold">
@@ -317,7 +329,7 @@ export const LandingPage: React.FC<LandingProps> = ({
             </div>
 
             <button
-              onClick={() => setTab('dashboard')}
+              onClick={handleMasukPortalClick}
               className="bg-[#2E7D52] hover:bg-[#236340] text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-[#D4A72C]/30 shadow flex items-center gap-2"
             >
               <Wallet className="w-4 h-4" />
@@ -361,7 +373,7 @@ export const LandingPage: React.FC<LandingProps> = ({
               <Bell className="w-5 h-5 text-[#C62828]" />
               Pengumuman Terbaru RT 07
             </h3>
-            <span className="text-xs text-[#2E7D52] font-bold cursor-pointer hover:underline" onClick={() => setTab('dashboard')}>
+            <span className="text-xs text-[#2E7D52] font-bold cursor-pointer hover:underline" onClick={handleMasukPortalClick}>
               Lihat Semua
             </span>
           </div>
