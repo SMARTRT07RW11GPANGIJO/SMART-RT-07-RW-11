@@ -298,6 +298,82 @@ export class IdentityE2ETestService {
       });
     }
 
+    // SEKRETARIS_RT E2E
+    {
+      const t0 = Date.now();
+      const res = await IdentityAuthService.login({
+        type: 'OFFICER_CREDENTIAL',
+        identifier: 'sekretaris_rt07',
+        password: 'SekretarisRT07#2026'
+      });
+      const passInitial = res.success && res.session?.role === 'PENGURUS' && res.forcePasswordChange === true;
+
+      let passChanged = false;
+      if (res.session) {
+        const changeRes = await IdentityAuthService.changePassword(
+          res.session.sessionId,
+          'SekretarisBaru#2026GPA',
+          'SekretarisBaru#2026GPA'
+        );
+        passChanged = changeRes.success;
+      }
+
+      const nextLogin = await IdentityAuthService.login({
+        type: 'OFFICER_CREDENTIAL',
+        identifier: 'sekretaris_rt07',
+        password: 'SekretarisBaru#2026GPA'
+      });
+
+      const passFinal = passInitial && passChanged && nextLogin.success && nextLogin.session?.role === 'PENGURUS' && !nextLogin.forcePasswordChange;
+      results.push({
+        testId: 'TEST-E2E-SEKRETARIS-001',
+        category: 'OFFICER_E2E',
+        name: 'SEKRETARIS_RT E2E: Initial Login -> Force Password Change -> Activated Session -> Role PENGURUS',
+        expected: 'passFinal: true, role: PENGURUS',
+        actual: `passFinal: ${passFinal}, role: ${nextLogin.session?.role}`,
+        status: passFinal ? 'PASS' : 'FAIL',
+        durationMs: Date.now() - t0
+      });
+    }
+
+    // BENDAHARA_RT E2E
+    {
+      const t0 = Date.now();
+      const res = await IdentityAuthService.login({
+        type: 'OFFICER_CREDENTIAL',
+        identifier: 'bendahara_rt07',
+        password: 'BendaharaRT07#2026'
+      });
+      const passInitial = res.success && res.session?.role === 'PENGURUS' && res.forcePasswordChange === true;
+
+      let passChanged = false;
+      if (res.session) {
+        const changeRes = await IdentityAuthService.changePassword(
+          res.session.sessionId,
+          'BendaharaBaru#2026GPA',
+          'BendaharaBaru#2026GPA'
+        );
+        passChanged = changeRes.success;
+      }
+
+      const nextLogin = await IdentityAuthService.login({
+        type: 'OFFICER_CREDENTIAL',
+        identifier: 'bendahara_rt07',
+        password: 'BendaharaBaru#2026GPA'
+      });
+
+      const passFinal = passInitial && passChanged && nextLogin.success && nextLogin.session?.role === 'PENGURUS' && !nextLogin.forcePasswordChange;
+      results.push({
+        testId: 'TEST-E2E-BENDAHARA-001',
+        category: 'OFFICER_E2E',
+        name: 'BENDAHARA_RT E2E: Initial Login -> Force Password Change -> Activated Session -> Role PENGURUS',
+        expected: 'passFinal: true, role: PENGURUS',
+        actual: `passFinal: ${passFinal}, role: ${nextLogin.session?.role}`,
+        status: passFinal ? 'PASS' : 'FAIL',
+        durationMs: Date.now() - t0
+      });
+    }
+
     // ADMIN E2E
     {
       const t0 = Date.now();

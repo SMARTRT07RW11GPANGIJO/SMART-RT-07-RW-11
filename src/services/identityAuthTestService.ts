@@ -356,6 +356,44 @@ export class IdentityAuthTestService {
       });
     }
 
+    // --- TEST 016B: Officer Login: Sekretaris RT (sekretaris_rt07)
+    {
+      const t0 = Date.now();
+      const res = await IdentityAuthService.login({
+        type: 'OFFICER_CREDENTIAL',
+        identifier: 'sekretaris_rt07',
+        password: 'SekretarisRT07#2026'
+      });
+      results.push({
+        testId: 'AUTH-KK-016B',
+        category: 'OFFICER_AUTH',
+        name: 'Officer Login: Sekretaris RT 07 (Eko Setyo Bakti) verification',
+        expected: 'success: true, role: PENGURUS, forcePasswordChange: true',
+        actual: `success: ${res.success}, role: ${res.session?.role}, forceChange: ${res.forcePasswordChange}`,
+        status: res.success && res.session?.role === 'PENGURUS' && res.forcePasswordChange === true ? 'PASS' : 'FAIL',
+        durationMs: Date.now() - t0
+      });
+    }
+
+    // --- TEST 016C: Officer Login: Bendahara RT (bendahara_rt07)
+    {
+      const t0 = Date.now();
+      const res = await IdentityAuthService.login({
+        type: 'OFFICER_CREDENTIAL',
+        identifier: 'bendahara_rt07',
+        password: 'BendaharaRT07#2026'
+      });
+      results.push({
+        testId: 'AUTH-KK-016C',
+        category: 'OFFICER_AUTH',
+        name: 'Officer Login: Bendahara RT 07 (Agus Salim) verification',
+        expected: 'success: true, role: PENGURUS, forcePasswordChange: true',
+        actual: `success: ${res.success}, role: ${res.session?.role}, forceChange: ${res.forcePasswordChange}`,
+        status: res.success && res.session?.role === 'PENGURUS' && res.forcePasswordChange === true ? 'PASS' : 'FAIL',
+        durationMs: Date.now() - t0
+      });
+    }
+
     // --- TEST 017: Officer Login: Admin RT (admin_rt07)
     {
       const t0 = Date.now();

@@ -184,8 +184,88 @@ export class IdentityAuthService {
 
     const accountsMap = new Map<string, AuthAccount>();
 
+    // 2. Privileged Officer Account Specifications
+    const officerSeeds: Array<{
+      username: string;
+      role: UserRole;
+      userId: string;
+      nama: string;
+      tempPass: string;
+    }> = [
+      {
+        username: 'pengurus_rt07',
+        role: 'PENGURUS',
+        userId: 'PGR-001',
+        nama: 'Bpk. Joko Susilo (Sekretaris RT 07)',
+        tempPass: 'PengurusRT07#2026'
+      },
+      {
+        username: 'ketua_rt07',
+        role: 'KETUA_RT',
+        userId: 'KRT-001',
+        nama: 'Eko Sucahyono — Ketua RT 07',
+        tempPass: 'KetuaRT07#2026'
+      },
+      {
+        username: 'sekretaris_rt07',
+        role: 'PENGURUS',
+        userId: 'SEK-001',
+        nama: 'Eko Setyo Bakti — Sekretaris RT 07',
+        tempPass: 'SekretarisRT07#2026'
+      },
+      {
+        username: 'bendahara_rt07',
+        role: 'PENGURUS',
+        userId: 'BND-001',
+        nama: 'Agus Salim — Bendahara RT 07',
+        tempPass: 'BendaharaRT07#2026'
+      },
+      {
+        username: 'admin_rt07',
+        role: 'ADMIN',
+        userId: 'ADM-001',
+        nama: 'Safari — Administrator RT 07',
+        tempPass: 'AdminRT07#2026'
+      }
+    ];
+
     if (loaded && !forceReset) {
       Object.entries(loaded).forEach(([k, v]) => accountsMap.set(k, v));
+
+      // Ensure all official officer accounts exist and have aligned identity
+      officerSeeds.forEach((off) => {
+        const existing = accountsMap.get(off.username);
+        if (!existing) {
+          const salt = generateSecureSalt(16);
+          const { hash } = PasswordSecurityEngine.hashPassword(off.tempPass, salt);
+          const account: AuthAccount = {
+            accountId: `ACC-${off.username.toUpperCase()}`,
+            identifier: off.username,
+            username: off.username,
+            role: off.role,
+            userId: off.userId,
+            residentId: off.userId,
+            namaLengkap: off.nama,
+            passwordHash: hash,
+            salt: salt,
+            isFirstLogin: true,
+            firstLogin: true,
+            forcePasswordChange: true,
+            accountStatus: 'PASSWORD_CHANGE_REQUIRED',
+            status: 'PASSWORD_CHANGE_REQUIRED',
+            failedAttempts: 0,
+            failedLoginCount: 0,
+            createdAt: '2026-08-01T00:00:00.000Z',
+            updatedAt: '2026-08-01T00:00:00.000Z'
+          };
+          accountsMap.set(off.username, account);
+        } else if (off.username === 'ketua_rt07' && existing.namaLengkap.includes('Bambang Sugianto')) {
+          existing.namaLengkap = off.nama;
+        } else if (off.username === 'admin_rt07' && existing.namaLengkap === 'Administrator Sistem RT 07') {
+          existing.namaLengkap = off.nama;
+        }
+      });
+      this.persistAccounts(accountsMap);
     } else {
       // 1. Provision Warga Accounts from Keluarga & Head of Family
       const isProd = getProductionConfig().appEnv === 'production';
@@ -244,36 +324,6 @@ export class IdentityAuthService {
       }
 
       // 2. Provision Privileged Officer Accounts
-      const officerSeeds: Array<{
-        username: string;
-        role: UserRole;
-        userId: string;
-        nama: string;
-        tempPass: string;
-      }> = [
-        {
-          username: 'pengurus_rt07',
-          role: 'PENGURUS',
-          userId: 'PGR-001',
-          nama: 'Bpk. Joko Susilo (Sekretaris RT 07)',
-          tempPass: 'PengurusRT07#2026'
-        },
-        {
-          username: 'ketua_rt07',
-          role: 'KETUA_RT',
-          userId: 'KRT-001',
-          nama: 'Bpk. Bambang Sugianto, S.T. (Ketua RT 07)',
-          tempPass: 'KetuaRT07#2026'
-        },
-        {
-          username: 'admin_rt07',
-          role: 'ADMIN',
-          userId: 'ADM-001',
-          nama: 'Administrator Sistem RT 07',
-          tempPass: 'AdminRT07#2026'
-        }
-      ];
-
       officerSeeds.forEach((off) => {
         const salt = generateSecureSalt(16);
         const { hash } = PasswordSecurityEngine.hashPassword(off.tempPass, salt);

@@ -266,7 +266,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <span>Akses Pengurus & Administrator:</span>
                 </div>
                 <p className="text-[11px] leading-relaxed text-amber-700">
-                  Gunakan username terdaftar (<code>pengurus_rt07</code>, <code>ketua_rt07</code>, atau <code>admin_rt07</code>) dan password resmi Anda.
+                  Gunakan username terdaftar (<code>ketua_rt07</code>, <code>sekretaris_rt07</code>, <code>bendahara_rt07</code>, <code>admin_rt07</code>, atau <code>pengurus_rt07</code>) dan password resmi Anda.
                 </p>
               </div>
 
@@ -281,7 +281,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Contoh: pengurus_rt07"
+                    placeholder="Contoh: ketua_rt07 atau sekretaris_rt07"
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#123B5D] focus:border-[#123B5D]"
                   />
                 </div>
