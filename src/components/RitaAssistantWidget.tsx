@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, X, ThumbsUp, ThumbsDown, CheckCircle, Sparkles, RefreshCw, MessageSquare, AlertCircle, ShieldCheck } from 'lucide-react';
 import { UserRole, SuratPengantar, TagihanIuran, Pengaduan, Pengumuman, AgendaKegiatan } from '../types/rt';
 import { RitaMessage, processRitaChatQuery } from '../services/aiAssistantService';
+import { IdentityAuthService } from '../services/identityAuthService';
 
 interface RitaAssistantWidgetProps {
   currentRole: UserRole;
@@ -15,6 +16,7 @@ interface RitaAssistantWidgetProps {
   openComplaintModal: () => void;
   openArchiveModal: () => void;
   openTataTertibModal?: () => void;
+  openLoginModal?: () => void;
   onPublishAnnouncement?: (newAnn: Pengumuman) => void;
   addToast: (type: 'success' | 'error' | 'info' | 'loading', title: string, message?: string) => void;
 }
@@ -31,6 +33,7 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
   openComplaintModal,
   openArchiveModal,
   openTataTertibModal,
+  openLoginModal,
   onPublishAnnouncement,
   addToast
 }) => {
@@ -97,6 +100,27 @@ export const RitaAssistantWidget: React.FC<RitaAssistantWidgetProps> = ({
 
   const handleQuickAction = (action: string) => {
     if (action === 'open_letter_modal') {
+      const activeSession = IdentityAuthService.getActiveSession();
+      const isAuthorizedWarga = activeSession && activeSession.isValid && activeSession.role === 'WARGA';
+
+      if (!isAuthorizedWarga) {
+        addToast('info', 'Autentikasi Diperlukan', 'Pengajuan surat pengantar memerlukan login akun warga RT 07');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `SATRIA-${Date.now()}`,
+            sender: 'rita',
+            text: 'Pengajuan surat pengantar memerlukan login akun warga RT 07. Silakan masuk terlebih dahulu menggunakan akun Kartu Keluarga Anda.',
+            timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+        if (openLoginModal) {
+          openLoginModal();
+        }
+        setIsOpen(false);
+        return;
+      }
+
       openLetterModal();
       setIsOpen(false);
     } else if (action === 'open_complaint_modal') {

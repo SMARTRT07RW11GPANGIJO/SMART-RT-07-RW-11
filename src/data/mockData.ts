@@ -461,8 +461,8 @@ export const INITIAL_PENGURUS: Pengurus[] = [
   },
   {
     id_pengurus: 'PGR-02',
-    nama: 'Eko Nurcahyo',
-    jabatan: 'Sekretaris RT',
+    nama: 'Eko Setyo Bakti',
+    jabatan: 'Sekretaris RT 07',
     no_hp: '081789012345',
     email: 'sekretaris.rt07@gmail.com',
     foto_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
@@ -471,8 +471,8 @@ export const INITIAL_PENGURUS: Pengurus[] = [
   },
   {
     id_pengurus: 'PGR-03',
-    nama: 'Ibu Anisa Wulandari',
-    jabatan: 'Bendahara RT',
+    nama: 'Agus Salim',
+    jabatan: 'Bendahara RT 07',
     no_hp: '081233445566',
     email: 'bendahara.rt07@gmail.com',
     foto_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
@@ -481,10 +481,10 @@ export const INITIAL_PENGURUS: Pengurus[] = [
   },
   {
     id_pengurus: 'PGR-04',
-    nama: 'Dr. Agus Hermawan',
-    jabatan: 'Seksi Kesehatan & Sosial',
+    nama: 'Safari',
+    jabatan: 'Admin Sistem RT 07',
     no_hp: '081345678912',
-    email: 'sosial.rt07@gmail.com',
+    email: 'admin.rt07@gmail.com',
     foto_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
     periode: '2025 - 2028',
     blok: 'Blok C-08'

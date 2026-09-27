@@ -33,7 +33,7 @@ export const ComplaintModal: React.FC<ComplaintModalProps> = ({
       id_pengaduan: `ADU-${Date.now().toString().slice(-4)}`,
       nomor_tiket: ticketNo,
       nama_pelapor: namaPelapor,
-      no_hp: noHp || '081234567890',
+      no_hp: noHp.trim() || '',
       kategori,
       lokasi,
       deskripsi,

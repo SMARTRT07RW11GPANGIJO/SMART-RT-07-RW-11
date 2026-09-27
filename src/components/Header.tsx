@@ -209,22 +209,6 @@ export const Header: React.FC<HeaderProps> = ({
               )
             )}
 
-            {/* Role Switcher for Testing */}
-            <div className="relative group">
-              <div className="bg-[#0A2338] border border-slate-600 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs text-slate-200 cursor-pointer">
-                <span className="text-[10px] text-slate-400 leading-none">Role:</span>
-                <span className="font-bold text-[#D4A72C] leading-none text-[11px]">{currentRole}</span>
-              </div>
-              <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 hidden group-hover:block z-50 text-slate-800 text-xs">
-                <div className="px-3 py-1 font-bold text-slate-400 text-[10px] uppercase border-b border-slate-100">Simulasi / Override Role</div>
-                <button onClick={() => setRole('PUBLIC')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='PUBLIC'?'text-[#2E7D52] font-bold':''}`}>PUBLIC (Warga Umum)</button>
-                <button onClick={() => setRole('WARGA')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='WARGA'?'text-[#2E7D52] font-bold':''}`}>WARGA TERVERIFIKASI</button>
-                <button onClick={() => setRole('PENGURUS')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='PENGURUS'?'text-[#2E7D52] font-bold':''}`}>PENGURUS RT</button>
-                <button onClick={() => setRole('KETUA_RT')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='KETUA_RT'?'text-[#2E7D52] font-bold':''}`}>KETUA RT 07</button>
-                <button onClick={() => setRole('ADMIN')} className={`w-full text-left px-3 py-1.5 hover:bg-slate-100 font-medium ${currentRole==='ADMIN'?'text-[#2E7D52] font-bold':''}`}>ADMIN RT (Full Access)</button>
-              </div>
-            </div>
-
             {/* Hamburger button for Desktop & Tablet */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -433,22 +417,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )
             )}
-          </div>
-
-          {/* Role selector in mobile */}
-          <div className="pt-2 border-t border-slate-800">
-            <label className="block text-[10px] text-slate-400 font-semibold mb-1">GANTI ROLE SIMULASI:</label>
-            <div className="flex flex-wrap gap-1">
-              {(['PUBLIC', 'WARGA', 'PENGURUS', 'KETUA_RT', 'ADMIN'] as UserRole[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRole(r)}
-                  className={`px-2 py-1 rounded text-[10px] font-bold ${currentRole === r ? 'bg-[#D4A72C] text-[#123B5D]' : 'bg-slate-800 text-slate-300'}`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       )}

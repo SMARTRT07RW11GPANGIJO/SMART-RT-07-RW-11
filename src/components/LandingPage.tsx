@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Pengumuman, AgendaKegiatan, TransaksiKeuangan, Warga, Keluarga } from '../types/rt';
 import { WhatsAppBotSimulator } from './WhatsAppBotSimulator';
+import { IdentityAuthService } from '../services/identityAuthService';
 
 interface LandingProps {
   setTab: (tab: string) => void;
@@ -48,10 +49,21 @@ export const LandingPage: React.FC<LandingProps> = ({
 }) => {
 
   const handleAjukanSuratClick = () => {
-    if (openLoginModal) {
-      openLoginModal();
+    const activeSession = IdentityAuthService.getActiveSession();
+    const isWarga = activeSession && activeSession.isValid && activeSession.role === 'WARGA';
+
+    if (isWarga) {
+      if (openLetterModal) {
+        openLetterModal();
+      } else {
+        setTab('dashboard');
+      }
     } else {
-      setTab('dashboard');
+      if (openLoginModal) {
+        openLoginModal();
+      } else {
+        setTab('dashboard');
+      }
     }
   };
 

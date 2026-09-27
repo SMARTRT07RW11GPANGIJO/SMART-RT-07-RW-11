@@ -983,60 +983,64 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span>Pratinjau Portal Warga</span>
             </button>
 
-            <button
-              onClick={() => setActiveSubTab('prodops')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-                activeSubTab === 'prodops' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>ProdOps & SecOps</span>
-            </button>
+            {currentRole === 'ADMIN' && (
+              <>
+                <button
+                  onClick={() => setActiveSubTab('prodops')}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                    activeSubTab === 'prodops' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span>ProdOps & SecOps</span>
+                </button>
 
-            <button
-              onClick={() => setActiveSubTab('audit')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-                activeSubTab === 'audit' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <History className="w-4 h-4 text-slate-500" />
-              <span>Audit Log</span>
-            </button>
+                <button
+                  onClick={() => setActiveSubTab('audit')}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                    activeSubTab === 'audit' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <History className="w-4 h-4 text-slate-500" />
+                  <span>Audit Log</span>
+                </button>
 
-            <button
-              onClick={() => setActiveSubTab('pengaturan')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-                activeSubTab === 'pengaturan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <Settings className="w-4 h-4 text-[#D4A72C]" />
-              <span>Google Sheets & GAS Sync</span>
-            </button>
+                <button
+                  onClick={() => setActiveSubTab('pengaturan')}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                    activeSubTab === 'pengaturan' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 text-[#D4A72C]" />
+                  <span>Google Sheets & GAS Sync</span>
+                </button>
 
-            {openGoogleSheetsModal && (
-              <button
-                onClick={openGoogleSheetsModal}
-                className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-800/90 text-white shadow-sm hover:bg-emerald-700 mt-1"
-              >
-                <div className="flex items-center gap-2.5">
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
-                  <span>Buka Spreadsheet Database</span>
-                </div>
-                <span className="bg-emerald-950/60 border border-emerald-400/40 text-[9px] px-1.5 py-0.5 rounded font-black text-emerald-200">
-                  SHEETS
-                </span>
-              </button>
+                {openGoogleSheetsModal && (
+                  <button
+                    onClick={openGoogleSheetsModal}
+                    className="w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all bg-emerald-800/90 text-white shadow-sm hover:bg-emerald-700 mt-1"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+                      <span>Buka Spreadsheet Database</span>
+                    </div>
+                    <span className="bg-emerald-950/60 border border-emerald-400/40 text-[9px] px-1.5 py-0.5 rounded font-black text-emerald-200">
+                      SHEETS
+                    </span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setActiveSubTab('eksternal')}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
+                    activeSubTab === 'eksternal' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <Cloud className="w-4 h-4 text-[#D4A72C]" />
+                  <span>Integrasi Eksternal</span>
+                </button>
+              </>
             )}
-
-            <button
-              onClick={() => setActiveSubTab('eksternal')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 transition-all ${
-                activeSubTab === 'eksternal' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <Cloud className="w-4 h-4 text-[#D4A72C]" />
-              <span>Integrasi Eksternal</span>
-            </button>
           </div>
 
         </div>
@@ -1072,7 +1076,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 { id: 'prodops', label: 'ProdOps', icon: ShieldCheck },
                 { id: 'audit', label: 'Audit', icon: History },
                 { id: 'pengaturan', label: 'GAS Sync', icon: Settings }
-              ].map((tab) => {
+              ]
+                .filter((tab) => currentRole === 'ADMIN' || !['eksternal', 'prodops', 'audit', 'pengaturan'].includes(tab.id))
+                .map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeSubTab === tab.id;
                 return (
@@ -1682,7 +1688,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <td colSpan={8} className="p-8 text-center text-slate-400">
                               <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                               <p className="font-semibold text-sm text-slate-600">Belum ada data warga terdaftar</p>
-                              <p className="text-xs text-slate-400 mt-0.5">Database Google Sheets saat ini tidak memiliki baris data warga aktif.</p>
+                              <p className="text-xs text-slate-400 mt-0.5">
+                                {wargaList.length === 0
+                                  ? '0 jiwa terdaftar di sistem RT 07. Klik tombol "+ Tambah Warga" untuk mendaftarkan warga pertama.'
+                                  : 'Tidak ditemukan data warga yang sesuai dengan filter/pencarian.'}
+                              </p>
                             </td>
                           </tr>
                         );
@@ -2432,7 +2442,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <p><b>NIK:</b> <span className="font-mono">3507121508820001</span></p>
                   <p><b>No. KK:</b> <span className="font-mono">3507120101150001</span></p>
                   <p><b>No. WhatsApp:</b> 081234567890</p>
-                  <p><b>Email:</b> bambang.sugianto@gmail.com</p>
+                  <p><b>Email:</b> rt07rw11.gpa@gmail.com</p>
                   <p><b>Status Iuran Bulan Ini:</b> <span className="text-emerald-700 font-bold">LUNAS</span></p>
                   <p><b>Jumlah Anggota Keluarga:</b> 4 Orang</p>
                 </div>

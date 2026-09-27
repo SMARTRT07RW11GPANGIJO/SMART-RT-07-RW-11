@@ -662,6 +662,7 @@ export default function App() {
           setPengumumanList((prev) => [newAnn, ...prev]);
         }}
         addToast={addToast}
+        openLoginModal={() => setLoginModalOpen(true)}
       />
 
       {/* MODAL LOGIN RESMI WARGA & PENGURUS */}
