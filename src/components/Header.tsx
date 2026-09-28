@@ -177,7 +177,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                   <div className="text-left">
                     <span className="block text-[11px] font-bold text-white leading-tight max-w-[130px] truncate">
-                      {sessionContext.namaLengkap || sessionContext.userId}
+                      {sessionContext.namaLengkap?.trim() || (sessionContext.role === 'PENGURUS' ? 'Pengurus RT 07' : sessionContext.userId)}
                     </span>
                     <span className="block text-[9px] font-mono text-emerald-400 leading-none">
                       {sessionContext.role === 'WARGA' && sessionContext.nomorKK 
@@ -387,7 +387,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                   <div>
                     <span className="block text-xs font-bold text-white">
-                      {sessionContext.namaLengkap || sessionContext.userId}
+                      {sessionContext.namaLengkap?.trim() || (sessionContext.role === 'PENGURUS' ? 'Pengurus RT 07' : sessionContext.userId)}
                     </span>
                     <span className="block text-[10px] font-mono text-emerald-400">
                       {sessionContext.role === 'WARGA' && sessionContext.nomorKK 

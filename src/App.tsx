@@ -74,7 +74,7 @@ export default function App() {
     if (isFirstLogin || session.forcePasswordChange) {
       setForcePasswordChangeModalOpen(true);
     } else {
-      addToast('success', 'Berhasil Masuk', `Selamat datang, ${session.namaLengkap || session.userId}!`);
+      addToast('success', 'Berhasil Masuk', `Selamat datang, ${session.namaLengkap?.trim() || (session.role === 'PENGURUS' ? 'Pengurus RT 07' : session.userId)}!`);
       setTab('dashboard');
     }
   };

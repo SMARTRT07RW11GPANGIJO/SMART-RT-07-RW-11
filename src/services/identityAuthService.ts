@@ -196,7 +196,7 @@ export class IdentityAuthService {
         username: 'pengurus_rt07',
         role: 'PENGURUS',
         userId: 'PGR-001',
-        nama: 'Bpk. Joko Susilo (Sekretaris RT 07)',
+        nama: '',
         tempPass: 'PengurusRT07#2026'
       },
       {
@@ -263,6 +263,15 @@ export class IdentityAuthService {
           existing.namaLengkap = off.nama;
         } else if (off.username === 'admin_rt07' && existing.namaLengkap === 'Administrator Sistem RT 07') {
           existing.namaLengkap = off.nama;
+        } else if (off.username === 'pengurus_rt07' && (existing.namaLengkap.includes('Joko Susilo') || existing.userId === 'PGR-001')) {
+          existing.namaLengkap = '';
+        }
+      });
+
+      // Targeted cleanup for any cached account entry with Joko Susilo under pengurus_rt07 / PGR-001
+      accountsMap.forEach((acc) => {
+        if ((acc.username === 'pengurus_rt07' || acc.userId === 'PGR-001') && acc.namaLengkap && acc.namaLengkap.includes('Joko Susilo')) {
+          acc.namaLengkap = '';
         }
       });
       this.persistAccounts(accountsMap);
@@ -810,6 +819,10 @@ export class IdentityAuthService {
     }
     const finalToken = receivedAuthToken || existingToken;
 
+    const sanitizedNamaLengkap = (account.username === 'pengurus_rt07' || account.userId === 'PGR-001') && account.namaLengkap && account.namaLengkap.includes('Joko Susilo')
+      ? ''
+      : (account.namaLengkap || '');
+
     const sessionId = `SES-${account.role}-${Date.now()}-${generateCorrelationId().slice(-6)}`;
     const session: AuthoritativeSessionContext = {
       sessionId,
@@ -819,7 +832,7 @@ export class IdentityAuthService {
       issuedAt: new Date().toISOString(),
       keluargaId: account.familyId || account.keluargaId,
       nomorKK: account.nomorKK,
-      namaLengkap: account.namaLengkap,
+      namaLengkap: sanitizedNamaLengkap,
       forcePasswordChange: account.forcePasswordChange,
       isFirstLogin: account.isFirstLogin || account.firstLogin,
       authToken: finalToken
@@ -976,6 +989,15 @@ export class IdentityAuthService {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && parsed.sessionId && parsed.isValid) {
+            // Targeted cleanup for legacy Joko Susilo in pengurus_rt07 / PGR-001 session
+            if ((parsed.userId === 'PGR-001' || parsed.username === 'pengurus_rt07' || parsed.role === 'PENGURUS') && parsed.namaLengkap && parsed.namaLengkap.includes('Joko Susilo')) {
+              parsed.namaLengkap = '';
+              try {
+                localStorage.setItem(STORAGE_KEY_ACTIVE_SESSIONS, JSON.stringify(parsed));
+              } catch {
+                // ignore
+              }
+            }
             inMemorySessions.set(parsed.sessionId, parsed);
             return parsed;
           }

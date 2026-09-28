@@ -678,11 +678,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {roleHeader.title}
             </h1>
 
-            {authoritativeSession?.namaLengkap && (
-              <p className="text-xs sm:text-sm font-semibold text-[#E6B83F]">
-                Selamat datang, Bapak/Ibu {authoritativeSession.namaLengkap}.
-              </p>
-            )}
+            <p className="text-xs sm:text-sm font-semibold text-[#E6B83F]">
+              Selamat datang, Bapak/Ibu {authoritativeSession?.namaLengkap?.trim() || 'Pengurus RT 07'}.
+            </p>
 
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
               {roleHeader.subtitle}

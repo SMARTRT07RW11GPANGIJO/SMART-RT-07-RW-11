@@ -96,7 +96,7 @@ export const FirstLoginChangePasswordModal: React.FC<FirstLoginChangePasswordMod
           </div>
 
           <p className="text-xs text-slate-300 mt-2.5 leading-relaxed">
-            Selamat datang, <strong>{session.namaLengkap || 'Warga RT 07'}</strong>. Untuk privasi dan perlindungan data keluarga, Anda <strong>wajib membuat password baru</strong> sebelum mengakses layanan mandiri RT.
+            Selamat datang, <strong>{session.namaLengkap?.trim() || (session.role === 'PENGURUS' ? 'Pengurus RT 07' : 'Warga RT 07')}</strong>. Untuk privasi dan perlindungan data keluarga, Anda <strong>wajib membuat password baru</strong> sebelum mengakses layanan mandiri RT.
           </p>
         </div>
 
