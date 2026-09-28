@@ -28,13 +28,7 @@ export class ResidentFamilyService {
   // Load from persistent local storage or fallback to fixture
   public static loadInitialWarga(): Warga[] {
     if (getProductionConfig().appEnv === 'production') {
-      if (typeof localStorage !== 'undefined') {
-        try {
-          localStorage.removeItem(STORAGE_KEY_WARGA);
-        } catch (e) {
-          console.warn('Failed to clean stored warga cache in production', e);
-        }
-      }
+      // In production, initial state is empty array until SSoT hydration runs
       return [];
     }
     if (typeof localStorage !== 'undefined') {
@@ -165,6 +159,34 @@ export class ResidentFamilyService {
       this.pemilikStore = [...pemilik];
       this.persistPemilik();
     }
+  }
+
+  // Synchronize Warga SSoT list into internal store
+  public static syncWargaSSoT(warga: Warga[]): void {
+    this.wargaStore = [...warga];
+    this.persistWarga();
+  }
+
+  // Get confirmed Warga records from persistent cache
+  public static getConfirmedWargaSSoT(): Warga[] {
+    if (this.wargaStore && this.wargaStore.length > 0) {
+      return [...this.wargaStore];
+    }
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_WARGA);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.wargaStore = [...parsed];
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to read confirmed warga cache', e);
+      }
+    }
+    return [];
   }
 
   // Get all residents

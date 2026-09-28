@@ -53,6 +53,7 @@ import { getProductionConfig } from './services/productionConfigService';
 import { AuthoritativeSessionContext } from './security/authorization';
 import { LoginModal } from './components/LoginModal';
 import { FirstLoginChangePasswordModal } from './components/FirstLoginChangePasswordModal';
+import { fetchWargaSSoT } from './dal/DataAccessLayer';
 
 export default function App() {
   const [sessionContext, setSessionContext] = useState<AuthoritativeSessionContext | null>(() => {
@@ -71,6 +72,13 @@ export default function App() {
   const handleLoginSuccess = (session: AuthoritativeSessionContext, isFirstLogin: boolean) => {
     setSessionContext(session);
     setRole(session.role);
+    if (['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(session.role)) {
+      fetchWargaSSoT(session).then((res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setWargaList(res.data);
+        }
+      }).catch(() => {});
+    }
     if (isFirstLogin || session.forcePasswordChange) {
       setForcePasswordChangeModalOpen(true);
     } else {
@@ -82,6 +90,13 @@ export default function App() {
   const handlePasswordChanged = (updatedSession: AuthoritativeSessionContext) => {
     setSessionContext(updatedSession);
     setRole(updatedSession.role);
+    if (['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(updatedSession.role)) {
+      fetchWargaSSoT(updatedSession).then((res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setWargaList(res.data);
+        }
+      }).catch(() => {});
+    }
     setForcePasswordChangeModalOpen(false);
     addToast('success', 'Akun Terverifikasi & Aktif', 'Password baru berhasil disimpan. Selamat datang di Portal RT 07!');
     setTab('dashboard');
@@ -94,12 +109,30 @@ export default function App() {
     setSessionContext(null);
     setRole('PUBLIC');
     setTab('landing');
+    setWargaList(ResidentFamilyService.loadInitialWarga());
     addToast('info', 'Sesi Berakhir', 'Anda telah berhasil keluar dari akun.');
   };
 
   // Master States
   const isProd = getProductionConfig().appEnv === 'production';
   const [wargaList, setWargaList] = useState<Warga[]>(() => ResidentFamilyService.loadInitialWarga());
+
+  // CR — PRODUCTION WARGA SSoT READ-BACK: Hydrate WARGA from SSoT Google Sheets via GAS
+  useEffect(() => {
+    let isMounted = true;
+    if (['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(currentRole)) {
+      fetchWargaSSoT(sessionContext || undefined).then((res) => {
+        if (isMounted && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setWargaList(res.data);
+        }
+      }).catch((err) => {
+        console.warn('[SSoT Hydration] Error:', err);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentRole, sessionContext]);
   const [keluargaList, setKeluargaList] = useState<Keluarga[]>(() => ResidentFamilyService.loadInitialKeluarga());
   const [suratList, setSuratList] = useState<SuratPengantar[]>(() => isProd ? [] : INITIAL_SURAT);
   const [transaksiList, setTransaksiList] = useState<TransaksiKeuangan[]>(() => isProd ? [] : INITIAL_TRANSAKSI);

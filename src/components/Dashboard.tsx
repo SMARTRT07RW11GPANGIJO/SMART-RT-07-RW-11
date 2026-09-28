@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   UserRole, 
   Warga, 
@@ -89,7 +89,7 @@ import { WargaDashboardView } from './warga/WargaDashboardView';
 import { AuthoritativeSessionContext } from '../security/authorization';
 import { IdentityAuthService } from '../services/identityAuthService';
 import { ResidentFamilyService } from '../services/residentFamilyService';
-import { registerWargaSSoT, registerKeluargaSSoT, verifyWargaSSoT, verifyKeluargaSSoT } from '../dal/DataAccessLayer';
+import { registerWargaSSoT, registerKeluargaSSoT, verifyWargaSSoT, verifyKeluargaSSoT, fetchWargaSSoT } from '../dal/DataAccessLayer';
 import { writeAuditLog, AUDIT_EVENTS, generateCorrelationId } from '../services/auditLogService';
 import { calculateDashboardData } from '../dashboard/calculationEngine';
 import {
@@ -207,6 +207,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Gate 3.16 Calculation Engine Integration State
   const [dashboardFilterState, setDashboardFilterState] = useState<DashboardFilterState>(DEFAULT_DASHBOARD_FILTER_STATE);
+
+  // CR — PRODUCTION WARGA SSoT READ-BACK: Hydrate WARGA from SSoT Google Sheets on mount / role change
+  useEffect(() => {
+    let isMounted = true;
+    if (['PENGURUS', 'KETUA_RT', 'ADMIN'].includes(currentRole)) {
+      const activeSession = IdentityAuthService.getActiveSession();
+      fetchWargaSSoT(activeSession || undefined).then((res) => {
+        if (isMounted && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setWargaList(res.data);
+        }
+      }).catch((err) => {
+        console.warn('[Dashboard SSoT Hydration] Error:', err);
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentRole, setWargaList]);
 
   // Derived calculation result through pure memoization (Safe Integration Bridge)
   const dashboardCalculationResult: DashboardCalculationResult = useMemo(() => {
@@ -379,9 +397,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
       throw new Error(errorMsg);
     }
 
-    // 2. Refresh React UI state from updated persistent cache
-    const updatedList = ResidentFamilyService.getWargaList();
-    setWargaList(updatedList);
+    // 2. Refresh React UI state: SSoT Read-Back via DataAccessLayer
+    try {
+      const ssoReadBack = await fetchWargaSSoT(sessionCtx);
+      if (ssoReadBack.success && Array.isArray(ssoReadBack.data) && ssoReadBack.data.length > 0) {
+        setWargaList(ssoReadBack.data);
+      } else {
+        const updatedList = ResidentFamilyService.getWargaList();
+        setWargaList(updatedList);
+      }
+    } catch {
+      const updatedList = ResidentFamilyService.getWargaList();
+      setWargaList(updatedList);
+    }
 
     // 3. Show Success Toast
     addToast('success', 'Data Warga Tersimpan!', result.message || `Data Warga ${newWarga.nama_lengkap} berhasil tersimpan di Google Sheets SSoT.`);

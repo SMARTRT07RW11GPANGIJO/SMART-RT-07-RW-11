@@ -474,6 +474,214 @@ export function executeDataTool(
 }
 
 // ============================================================================
+// SSoT READ-BACK GATEWAY (CR — PRODUCTION WARGA SSoT READ-BACK)
+// ============================================================================
+
+/**
+ * mapRawWargaToDto
+ * Maps raw Google Sheets / GAS payload to the authoritative Warga domain model
+ * Compatible with CalculationEngine contracts and official taxonomy.
+ */
+export function mapRawWargaToDto(raw: any): Warga {
+  if (!raw || typeof raw !== 'object') {
+    return {} as Warga;
+  }
+
+  const getField = (...keys: string[]): string => {
+    for (const key of keys) {
+      if (raw[key] !== undefined && raw[key] !== null && String(raw[key]).trim() !== '') {
+        return String(raw[key]).trim();
+      }
+    }
+    return '';
+  };
+
+  const id_warga = getField('ID_WARGA', 'id_warga', 'idWarga', 'id') || `WRG-${Date.now()}`;
+  const nik = getField('NIK', 'nik');
+  const no_kk = getField('NO_KK', 'no_kk', 'nomorKK', 'nomor_kk', 'noKk');
+  const nama_lengkap = getField('NAMA_LENGKAP', 'nama_lengkap', 'namaLengkap', 'nama', 'NAMA') || 'Warga RT 07';
+  const nama_panggilan = getField('NAMA_PANGGILAN', 'nama_panggilan', 'namaPanggilan');
+
+  const rawGender = getField('JENIS_KELAMIN', 'jenis_kelamin', 'gender').toUpperCase();
+  const jenis_kelamin: 'Laki-Laki' | 'Perempuan' = rawGender.includes('P') ? 'Perempuan' : 'Laki-Laki';
+
+  const tempat_lahir = getField('TEMPAT_LAHIR', 'tempat_lahir', 'tempatLahir') || 'Malang';
+  const tanggal_lahir = getField('TANGGAL_LAHIR', 'tanggal_lahir', 'tanggalLahir') || '1990-01-01';
+  const agama = getField('AGAMA', 'agama') || 'Islam';
+
+  const rawKawin = getField('STATUS_PERKAWINAN', 'status_perkawinan', 'statusPerkawinan').toUpperCase();
+  let status_perkawinan: 'Belum Kawin' | 'Kawin' | 'Cerai Hidup' | 'Cerai Mati' = 'Belum Kawin';
+  if (rawKawin.includes('BELUM')) status_perkawinan = 'Belum Kawin';
+  else if (rawKawin.includes('HIDUP')) status_perkawinan = 'Cerai Hidup';
+  else if (rawKawin.includes('MATI')) status_perkawinan = 'Cerai Mati';
+  else if (rawKawin.includes('KAWIN') || rawKawin.includes('MENIKAH')) status_perkawinan = 'Kawin';
+
+  const pendidikan = getField('PENDIDIKAN', 'pendidikan') || 'SMA/Sederajat';
+  const pekerjaan = getField('PEKERJAAN', 'pekerjaan') || 'Karyawan Swasta';
+  const no_hp = getField('NO_HP', 'no_hp', 'telepon', 'phone').replace(/^'/, '');
+  const email = getField('EMAIL', 'email');
+  const alamat = getField('ALAMAT', 'alamat') || 'Perum GPA Ngijo RT 07 RW 11';
+  const blok = getField('BLOK', 'blok', 'blokRumah') || 'A';
+  const rt = getField('RT', 'rt') || '07';
+  const rw = getField('RW', 'rw') || '11';
+
+  const rawStatusTinggal = getField('STATUS_TINGGAL', 'status_tinggal', 'statusTinggal').toUpperCase();
+  let status_tinggal = 'TETAP';
+  if (rawStatusTinggal.includes('KONTRAK') || rawStatusTinggal.includes('SEWA')) {
+    status_tinggal = 'KONTRAK_SEWA';
+  } else if (rawStatusTinggal.includes('KOS')) {
+    status_tinggal = 'KOS';
+  } else {
+    status_tinggal = 'TETAP';
+  }
+
+  // Contract: CalculationEngine getActiveWarga requires status_warga === 'AKTIF'
+  const rawStatusWarga = getField('STATUS_WARGA', 'status_warga', 'statusWarga').toUpperCase();
+  let status_warga_val = 'AKTIF';
+  if (rawStatusWarga === 'PINDAH' || rawStatusWarga === 'MENINGGAL') {
+    status_warga_val = rawStatusWarga;
+  } else {
+    status_warga_val = 'AKTIF';
+  }
+
+  const tanggal_masuk = getField('TANGGAL_MASUK', 'tanggal_masuk', 'tanggalMasuk') || new Date().toISOString().split('T')[0];
+  const keterangan = getField('KETERANGAN', 'keterangan');
+  const namaPemilikRumah = getField('NAMA_PEMILIK_RUMAH', 'namaPemilikRumah', 'nama_pemilik_rumah');
+  const teleponPemilikRumah = getField('TELEPON_PEMILIK_RUMAH', 'teleponPemilikRumah', 'telepon_pemilik_rumah').replace(/^'/, '');
+
+  const rawHubungan = getField('HUBUNGAN_KELUARGA', 'hubunganKeluarga', 'hubungan_keluarga', 'status_keluarga').toUpperCase();
+  let hubunganKeluarga: any = 'KEPALA_KELUARGA';
+  if (rawHubungan.includes('ISTRI')) hubunganKeluarga = 'ISTRI';
+  else if (rawHubungan.includes('ANAK')) hubunganKeluarga = 'ANAK';
+  else if (rawHubungan.includes('ORANG_TUA') || rawHubungan.includes('MERTUA')) hubunganKeluarga = 'ORANG_TUA';
+  else if (rawHubungan.includes('PENYEWA')) hubunganKeluarga = 'PENYEWA';
+  else if (rawHubungan.includes('KOS')) hubunganKeluarga = 'PENGHUNI_KOS';
+  else if (rawHubungan.includes('FAMILI')) hubunganKeluarga = 'FAMILI_LAIN';
+  else hubunganKeluarga = 'KEPALA_KELUARGA';
+
+  const statusVerifikasi = (getField('statusVerifikasi', 'STATUS_VERIFIKASI') || 'TERVERIFIKASI') as any;
+
+  return {
+    id_warga,
+    nik,
+    no_kk,
+    nama_lengkap,
+    nama_panggilan: nama_panggilan || undefined,
+    jenis_kelamin,
+    tempat_lahir,
+    tanggal_lahir,
+    agama,
+    status_perkawinan,
+    pendidikan,
+    pekerjaan,
+    no_hp,
+    email,
+    alamat,
+    blok,
+    rt,
+    rw,
+    status_tinggal,
+    status_warga: status_warga_val as any,
+    statusWarga: (status_tinggal === 'KONTRAK_SEWA' ? 'KONTRAK_SEWA' : status_tinggal === 'KOS' ? 'KOS' : 'TETAP') as any,
+    hubunganKeluarga,
+    namaPemilikRumah: namaPemilikRumah || undefined,
+    teleponPemilikRumah: teleponPemilikRumah || undefined,
+    tanggal_masuk,
+    keterangan: keterangan || undefined,
+    statusVerifikasi,
+    // Relational aliases
+    wargaId: id_warga,
+    nomorKK: no_kk,
+    keluargaId: no_kk ? `KK-${no_kk.slice(-4)}` : undefined
+  };
+}
+
+/**
+ * fetchWargaSSoT
+ * Authoritative Read-Back Gateway for WARGA from Google Sheets SSoT via GAS
+ * Production SSoT Hydration Pipeline for Operational Roles (Pengurus, Ketua RT, Admin)
+ */
+export async function fetchWargaSSoT(
+  authContext?: AuthoritativeSessionContext
+): Promise<{
+  success: boolean;
+  data: Warga[];
+  message?: string;
+  error?: string;
+  correlationId: string;
+}> {
+  const correlationId = generateCorrelationId();
+  const role = authContext?.role || 'PENGURUS';
+  const userId = authContext?.userId || 'SYSTEM';
+
+  // 1. Authorization check: Operational staff only
+  const allowedRoles = ['PENGURUS', 'KETUA_RT', 'ADMIN'];
+  if (authContext && !allowedRoles.includes(role)) {
+    return {
+      success: false,
+      data: [],
+      error: `Akses ditolak: Role ${role} tidak memiliki hak akses data operasional warga.`,
+      correlationId
+    };
+  }
+
+  try {
+    // 2. Query GAS Backend WebApp for Warga List
+    const gasResponse = await syncDataWithGAS('getWargaList', {
+      userRole: role,
+      role,
+      correlationId,
+      user: userId
+    });
+
+    if (!gasResponse || typeof gasResponse !== 'object') {
+      return {
+        success: false,
+        data: [],
+        error: 'Respons dari GAS backend tidak valid',
+        correlationId
+      };
+    }
+
+    // 3. Extract raw records array from GAS response
+    let rawRecords: any[] = [];
+    if (Array.isArray(gasResponse.data)) {
+      rawRecords = gasResponse.data;
+    } else if (gasResponse.data && typeof gasResponse.data === 'object') {
+      if (Array.isArray((gasResponse.data as any).data)) {
+        rawRecords = (gasResponse.data as any).data;
+      } else if (Array.isArray((gasResponse.data as any).records)) {
+        rawRecords = (gasResponse.data as any).records;
+      }
+    }
+
+    // 4. Map & Normalize raw records to typed Warga objects adhering to CalculationEngine contracts
+    const mappedWarga: Warga[] = rawRecords
+      .filter((raw) => raw && typeof raw === 'object')
+      .map((raw) => mapRawWargaToDto(raw))
+      .filter((w) => w.nik || w.id_warga || w.nama_lengkap);
+
+    // 5. Synchronize into ResidentFamilyService store so other services see authoritative SSoT data
+    ResidentFamilyService.syncWargaSSoT(mappedWarga);
+
+    return {
+      success: true,
+      data: mappedWarga,
+      message: `Berhasil memuat ${mappedWarga.length} data warga dari SSoT Google Sheets`,
+      correlationId
+    };
+  } catch (err: any) {
+    const errorMsg = err?.message || 'Gagal membaca data warga dari Google Sheets SSoT';
+    return {
+      success: false,
+      data: [],
+      error: errorMsg,
+      correlationId
+    };
+  }
+}
+
+// ============================================================================
 // SSoT REGISTRATION GATEWAY (CR-SMART-RT-REG-AUTH-001)
 // ============================================================================
 
