@@ -87,6 +87,29 @@ export const LandingPage: React.FC<LandingProps> = ({
 
   const saldoKas = transactions.length > 0 ? transactions[transactions.length - 1].saldo_berjalan : 0;
 
+  // CR — HARMONISASI SSoT KELUARGA / KK:
+  // Hitung jumlah KK secara sah dari unique NO_KK data warga aktif yang tersedia, atau keluargaList jika ada
+  const displayKkCount = React.useMemo(() => {
+    const kkSet = new Set<string>();
+    wargaList.forEach((w) => {
+      const status = String(w.status_warga || '').trim().toUpperCase();
+      const noKk = String(w.no_kk || w.nomorKK || '').trim();
+      if ((status === 'AKTIF' || !w.status_warga) && noKk.length > 0) {
+        kkSet.add(noKk);
+      }
+    });
+    if (kkSet.size > 0) return kkSet.size;
+    return keluargaList.length > 0 ? keluargaList.length : 0;
+  }, [wargaList, keluargaList]);
+
+  const displayWargaCount = React.useMemo(() => {
+    const activeWarga = wargaList.filter(w => {
+      const status = String(w.status_warga || '').trim().toUpperCase();
+      return status === 'AKTIF' || (!w.status_warga && String(w.id_warga || '').trim().length > 0);
+    });
+    return activeWarga.length > 0 ? activeWarga.length : wargaList.length;
+  }, [wargaList]);
+
   return (
     <div className="space-y-16 pb-12">
       
@@ -135,13 +158,13 @@ export const LandingPage: React.FC<LandingProps> = ({
             <div className="pt-6 border-t border-slate-700/60 grid grid-cols-3 gap-4 max-w-lg mx-auto lg:mx-0 text-center lg:text-left">
               <div>
                 <span className="block text-2xl font-black text-[#D4A72C]">
-                  {keluargaList.length > 0 ? `${keluargaList.length} KK` : '0 KK'}
+                  {displayKkCount > 0 ? `${displayKkCount} KK` : '0 KK'}
                 </span>
                 <span className="text-[11px] text-slate-400 font-medium">Keluarga Terdaftar</span>
               </div>
               <div>
                 <span className="block text-2xl font-black text-[#2E7D52]">
-                  {wargaList.length > 0 ? `${wargaList.length} Jiwa` : '0 Jiwa'}
+                  {displayWargaCount > 0 ? `${displayWargaCount} Jiwa` : '0 Jiwa'}
                 </span>
                 <span className="text-[11px] text-slate-400 font-medium">Warga RT 07</span>
               </div>

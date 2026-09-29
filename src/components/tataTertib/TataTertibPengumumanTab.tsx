@@ -42,7 +42,7 @@ export const TataTertibPengumumanTab: React.FC<TataTertibPengumumanTabProps> = (
   };
 
   const announcementText = `📢 *PENGUMUMAN RESMI TATA TERTIB WARGA RT 07 RW 11* 📢
-*Perum Graha Permata Anugrah (GPA) Desa Ngijo*
+*Perum Griya Permata Alam (GPA) Ngijo*
 
 Berdasarkan hasil Musyawarah Warga & Pengurus RT 07, telah diberlakukan:
 📜 *TATA TERTIB WARGA VERSI ${latestRev.version}*

@@ -428,7 +428,7 @@ export class AIAgentGateway {
     } else if (intent === 'GENERAL_INFORMATION' || intent === 'ADMIN_QUERY') {
       generatedMessage =
         `Portal Informasi Resmi **RUKUN TETANGGA 07 RUKUN WARGA 11 (RT 07 RW 11)**\n` +
-        `**PERUMAHAN GPA NGIJO, RW 11** (Graha Permata Anugrah)\n` +
+        `**PERUMAHAN GPA NGIJO, RW 11** (Griya Permata Alam)\n` +
         `Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang, Jawa Timur.\n\n` +
         `• **Pimpinan / Ketua RT 07:** Bpk. Eko Sucahyono (Ketua RT 07 RW 11)\n` +
         `• **Jabatan Resmi:** Ketua RT 07 RW 11 GPA Ngijo\n` +

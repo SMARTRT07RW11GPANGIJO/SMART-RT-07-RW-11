@@ -77,7 +77,7 @@ export const TataTertibDashboardTab: React.FC<TataTertibDashboardTabProps> = ({
                 TATA TERTIB RESMI WARGA RT 07
               </h2>
               <p className="text-xs sm:text-sm text-slate-200 mt-0.5">
-                Perum Graha Permata Anugrah (GPA) Desa Ngijo, Kec. Karangploso, Kab. Malang
+                Perum Griya Permata Alam (GPA) Ngijo, Kec. Karangploso, Kab. Malang
               </p>
             </div>
           </div>

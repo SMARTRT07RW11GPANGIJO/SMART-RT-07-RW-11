@@ -47,7 +47,7 @@ export const DEFAULT_TATA_TERTIB_CATEGORIES: TataTertibCategoryItem[] = [
 export const DEFAULT_TATA_TERTIB_CONFIG: TataTertibConfig = {
   documentNumberFormat: 'TT/RT07RW11/{CAT}/{NO}/{YEAR}',
   kopHeaderTitle: 'RUKUN TETANGGA 07 RUKUN WARGA 11',
-  kopSubTitle: 'PERUMAHAN GRAHA PERMATA ANUGRAH (GPA) DESA NGIJO',
+  kopSubTitle: 'PERUMAHAN GRIYA PERMATA ALAM (GPA) NGIJO',
   kopLocation: 'Kecamatan Karangploso, Kabupaten Malang, Jawa Timur 65152',
   signingOfficialName: 'Bapak Eko Sucahyono',
   signingOfficialTitle: 'Ketua RT 07 RW 11 GPA Ngijo',
@@ -77,7 +77,7 @@ export const INITIAL_TATA_TERTIB_ARTICLES: TataTertibArticle[] = [
     ],
     sanksi: 'Teguran lisan oleh Pengurus RT dan penundaan layanan administrasi sementara.',
     isi: `Pasal 1: Pengertian & Asas
-1. Rukun Tetangga 07 RW 11 Perumahan Graha Permata Anugrah (GPA) Desa Ngijo, Kecamatan Karangploso, Kabupaten Malang berdiri berlandaskan asas gotong royong, transparansi, dan kekeluargaan.
+1. Rukun Tetangga 07 RW 11 Perumahan Griya Permata Alam (GPA) Ngijo, Kecamatan Karangploso, Kabupaten Malang berdiri berlandaskan asas gotong royong, transparansi, dan kekeluargaan.
 2. Setiap warga yang berdomisili di wilayah RT 07 RW 11 (baik pemilik, penyewa/kontrak, maupun kos) merupakan bagian tak terpisahkan dari keluarga besar RT 07.
 
 Pasal 2: Kewajiban Pelaporan Domisili

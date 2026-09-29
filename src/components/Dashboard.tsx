@@ -231,6 +231,66 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return calculateDashboardData(wargaList, dashboardFilterState);
   }, [wargaList, dashboardFilterState]);
 
+  // CR — HARMONISASI SSoT KELUARGA / KK:
+  // Representasi keluarga resmi berbasis warga aktif + unique NO_KK
+  const effectiveKeluargaList = useMemo<Keluarga[]>(() => {
+    const result: Keluarga[] = [...keluargaList];
+    const existingKkSet = new Set(result.map(k => String(k.no_kk || k.nomorKK || '').trim()).filter(Boolean));
+
+    // Filter warga aktif dengan ID valid sesuai spesifikasi SSoT
+    const activeCitizens = wargaList.filter(w => {
+      const id = String(w.id_warga || '').trim();
+      const status = String(w.status_warga || '').trim().toUpperCase();
+      return id.length > 0 && status === 'AKTIF';
+    });
+
+    const kkGroups = new Map<string, typeof wargaList>();
+    for (const w of activeCitizens) {
+      const noKk = String(w.no_kk || w.nomorKK || '').trim();
+      if (noKk.length > 0) {
+        if (!kkGroups.has(noKk)) {
+          kkGroups.set(noKk, []);
+        }
+        kkGroups.get(noKk)!.push(w);
+      }
+    }
+
+    for (const [noKk, members] of kkGroups.entries()) {
+      if (!existingKkSet.has(noKk)) {
+        // Kepala keluarga ditentukan dari record yang memiliki status/role KEPALA_KELUARGA bila tersedia, atau record pertama
+        const kepala = members.find(m => {
+          const rawHub = String(m.hubunganKeluarga || (m as any).status_keluarga || (m as any).HUBUNGAN_KELUARGA || '').toUpperCase();
+          return rawHub === 'KEPALA_KELUARGA' || rawHub.includes('KEPALA');
+        }) || members[0];
+
+        const statusRumahRaw = String((kepala as any).status_tinggal || (kepala as any).STATUS_TINGGAL || '').toUpperCase();
+        const status_rumah = statusRumahRaw.includes('KONTRAK') || statusRumahRaw.includes('SEWA')
+          ? 'Sewa / Kontrak'
+          : 'Milik Sendiri';
+
+        result.push({
+          id_kk: `KK-${noKk.slice(-6) || '000001'}`,
+          keluargaId: `KK-${noKk}`,
+          no_kk: noKk,
+          nomorKK: noKk,
+          nama_kepala_keluarga: kepala.nama_lengkap || 'Kepala Keluarga',
+          kepalaKeluargaWargaId: kepala.id_warga,
+          alamat: kepala.alamat || 'PERUM GPA BLOK JN NO 17',
+          blok: kepala.blok ? (kepala.blok.toUpperCase().includes('BLOK') ? kepala.blok : `Blok ${kepala.blok}`) : 'Blok JN-17',
+          jumlah_anggota: members.length,
+          status_rumah: status_rumah,
+          statusKeluarga: 'AKTIF',
+          no_hp: kepala.no_hp || '',
+          statusVerifikasi: (kepala as any).statusVerifikasi || 'TERVERIFIKASI',
+          createdAt: (kepala as any).tanggal_masuk || new Date().toISOString()
+        });
+        existingKkSet.add(noKk);
+      }
+    }
+
+    return result;
+  }, [keluargaList, wargaList]);
+
   // Dynamic blok options derived from official list and existing data
   const blokOptions = useMemo(() => {
     const base = [...OFFICIAL_FILTER_OPTIONS.blok];
@@ -797,7 +857,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span>Data Keluarga / KK</span>
               </div>
               <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-black">
-                {keluargaList.length}
+                {effectiveKeluargaList.length}
               </span>
             </button>
 
@@ -1086,7 +1146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {[
                 { id: 'overview', label: 'Overview', icon: LayoutDashboard },
                 { id: 'warga', label: 'Warga', icon: Users, badge: wargaList.length },
-                { id: 'keluarga', label: 'Keluarga', icon: Home, badge: keluargaList.length },
+                { id: 'keluarga', label: 'Keluarga', icon: Home, badge: effectiveKeluargaList.length },
                 { id: 'surat', label: 'Surat', icon: FileText, badge: pendingSuratCount > 0 ? pendingSuratCount : undefined },
                 { id: 'keuangan', label: 'Kas RT', icon: Wallet },
                 { id: 'iuran', label: 'Iuran', icon: CreditCard },
@@ -1842,7 +1902,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     kkVerificationFilter === 'ALL' ? 'bg-[#123B5D] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Semua ({keluargaList.length})
+                  Semua ({effectiveKeluargaList.length})
                 </button>
                 <button
                   onClick={() => setKkVerificationFilter('MENUNGGU')}
@@ -1851,7 +1911,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }`}
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  Menunggu ({keluargaList.filter(k => k.statusVerifikasi === 'MENUNGGU_VERIFIKASI').length})
+                  Menunggu ({effectiveKeluargaList.filter(k => k.statusVerifikasi === 'MENUNGGU_VERIFIKASI').length})
                 </button>
                 <button
                   onClick={() => setKkVerificationFilter('TERVERIFIKASI')}
@@ -1859,7 +1919,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     kkVerificationFilter === 'TERVERIFIKASI' ? 'bg-[#2E7D52] text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-100'
                   }`}
                 >
-                  Terverifikasi ({keluargaList.filter(k => !k.statusVerifikasi || k.statusVerifikasi === 'TERVERIFIKASI').length})
+                  Terverifikasi ({effectiveKeluargaList.filter(k => !k.statusVerifikasi || k.statusVerifikasi === 'TERVERIFIKASI').length})
                 </button>
                 <button
                   onClick={() => setKkVerificationFilter('DITOLAK')}
@@ -1867,13 +1927,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     kkVerificationFilter === 'DITOLAK' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-100'
                   }`}
                 >
-                  Ditolak ({keluargaList.filter(k => k.statusVerifikasi === 'DITOLAK').length})
+                  Ditolak ({effectiveKeluargaList.filter(k => k.statusVerifikasi === 'DITOLAK').length})
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {(() => {
-                  const filteredKeluarga = keluargaList.filter((k) => {
+                  const filteredKeluarga = effectiveKeluargaList.filter((k) => {
                     if (kkVerificationFilter === 'MENUNGGU') return k.statusVerifikasi === 'MENUNGGU_VERIFIKASI';
                     if (kkVerificationFilter === 'TERVERIFIKASI') return !k.statusVerifikasi || k.statusVerifikasi === 'TERVERIFIKASI';
                     if (kkVerificationFilter === 'DITOLAK') return k.statusVerifikasi === 'DITOLAK';
@@ -2569,7 +2629,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         isOpen={wargaModalOpen}
         onClose={() => setWargaModalOpen(false)}
         onAddWarga={handleAddWargaSubmit}
-        keluargaList={keluargaList}
+        keluargaList={effectiveKeluargaList}
       />
 
       <KeluargaFormModal

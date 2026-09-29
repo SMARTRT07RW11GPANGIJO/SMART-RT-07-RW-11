@@ -11,7 +11,7 @@ export const AI_CONFIG = {
   rtIdentity: {
     rtNumber: '07',
     rwNumber: '11',
-    perumahan: 'Graha Permata Anugrah (GPA)',
+    perumahan: 'Griya Permata Alam (GPA)',
     desa: 'Ngijo',
     kecamatan: 'Karangploso',
     kabupaten: 'Malang',

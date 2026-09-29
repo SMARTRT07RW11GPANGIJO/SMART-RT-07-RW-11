@@ -440,9 +440,13 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
             </div>
 
             <div>
-              <h4 className="font-bold text-sm text-slate-800">{profile.blok || 'Blok Rumah'}</h4>
+              <h4 className="font-bold text-sm text-slate-800">
+                {profile.blok && profile.blok.toUpperCase().includes('JN')
+                  ? 'PERUM GPA BLOK JN NO 17'
+                  : (profile.blok ? `PERUM GPA BLOK ${profile.blok.toUpperCase().replace(/^BLOK\s*/i, '')}` : 'PERUM GPA BLOK JN NO 17')}
+              </h4>
               <p className="text-xs text-slate-500 mt-0.5">
-                RT {profile.rt || '07'} / RW {profile.rw || '11'} • Perum Graha Permata Anugrah, Ngijo
+                RT {profile.rt || '07'} / RW {profile.rw || '11'} • Perum Griya Permata Alam Ngijo
               </p>
             </div>
           </div>

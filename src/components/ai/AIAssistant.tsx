@@ -38,7 +38,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
       sender: 'assistant',
       text:
         `Assalamu'alaikum & Selamat Datang 👋\n\n` +
-        `Saya **SATRIA** (*SMART RT AI Assistant*), asisten pelayanan resmi **SMART RT 07 RW 11 Perum Graha Permata Anugrah (GPA) Desa Ngijo**.\n\n` +
+        `Saya **SATRIA** (*SMART RT AI Assistant*), asisten pelayanan resmi **SMART RT 07 RW 11 Perum Griya Permata Alam (GPA) Ngijo**.\n\n` +
         `Saya siap membantu Bapak/Ibu mengenai:\n` +
         `• Syarat & Status Pelayanan **Surat Pengantar RT**\n` +
         `• Informasi Kondisi & Lokasi **Fasilitas Lingkungan** (GeoBase)\n` +

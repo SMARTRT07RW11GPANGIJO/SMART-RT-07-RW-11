@@ -143,7 +143,7 @@ export class AITestRunnerService {
 
     await execTest('TEST-AI-FUNC-003', 'Housing & RW Identity Grounding', 'INTEGRITY', 'PERUMAHAN GPA NGIJO, RW 11', async () => {
       const res = await AIAgentGateway.processRequest('Di mana wilayah lingkungan RT 07 berada?', publicActor);
-      const pass = res.message.includes('GPA') || res.message.includes('Graha Permata Anugrah') || res.message.includes('Ngijo');
+      const pass = res.message.includes('GPA') || res.message.includes('Griya Permata Alam') || res.message.includes('Ngijo');
       return { pass, actual: res.message.substring(0, 45), message: pass ? 'Identitas perumahan GPA Ngijo grounded.' : 'Identitas perumahan tidak sesuai.' };
     });
 
