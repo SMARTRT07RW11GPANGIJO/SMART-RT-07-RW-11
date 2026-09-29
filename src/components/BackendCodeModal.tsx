@@ -1221,6 +1221,27 @@ function doPost(e) {
       }
     }
 
+    // 6. getWargaList Action Router (SSoT Warga Read-Back)
+    if (action === "getWargaList") {
+      try {
+        var userRole = payload.userRole || payload.role || "WARGA";
+        var resWargaList = (typeof getWargaList === "function")
+          ? getWargaList(userRole)
+          : { success: false, message: "Fungsi getWargaList belum didefinisikan.", data: [], errorCode: "FUNCTION_NOT_FOUND" };
+        if (resWargaList && typeof resWargaList === "object" && ("success" in resWargaList)) {
+          return jsonResponse(resWargaList);
+        }
+        return jsonResponse({ success: true, data: resWargaList || [], errorCode: null });
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal mengambil daftar warga: " + (err && err.message ? err.message : "Error"),
+          data: [],
+          errorCode: "GET_WARGALIST_FAILED"
+        });
+      }
+    }
+
     // Safe default handler for unrecognized actions
     return jsonResponse({
       success: false,
@@ -1294,8 +1315,24 @@ function verifyWargaAuthToken(tokenString) {
  */
 
 function getWargaList(userRole) {
+  var cleanRole = String(userRole || '').toUpperCase().trim();
+  var allowedRoles = ["PENGURUS", "KETUA_RT", "ADMIN"];
+  if (allowedRoles.indexOf(cleanRole) === -1) {
+    return {
+      success: false,
+      message: "Akses ditolak: Hanya Pengurus/RT/Admin yang berhak mengakses daftar warga.",
+      data: [],
+      errorCode: "UNAUTHORIZED"
+    };
+  }
   var list = getSheetData("WARGA");
-  return list.map(function(w) { return sanitizeUserData(w, userRole); });
+  var sanitized = list.map(function(w) { return sanitizeUserData(w, cleanRole); });
+  return {
+    success: true,
+    message: "Berhasil memuat " + sanitized.length + " data warga dari SSoT Google Sheets.",
+    data: sanitized,
+    errorCode: null
+  };
 }
 
 function createSuratPengantar(suratData) {

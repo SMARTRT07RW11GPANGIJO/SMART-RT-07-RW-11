@@ -13,17 +13,22 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { WargaProfileSummary } from '../../types/wargaDashboard';
+import { FileEdit, UserPlus } from 'lucide-react';
 
 interface WargaProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   profile: WargaProfileSummary;
+  onOpenAjukanPerubahan?: () => void;
+  onOpenTambahAnggota?: () => void;
 }
 
 export const WargaProfileModal: React.FC<WargaProfileModalProps> = ({
   isOpen,
   onClose,
-  profile
+  profile,
+  onOpenAjukanPerubahan,
+  onOpenTambahAnggota
 }) => {
   if (!isOpen) return null;
 
@@ -220,6 +225,38 @@ export const WargaProfileModal: React.FC<WargaProfileModalProps> = ({
               Data Anda terlindungi oleh sistem otorisasi tingkat lanjut (DAL). Anda hanya dapat melihat data kependudukan keluarga Anda sendiri.
             </p>
           </div>
+
+          {/* Action Buttons for Citizen Services */}
+          {(onOpenAjukanPerubahan || onOpenTambahAnggota) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              {onOpenAjukanPerubahan && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenAjukanPerubahan();
+                  }}
+                  className="py-2.5 px-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-[#123B5D] border border-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                >
+                  <FileEdit className="w-3.5 h-3.5 text-[#123B5D]" />
+                  <span>Ajukan Perubahan Data</span>
+                </button>
+              )}
+              {onOpenTambahAnggota && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenTambahAnggota();
+                  }}
+                  className="py-2.5 px-3 rounded-2xl bg-[#2E7D52]/10 hover:bg-[#2E7D52]/20 text-[#2E7D52] border border-[#2E7D52]/30 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                >
+                  <UserPlus className="w-3.5 h-3.5 text-[#2E7D52]" />
+                  <span>Tambah Anggota</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Close Button */}
           <button

@@ -122,3 +122,19 @@ export interface WargaDashboardData {
   tataTertibActive: WargaTataTertibSummary;
   activities: WargaActivityItem[];
 }
+
+export type WcrStatus = 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
+
+export interface WargaChangeRequestItem {
+  idPengajuan: string;
+  timestampAjukan: string;
+  jenisPengajuan: 'EDIT' | 'ADD' | 'COMPLETE' | 'REMOVE' | 'STATUS';
+  idWargaTarget?: string;
+  noKkTarget?: string;
+  dataUsulan: Record<string, any>;
+  dataLama?: Record<string, any>;
+  alasan: string;
+  buktiReferensi?: string;
+  status: WcrStatus;
+  catatanVerifikasi?: string;
+}

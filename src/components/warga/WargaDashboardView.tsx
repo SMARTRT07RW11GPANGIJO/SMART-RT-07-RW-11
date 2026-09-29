@@ -26,15 +26,21 @@ import {
   HelpCircle,
   Phone,
   Info,
-  Users
+  Users,
+  FileEdit,
+  UserPlus
 } from 'lucide-react';
 import { AuthoritativeSessionContext } from '../../security/authorization';
-import { WargaDashboardData, WargaInvoiceItem } from '../../types/wargaDashboard';
+import { WargaDashboardData, WargaInvoiceItem, WargaChangeRequestItem } from '../../types/wargaDashboard';
 import { WargaDashboardService } from '../../services/wargaDashboardService';
 import { IdentityAuthService } from '../../services/identityAuthService';
+import { WargaChangeRequestService } from '../../services/wargaChangeRequestService';
 import { WargaQrisPaymentModal } from './WargaQrisPaymentModal';
 import { WargaProfileModal } from './WargaProfileModal';
 import { WargaNotificationsModal } from './WargaNotificationsModal';
+import { WargaAjukanPerubahanModal } from './WargaAjukanPerubahanModal';
+import { WargaTambahAnggotaModal } from './WargaTambahAnggotaModal';
+import { WargaChangeRequestStatusModal } from './WargaChangeRequestStatusModal';
 
 interface WargaDashboardViewProps {
   authContext: AuthoritativeSessionContext;
@@ -56,6 +62,10 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
   // Modals state
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [isWcrStatusModalOpen, setIsWcrStatusModalOpen] = useState(false);
+  const [myChangeRequests, setMyChangeRequests] = useState<WargaChangeRequestItem[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<WargaInvoiceItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -76,6 +86,14 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
         // Fallback to strict local DAL for local sessions without token (will fail closed if resident not found)
         const result = WargaDashboardService.getWargaDashboardData(authContext);
         setData(result);
+      }
+
+      // Load active change requests for this resident
+      try {
+        const wcrList = await WargaChangeRequestService.getMyChangeRequests(authContext);
+        setMyChangeRequests(wcrList);
+      } catch {
+        setMyChangeRequests([]);
       }
     } catch (err: any) {
       setError(err.message || 'Gagal memuat data Dashboard Warga dari server.');
@@ -326,11 +344,35 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Status Warga:</span>
-            <span className="font-bold text-[#123B5D] bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
-              {profile.statusWarga || 'Tetap'}
-            </span>
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>Status Warga:</span>
+              <span className="font-bold text-[#123B5D] bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                {profile.statusWarga || 'Tetap'}
+              </span>
+            </div>
+
+            {/* Action 1: Ajukan Perubahan Data */}
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="w-full py-2 px-3 rounded-2xl bg-white hover:bg-slate-50 text-[#123B5D] border border-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs hover:border-[#123B5D]"
+            >
+              <FileEdit className="w-3.5 h-3.5 text-[#123B5D]" />
+              <span>Ajukan Perubahan Data</span>
+            </button>
+
+            {myChangeRequests.some(r => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW') && (
+              <button
+                onClick={() => setIsWcrStatusModalOpen(true)}
+                className="w-full text-[10px] text-amber-800 bg-amber-50 hover:bg-amber-100 p-2 rounded-xl border border-amber-200 flex items-center justify-between transition-all"
+              >
+                <span className="flex items-center gap-1.5 font-semibold truncate">
+                  <Clock className="w-3 h-3 text-amber-600 animate-pulse shrink-0" />
+                  <span>Pengajuan data sedang ditinjau</span>
+                </span>
+                <ChevronRight className="w-3 h-3 shrink-0 text-amber-600" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -342,7 +384,7 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
                 <Users className="w-3.5 h-3.5 text-[#2E7D52]" /> Keluarga Saya
               </span>
               <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-slate-200">
-                {profile.statusKeluarga || 'Kepala Keluarga'}
+                {(profile.statusKeluarga || 'KEPALA_KELUARGA').toUpperCase().replace(/\s+/g, '_')}
               </span>
             </div>
 
@@ -356,13 +398,32 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            {/* Action 2: Tambah Anggota Keluarga */}
             <button
-              onClick={() => setIsProfileOpen(true)}
-              className="text-xs font-bold text-[#2E7D52] hover:text-[#1e5838] transition-colors flex items-center gap-1"
+              onClick={() => setIsAddMemberModalOpen(true)}
+              className="w-full py-2 px-3 rounded-2xl bg-[#2E7D52]/10 hover:bg-[#2E7D52]/20 text-[#2E7D52] border border-[#2E7D52]/30 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs"
             >
-              Lihat Profil & KK Digital <ChevronRight className="w-3.5 h-3.5" />
+              <UserPlus className="w-3.5 h-3.5 text-[#2E7D52]" />
+              <span>Tambah Anggota Keluarga</span>
             </button>
+
+            <div className="flex items-center justify-between pt-0.5">
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="text-xs font-bold text-[#2E7D52] hover:text-[#1e5838] transition-colors flex items-center gap-1"
+              >
+                Lihat Profil & KK Digital <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+              {myChangeRequests.length > 0 && (
+                <button
+                  onClick={() => setIsWcrStatusModalOpen(true)}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-1"
+                >
+                  <Clock className="w-3 h-3 text-slate-400" /> Riwayat
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -947,6 +1008,39 @@ export const WargaDashboardView: React.FC<WargaDashboardViewProps> = ({
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         profile={profile}
+        onOpenAjukanPerubahan={() => setIsEditModalOpen(true)}
+        onOpenTambahAnggota={() => setIsAddMemberModalOpen(true)}
+      />
+
+      {/* Ajukan Perubahan Data Modal */}
+      <WargaAjukanPerubahanModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        authContext={authContext}
+        profile={profile}
+        onSuccess={(msg) => {
+          showToast(msg);
+          loadDashboardData();
+        }}
+      />
+
+      {/* Tambah Anggota Keluarga Modal */}
+      <WargaTambahAnggotaModal
+        isOpen={isAddMemberModalOpen}
+        onClose={() => setIsAddMemberModalOpen(false)}
+        authContext={authContext}
+        profile={profile}
+        onSuccess={(msg) => {
+          showToast(msg);
+          loadDashboardData();
+        }}
+      />
+
+      {/* Status Pengajuan Warga Modal */}
+      <WargaChangeRequestStatusModal
+        isOpen={isWcrStatusModalOpen}
+        onClose={() => setIsWcrStatusModalOpen(false)}
+        authContext={authContext}
       />
 
       {/* Warga Notifications Modal */}

@@ -48,14 +48,15 @@ const STORAGE_KEY_BACKUP_FOLDER_ID = 'SMART_RT_BACKUP_FOLDER_ID';
 
 export function getProductionConfig(): ProductionConfig {
   const metaEnv = (import.meta as any).env || {};
+  const hasStorage = typeof localStorage !== 'undefined';
   const envAppName = metaEnv.VITE_APP_NAME || 'SMART RT 07 RW 11 GPA NGIJO';
-  const envAppEnv = (localStorage.getItem(STORAGE_KEY_PROD_ENV) || metaEnv.VITE_APP_ENV || 'production') as AppEnvironment;
-  const envGasUrl = localStorage.getItem(STORAGE_KEY_GAS_URL) || metaEnv.VITE_GAS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbz_SMART_RT07_GPA_PROD/exec';
+  const envAppEnv = ((hasStorage ? localStorage.getItem(STORAGE_KEY_PROD_ENV) : null) || metaEnv.VITE_APP_ENV || 'production') as AppEnvironment;
+  const envGasUrl = (hasStorage ? localStorage.getItem(STORAGE_KEY_GAS_URL) : null) || metaEnv.VITE_GAS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbz_SMART_RT07_GPA_PROD/exec';
   const envVersion = metaEnv.VITE_APP_VERSION || '1.0.0';
 
-  const dbId = localStorage.getItem(STORAGE_KEY_DATABASE_ID) || '1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET';
-  const driveId = localStorage.getItem(STORAGE_KEY_DRIVE_FOLDER_ID) || '1DriveFolderRoot_SMART_RT07_GPA_PROD';
-  const backupId = localStorage.getItem(STORAGE_KEY_BACKUP_FOLDER_ID) || '1BackupFolderRoot_SMART_RT07_GPA_PROD';
+  const dbId = (hasStorage ? localStorage.getItem(STORAGE_KEY_DATABASE_ID) : null) || '1a2b3c4d5e6f7g8h9i0_SMART_RT07_GPA_PROD_SHEET';
+  const driveId = (hasStorage ? localStorage.getItem(STORAGE_KEY_DRIVE_FOLDER_ID) : null) || '1DriveFolderRoot_SMART_RT07_GPA_PROD';
+  const backupId = (hasStorage ? localStorage.getItem(STORAGE_KEY_BACKUP_FOLDER_ID) : null) || '1BackupFolderRoot_SMART_RT07_GPA_PROD';
 
   return {
     appName: envAppName,

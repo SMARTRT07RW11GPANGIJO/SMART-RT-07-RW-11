@@ -566,3 +566,129 @@ function getMyProfile(payload) {
     errorCode: null
   };
 }
+
+/**
+ * CR BACKEND — getWargaList(userRole) SSoT Read-Back
+ * Membaca Sheet WARGA sebagai Single Source of Truth (SSoT).
+ * Mengembalikan array record warga aktual untuk konsumsi dashboard kependudukan.
+ * 
+ * RBAC: Hanya melayani role operasional: PENGURUS, KETUA_RT, ADMIN.
+ * Fail closed: Menolak akses role WARGA dan PUBLIC.
+ */
+function getWargaList(userRole) {
+  // 1. RBAC Check (Strict)
+  var cleanRole = String(userRole || '').toUpperCase().trim();
+  var allowedRoles = ["PENGURUS", "KETUA_RT", "ADMIN"];
+  if (allowedRoles.indexOf(cleanRole) === -1) {
+    return {
+      success: false,
+      message: "Akses ditolak: Hanya Pengurus/RT/Admin yang berhak mengakses daftar warga.",
+      data: [],
+      errorCode: "UNAUTHORIZED"
+    };
+  }
+
+  // 2. Akses Spreadsheet Database
+  var ss = null;
+  try {
+    ss = SpreadsheetApp.getActiveSpreadsheet();
+  } catch (e) {
+    var sheetId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID") ||
+                  PropertiesService.getScriptProperties().getProperty("DATABASE_ID");
+    if (sheetId) {
+      ss = SpreadsheetApp.openById(sheetId);
+    }
+  }
+
+  if (!ss) {
+    var props = PropertiesService.getScriptProperties();
+    var ssId = props.getProperty("SPREADSHEET_ID") || props.getProperty("DATABASE_ID");
+    if (ssId) {
+      ss = SpreadsheetApp.openById(ssId);
+    }
+  }
+
+  if (!ss) {
+    return {
+      success: false,
+      message: "Spreadsheet database tidak ditemukan atau belum terhubung.",
+      data: [],
+      errorCode: "SPREADSHEET_NOT_FOUND"
+    };
+  }
+
+  var sheetWarga = ss.getSheetByName("WARGA");
+  if (!sheetWarga) {
+    return {
+      success: false,
+      message: "Sheet WARGA tidak ditemukan pada spreadsheet.",
+      data: [],
+      errorCode: "SHEET_NOT_FOUND"
+    };
+  }
+
+  var lastRow = sheetWarga.getLastRow();
+  var lastCol = sheetWarga.getLastColumn();
+  if (lastRow <= 1) {
+    return {
+      success: true,
+      message: "Daftar warga kosong di SSoT.",
+      data: [],
+      errorCode: null
+    };
+  }
+
+  var dataValues = sheetWarga.getRange(1, 1, lastRow, lastCol).getValues();
+  var headers = dataValues[0];
+  var records = [];
+
+  for (var r = 1; r < dataValues.length; r++) {
+    var row = dataValues[r];
+    
+    // Pastikan baris bukan baris kosong
+    var hasContent = false;
+    for (var c = 0; c < row.length; c++) {
+      if (row[c] !== "" && row[c] !== null && row[c] !== undefined) {
+        hasContent = true;
+        break;
+      }
+    }
+    if (!hasContent) continue;
+
+    var record = {};
+    for (var h = 0; h < headers.length; h++) {
+      var headerName = String(headers[h] || '').trim();
+      if (!headerName) continue;
+      var cellVal = row[h];
+
+      // Format Date ke YYYY-MM-DD string
+      if (cellVal instanceof Date) {
+        var yr = cellVal.getFullYear();
+        var mo = ("0" + (cellVal.getMonth() + 1)).slice(-2);
+        var dy = ("0" + cellVal.getDate()).slice(-2);
+        cellVal = yr + "-" + mo + "-" + dy;
+      } else if (cellVal !== null && cellVal !== undefined) {
+        cellVal = String(cellVal).trim();
+        // Bersihkan leading quote prefix jika ada
+        if (cellVal.charAt(0) === "'") {
+          cellVal = cellVal.substring(1);
+        }
+      } else {
+        cellVal = "";
+      }
+      record[headerName] = cellVal;
+    }
+
+    // Filter baris minimal: harus memiliki NIK, ID_WARGA, atau NAMA_LENGKAP
+    if (record.NIK || record.ID_WARGA || record.NAMA_LENGKAP) {
+      records.push(record);
+    }
+  }
+
+  return {
+    success: true,
+    message: "Berhasil memuat " + records.length + " data warga dari SSoT Google Sheets.",
+    data: records,
+    errorCode: null
+  };
+}

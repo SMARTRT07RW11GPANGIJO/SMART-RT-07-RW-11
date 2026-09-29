@@ -131,16 +131,28 @@ function doPost(e) {
       }
     }
 
-    // 6. getWargaList Action Router
+    // 6. getWargaList Action Router (SSoT Warga Read-Back)
     if (action === "getWargaList") {
       try {
-        var resWargaList = (typeof getWargaList === "function") ? getWargaList(payload.userRole || "WARGA") : { success: true, data: [] };
-        return jsonResponse({ success: true, data: resWargaList, errorCode: null });
+        var userRole = payload.userRole || payload.role || "WARGA";
+        var resWargaList = (typeof getWargaList === "function") 
+          ? getWargaList(userRole) 
+          : { success: false, message: "Fungsi getWargaList belum tersedia pada backend.", data: [], errorCode: "FUNCTION_NOT_FOUND" };
+        
+        // Single response envelope, no double-wrapping
+        if (resWargaList && typeof resWargaList === "object" && ("success" in resWargaList)) {
+          return jsonResponse(resWargaList);
+        }
+        return jsonResponse({
+          success: true,
+          data: resWargaList || [],
+          errorCode: null
+        });
       } catch (err) {
         return jsonResponse({
           success: false,
           message: "Gagal mengambil daftar warga: " + (err && err.message ? err.message : "Error"),
-          data: null,
+          data: [],
           errorCode: "GET_WARGALIST_FAILED"
         });
       }
