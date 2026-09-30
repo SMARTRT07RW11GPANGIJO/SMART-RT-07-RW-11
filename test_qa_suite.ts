@@ -16,6 +16,8 @@ import {
   calculateDocumentSHA256Sync
 } from './src/services/digitalSignatureService';
 import { CanonicalDocumentPayload } from './src/types/digitalSignature';
+import { WargaChangeRequestService, KNOWN_REAL_WCRS } from './src/services/wargaChangeRequestService';
+import { AuthoritativeSessionContext } from './src/security/authorization';
 
 async function main() {
   console.log('============================================================');
@@ -343,6 +345,152 @@ async function main() {
     actual: `SignSuccess: ${signRes.success}, Place: ${payload.letterPlace}, Signer: ${payload.chairmanName}, SHA-256: ${hash.slice(0, 16)}... (Valid: ${verifyRes.isValid}, Tampered: ${verifyRes.tampered})`,
     status: docEnginePassed ? 'PASS' : 'FAIL',
     evidence: `SHA-256: ${hash} | SignMsg: ${signRes.message}`
+  });
+
+  // =========================================================================
+  // 8. CR-WCR/PROD-002: WCR VERIFICATION PIPELINE & SSOT READ-BACK TESTS
+  // =========================================================================
+
+  // Test Session Contexts
+  const pengurusSession: AuthoritativeSessionContext = {
+    userId: 'PGR-001',
+    role: 'PENGURUS',
+    namaLengkap: 'Pengurus RT 07',
+    isValid: true,
+    sessionId: 'SESS-PGR-TEST'
+  };
+
+  const wargaSession: AuthoritativeSessionContext = {
+    userId: 'WRG-001',
+    role: 'WARGA',
+    namaLengkap: 'Eko Sucahyono',
+    isValid: true,
+    sessionId: 'SESS-EKO-TEST'
+  };
+
+  // TEST WCR-001: Existing Real WCRs Recovery (Aida & Witanti)
+  const recoveredList = await WargaChangeRequestService.getPendingChangeRequests(pengurusSession);
+  const aidaWcr = recoveredList.find(r => r.idPengajuan === 'WCR-1790693795670-8EOR');
+  const witantiWcr = recoveredList.find(r => r.idPengajuan === 'WCR-1790693624158-H1PB');
+
+  const recoveryPassed = 
+    Boolean(aidaWcr) && 
+    Boolean(witantiWcr) &&
+    aidaWcr?.dataUsulan?.NAMA_LENGKAP?.includes('AIDA') === true &&
+    witantiWcr?.dataUsulan?.NAMA_LENGKAP?.includes('WITANTI') === true &&
+    aidaWcr?.status === 'SUBMITTED' &&
+    witantiWcr?.status === 'SUBMITTED';
+
+  results.push({
+    id: 'WCR-001',
+    category: 'WCR Recovery Pipeline',
+    name: 'Existing Real WCRs Recovery (Aida & Witanti from Eko Local Queue)',
+    expected: 'Both WCR-1790693795670-8EOR and WCR-1790693624158-H1PB recovered with status SUBMITTED',
+    actual: `Found Aida: ${Boolean(aidaWcr)} (${aidaWcr?.dataUsulan?.NAMA_LENGKAP}), Found Witanti: ${Boolean(witantiWcr)} (${witantiWcr?.dataUsulan?.NAMA_LENGKAP})`,
+    status: recoveryPassed ? 'PASS' : 'FAIL',
+    evidence: `Aida: ${aidaWcr?.idPengajuan} [${aidaWcr?.status}], Witanti: ${witantiWcr?.idPengajuan} [${witantiWcr?.status}]`
+  });
+
+  // TEST WCR-002: RBAC Protection on getAll/getPending WCR
+  let wargaAccessBlocked = false;
+  try {
+    await WargaChangeRequestService.getPendingChangeRequests(wargaSession);
+  } catch (err: any) {
+    wargaAccessBlocked = err.message.includes('Akses Ditolak');
+  }
+
+  results.push({
+    id: 'WCR-002',
+    category: 'WCR Security & RBAC',
+    name: 'Strict RBAC on Verification Queue (WARGA Rejected, PENGURUS Allowed)',
+    expected: 'PENGURUS can read queue, WARGA access throws "Akses Ditolak"',
+    actual: `PENGURUS items: ${recoveredList.length}, WARGA blocked: ${wargaAccessBlocked}`,
+    status: (recoveredList.length > 0 && wargaAccessBlocked) ? 'PASS' : 'FAIL',
+    evidence: `WARGA access correctly rejected with authorization error`
+  });
+
+  // TEST WCR-003: Duplicate Protection by idPengajuan
+  const initialLocalCount = WargaChangeRequestService.getAllLocalSubmissions().length;
+  await WargaChangeRequestService.submitChangeRequest(wargaSession, {
+    idPengajuan: 'WCR-1790693795670-8EOR', // Same ID as AIDA
+    jenisPengajuan: 'ADD',
+    dataUsulan: { NAMA_LENGKAP: 'AIDA HAFIS SUCAHYONO', NIK: '3507125208100001' },
+    alasan: 'Duplikasi penambahan'
+  });
+  const afterDuplicateLocalCount = WargaChangeRequestService.getAllLocalSubmissions().length;
+  const duplicateProtected = afterDuplicateLocalCount === initialLocalCount;
+
+  results.push({
+    id: 'WCR-003',
+    category: 'WCR Duplicate Protection',
+    name: 'Idempotent Submission & Duplicate Protection by idPengajuan',
+    expected: 'Total submissions remains unchanged when submitting existing idPengajuan',
+    actual: `Initial count: ${initialLocalCount}, After duplicate submit: ${afterDuplicateLocalCount}`,
+    status: duplicateProtected ? 'PASS' : 'FAIL',
+    evidence: `Duplicate submission with ID WCR-1790693795670-8EOR prevented extra entry`
+  });
+
+  // TEST WCR-004: ADD vs EDIT Field Validation
+  // ADD allows NIK
+  const testAddRes = await WargaChangeRequestService.submitChangeRequest(wargaSession, {
+    jenisPengajuan: 'ADD',
+    dataUsulan: {
+      NAMA_LENGKAP: 'TEST ANGGOTA BARU',
+      NIK: '3507120101990005',
+      HUBUNGAN_KELUARGA: 'ANAK'
+    },
+    alasan: 'Uji coba penambahan anggota keluarga'
+  });
+
+  // Empty dataUsulan rejected
+  const testEmptyRes = await WargaChangeRequestService.submitChangeRequest(wargaSession, {
+    jenisPengajuan: 'ADD',
+    dataUsulan: {},
+    alasan: 'Uji coba kosong'
+  });
+
+  const fieldValidationPassed = testAddRes.success && !testEmptyRes.success;
+
+  results.push({
+    id: 'WCR-004',
+    category: 'WCR Data Contract',
+    name: 'ADD vs EDIT Validation (ADD Allows NIK, Empty Rejected)',
+    expected: 'ADD accepts valid NIK (16 digits), empty dataUsulan rejected',
+    actual: `ADD with NIK: ${testAddRes.success}, Empty Usulan: ${testEmptyRes.success}`,
+    status: fieldValidationPassed ? 'PASS' : 'FAIL',
+    evidence: `ADD returned ID ${testAddRes.data?.idPengajuan}, Empty returned: ${testEmptyRes.message}`
+  });
+
+  // TEST WCR-005: Approval Pipeline, Authoritative NO_KK & Read-Back Verification
+  // We use testAddRes to test the approval pipeline without modifying AIDA/WITANTI
+  const testApproveId = testAddRes.data?.idPengajuan || '';
+  const preWargaCount = ResidentFamilyService.getWargaList().length;
+
+  const approveRes = await WargaChangeRequestService.approveChangeRequest(
+    pengurusSession,
+    testApproveId,
+    'Disetujui untuk pengujian automated SSoT pipeline'
+  );
+
+  const postWargaList = ResidentFamilyService.getWargaList();
+  const approvedWargaInSSoT = postWargaList.find(w => w.nik === '3507120101990005');
+  const authoritativeNoKk = postWargaList.find(w => w.id_warga === 'WRG-001')?.nomorKK || '3507123456789012';
+
+  const approvalPipelinePassed = 
+    approveRes.success === true &&
+    Boolean(approvedWargaInSSoT) &&
+    approvedWargaInSSoT?.hubunganKeluarga === 'ANGGOTA_KELUARGA' &&
+    approvedWargaInSSoT?.nomorKK === authoritativeNoKk &&
+    postWargaList.length === preWargaCount + 1;
+
+  results.push({
+    id: 'WCR-005',
+    category: 'WCR Approval Pipeline',
+    name: 'Approval Flow: Write to SSoT with Authoritative NO_KK & Immediate Read-Back',
+    expected: 'Approved citizen written as ANGGOTA_KELUARGA with Eko authoritative NO_KK and verified in read-back',
+    actual: `ApproveSuccess: ${approveRes.success}, Read-back Found: ${Boolean(approvedWargaInSSoT)}, KK: ${approvedWargaInSSoT?.nomorKK}, Hubungan: ${approvedWargaInSSoT?.hubunganKeluarga}`,
+    status: approvalPipelinePassed ? 'PASS' : 'FAIL',
+    evidence: `SSoT count: ${preWargaCount} -> ${postWargaList.length} | Citizen: ${approvedWargaInSSoT?.nama_lengkap} (${approvedWargaInSSoT?.nik})`
   });
 
   console.log('\n============================================================');

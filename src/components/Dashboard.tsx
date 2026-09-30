@@ -100,6 +100,8 @@ import {
 import { OFFICIAL_FILTER_OPTIONS, normalizeBlok } from '../dashboard/filters';
 import { OfficialMetricsView } from './dashboard/OfficialMetricsView';
 import { getProductionConfig } from '../services/productionConfigService';
+import { WargaChangeRequestVerificationView } from './pengurus/WargaChangeRequestVerificationView';
+import { WargaChangeRequestService } from '../services/wargaChangeRequestService';
 
 interface DashboardProps {
   currentRole: UserRole;
@@ -187,6 +189,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
       (w) => w.id_warga === currentSession.userId || (currentSession.namaLengkap && w.nama_lengkap.toLowerCase() === currentSession.namaLengkap.toLowerCase())
     );
   }, [currentSession, wargaList]);
+
+  // CR-WCR/PROD-002: Pending WCR count for badges
+  const pendingWcrCount = useMemo(() => {
+    return WargaChangeRequestService.getAllLocalSubmissions().filter(
+      (r) => r.status === 'SUBMITTED' || r.status === 'UNDER_REVIEW'
+    ).length;
+  }, [wargaList]);
 
   // Form Modals State
   const [wargaModalOpen, setWargaModalOpen] = useState(false);
@@ -858,6 +867,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <span className="bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 rounded-full font-black">
                 {effectiveKeluargaList.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('verifikasi-wcr')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-between transition-all ${
+                activeSubTab === 'verifikasi-wcr' ? 'bg-[#123B5D] text-white shadow-md' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-amber-600" />
+                <span>Verifikasi WCR</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                pendingWcrCount > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+              }`}>
+                {pendingWcrCount}
               </span>
             </button>
 
@@ -1669,6 +1695,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </button>
 
                   <button
+                    onClick={() => setActiveSubTab('verifikasi-wcr')}
+                    className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" /> Verifikasi Pengajuan {pendingWcrCount > 0 && `(${pendingWcrCount})`}
+                  </button>
+
+                  <button
                     onClick={handleExportWargaCsv}
                     className="bg-[#123B5D] hover:bg-[#0A2338] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 shadow"
                   >
@@ -1873,6 +1906,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </table>
               </div>
             </div>
+          )}
+
+          {/* SubTab: VERIFIKASI PENGAJUAN PERUBAHAN WARGA (WCR) */}
+          {activeSubTab === 'verifikasi-wcr' && (
+            <WargaChangeRequestVerificationView
+              authContext={
+                currentSession || {
+                  userId: 'KRT-001',
+                  role: currentRole as any,
+                  namaLengkap: 'Pengurus RT 07',
+                  isAuthenticated: true,
+                  sessionId: 'SESS-PGR'
+                }
+              }
+              onWargaListUpdated={async () => {
+                const updated = ResidentFamilyService.getWargaList();
+                setWargaList(updated);
+                addToast('info', 'Data Terbarukan', 'Daftar warga telah diperbarui dari SSoT.');
+              }}
+              addToast={addToast}
+            />
           )}
 
           {/* SubTab 3: DATA KELUARGA */}

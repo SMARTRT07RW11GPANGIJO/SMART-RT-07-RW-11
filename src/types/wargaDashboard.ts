@@ -128,6 +128,7 @@ export type WcrStatus = 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
 export interface WargaChangeRequestItem {
   idPengajuan: string;
   timestampAjukan: string;
+  idWargaPengaju?: string;
   jenisPengajuan: 'EDIT' | 'ADD' | 'COMPLETE' | 'REMOVE' | 'STATUS';
   idWargaTarget?: string;
   noKkTarget?: string;
@@ -137,4 +138,6 @@ export interface WargaChangeRequestItem {
   buktiReferensi?: string;
   status: WcrStatus;
   catatanVerifikasi?: string;
+  diverifikasiOleh?: string;
+  waktuVerifikasi?: string;
 }

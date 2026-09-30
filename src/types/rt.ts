@@ -43,7 +43,7 @@ export type KategoriPengumuman = 'Pengumuman' | 'Kegiatan' | 'Keamanan' | 'Lingk
 
 export type StatusWarga = 'TETAP' | 'KONTRAK_SEWA' | 'KOS';
 
-export type HubunganKeluarga = 'KEPALA_KELUARGA' | 'ISTRI' | 'ANAK' | 'ORANG_TUA' | 'FAMILI_LAIN' | 'PENYEWA' | 'PENGHUNI_KOS';
+export type HubunganKeluarga = 'KEPALA_KELUARGA' | 'ISTRI' | 'ANAK' | 'ORANG_TUA' | 'FAMILI_LAIN' | 'PENYEWA' | 'PENGHUNI_KOS' | 'ANGGOTA_KELUARGA';
 
 export interface PemilikRumah {
   pemilikRumahId: string;

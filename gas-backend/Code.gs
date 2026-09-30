@@ -263,6 +263,58 @@ function doPost(e) {
       }
     }
 
+    // 14. CR-WCR/PROD-002: getAllWargaChangeRequests Action Router
+    if (action === "getAllWargaChangeRequests") {
+      try {
+        var resAllWcr = (typeof getAllWargaChangeRequests === "function")
+          ? getAllWargaChangeRequests(payload)
+          : { success: false, message: "Fungsi getAllWargaChangeRequests belum tersedia pada backend.", data: [], errorCode: "FUNCTION_NOT_FOUND" };
+        
+        // Single response envelope, no double-wrapping
+        if (resAllWcr && typeof resAllWcr === "object" && ("success" in resAllWcr)) {
+          return jsonResponse(resAllWcr);
+        }
+        return jsonResponse({
+          success: true,
+          data: resAllWcr || [],
+          errorCode: null
+        });
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal mengambil seluruh pengajuan perubahan warga: " + (err && err.message ? err.message : "Error"),
+          data: [],
+          errorCode: "GET_ALL_WCR_FAILED"
+        });
+      }
+    }
+
+    // 15. CR-WCR/PROD-002: reviewWargaChangeRequest Action Router
+    if (action === "reviewWargaChangeRequest") {
+      try {
+        var resReviewWcr = (typeof reviewWargaChangeRequest === "function")
+          ? reviewWargaChangeRequest(payload)
+          : { success: false, message: "Fungsi reviewWargaChangeRequest belum tersedia pada backend.", data: null, errorCode: "FUNCTION_NOT_FOUND" };
+        
+        // Single response envelope, no double-wrapping
+        if (resReviewWcr && typeof resReviewWcr === "object" && ("success" in resReviewWcr)) {
+          return jsonResponse(resReviewWcr);
+        }
+        return jsonResponse({
+          success: true,
+          data: resReviewWcr || null,
+          errorCode: null
+        });
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal memproses review pengajuan warga: " + (err && err.message ? err.message : "Error"),
+          data: null,
+          errorCode: "REVIEW_WCR_FAILED"
+        });
+      }
+    }
+
     // Safe default handler for unrecognized actions
     return jsonResponse({
       success: false,

@@ -240,8 +240,12 @@ function wcr_generateId() {
  * Validasi allowlist, forbidden fields, dan tipe data primitif pada DATA_USULAN.
  * Strict: Hanya menerima string, number, boolean, null.
  * Menolak object, array, function, dan tipe kompleks lainnya.
+ * 
+ * CR-WCR/PROD-002:
+ * - jenisPengajuan === 'ADD': Izinkan field data anggota baru termasuk NIK (16 digit numerik).
+ * - jenis selain ADD: Larangan NIK dan field sensitif lainnya tetap mutlak (jangan dilemahkan).
  */
-function wcr_validateDataUsulan(dataUsulanRaw) {
+function wcr_validateDataUsulan(dataUsulanRaw, jenisPengajuan) {
   if (!dataUsulanRaw || typeof dataUsulanRaw !== "object" || Array.isArray(dataUsulanRaw)) {
     return { error: "DATA_USULAN wajib berupa objek data pasangan kunci-nilai." };
   }
@@ -251,6 +255,7 @@ function wcr_validateDataUsulan(dataUsulanRaw) {
     return { error: "DATA_USULAN tidak boleh kosong." };
   }
 
+  var isAdd = (String(jenisPengajuan || "").trim().toUpperCase() === "ADD");
   var sanitizedData = {};
 
   for (var i = 0; i < keys.length; i++) {
@@ -258,17 +263,37 @@ function wcr_validateDataUsulan(dataUsulanRaw) {
     var upperKey = String(originalKey).trim().toUpperCase();
 
     // 1. Cek Forbidden Fields
-    if (WCR_FORBIDDEN_FIELDS.indexOf(upperKey) !== -1) {
-      return {
-        error: "Field '" + originalKey + "' DILARANG diajukan perubahan secara mandiri demi integritas data & keamanan."
-      };
+    if (isAdd) {
+      // Untuk ADD, NIK diizinkan untuk anggota keluarga baru, field sistem tetap dilarang
+      var forbiddenAdd = ["ID_WARGA", "NO_KK", "STATUS_WARGA", "TANGGAL_MASUK", "TOKEN", "PASSWORD", "AUTH_TOKEN"];
+      if (forbiddenAdd.indexOf(upperKey) !== -1) {
+        return {
+          error: "Field '" + originalKey + "' DILARANG diajukan perubahan secara mandiri demi integritas data & keamanan."
+        };
+      }
+    } else {
+      // Untuk jenis selain ADD, NIK mutlak dilarang diubah secara mandiri
+      if (WCR_FORBIDDEN_FIELDS.indexOf(upperKey) !== -1) {
+        return {
+          error: "Field '" + originalKey + "' DILARANG diajukan perubahan secara mandiri demi integritas data & keamanan."
+        };
+      }
     }
 
     // 2. Cek Allowlist Fields
-    if (WCR_ALLOWLIST_FIELDS.indexOf(upperKey) === -1) {
-      return {
-        error: "Field '" + originalKey + "' tidak termasuk dalam daftar field yang diizinkan untuk diajukan perubahan."
-      };
+    if (isAdd) {
+      var allowedAdd = WCR_ALLOWLIST_FIELDS.concat(["NIK"]);
+      if (allowedAdd.indexOf(upperKey) === -1) {
+        return {
+          error: "Field '" + originalKey + "' tidak termasuk dalam daftar field yang diizinkan untuk diajukan perubahan."
+        };
+      }
+    } else {
+      if (WCR_ALLOWLIST_FIELDS.indexOf(upperKey) === -1) {
+        return {
+          error: "Field '" + originalKey + "' tidak termasuk dalam daftar field yang diizinkan untuk diajukan perubahan."
+        };
+      }
     }
 
     var val = dataUsulanRaw[originalKey];
@@ -298,6 +323,17 @@ function wcr_validateDataUsulan(dataUsulanRaw) {
       return {
         error: "Nilai field '" + originalKey + "' memiliki tipe data yang tidak didukung."
       };
+    }
+
+    // Validasi format NIK jika ada pada jenis ADD
+    if (isAdd && upperKey === "NIK" && cleanVal !== "") {
+      var digitsOnly = cleanVal.replace(/\D/g, "");
+      if (digitsOnly.length !== 16) {
+        return {
+          error: "NIK anggota keluarga baru harus tepat 16 digit numerik."
+        };
+      }
+      cleanVal = digitsOnly;
     }
 
     sanitizedData[upperKey] = cleanVal;
@@ -480,7 +516,7 @@ function createWargaChangeRequest(payload) {
 
   // F. Validasi Allowlist, Forbidden Fields, & Primitive Types pada DATA_USULAN
   var rawDataUsulan = payload.dataUsulan || payload.DATA_USULAN;
-  var validationUsulan = wcr_validateDataUsulan(rawDataUsulan);
+  var validationUsulan = wcr_validateDataUsulan(rawDataUsulan, rawJenis);
   if (validationUsulan.error) {
     return {
       success: false,
@@ -523,9 +559,31 @@ function createWargaChangeRequest(payload) {
 
   var repoSheet = repoCtx.sheet;
 
-  // I. Duplicate Protection
+  // I. Duplicate Protection & Idempotent Resubmit
+  var customIdPengajuan = String(payload.idPengajuan || payload.ID_PENGAJUAN || "").trim();
   var repoLastRow = repoSheet.getLastRow();
   if (repoLastRow > 1) {
+    // 1. Idempotent check by ID_PENGAJUAN
+    if (customIdPengajuan) {
+      var existingIdCol = repoSheet.getRange(2, 1, repoLastRow - 1, 1).getValues();
+      for (var k = 0; k < existingIdCol.length; k++) {
+        if (String(existingIdCol[k][0] || "").trim() === customIdPengajuan) {
+          return {
+            success: true,
+            message: "Pengajuan sudah tersimpan di database repository.",
+            data: {
+              idPengajuan: customIdPengajuan,
+              status: "SUBMITTED",
+              jenisPengajuan: rawJenis,
+              idWargaTarget: targetWargaId
+            },
+            errorCode: null
+          };
+        }
+      }
+    }
+
+    // 2. Semantics duplicate check
     var repoData = repoSheet.getRange(2, 1, repoLastRow - 1, 11).getValues();
     for (var d = 0; d < repoData.length; d++) {
       var rowD = repoData[d];
@@ -551,7 +609,7 @@ function createWargaChangeRequest(payload) {
   }
 
   // J. Penyimpanan Permohonan Baru
-  var changeRequestId = wcr_generateId();
+  var changeRequestId = customIdPengajuan || wcr_generateId();
   // Timestamp konsisten Asia/Jakarta tanpa Z palsu
   var timestampNow = Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss");
   var initialStatus = "SUBMITTED";
@@ -833,4 +891,424 @@ function getWargaChangeRequest(payload) {
     },
     errorCode: null
   };
+}
+
+/**
+ * 4. getAllWargaChangeRequests
+ * CR-WCR/PROD-002: Mengambil seluruh riwayat pengajuan perubahan data warga untuk area Pengurus.
+ * Strict RBAC: Hanya PENGURUS, KETUA_RT, ADMIN. Warga biasa DITOLAK (fail-closed).
+ */
+function getAllWargaChangeRequests(payload) {
+  if (!payload || typeof payload !== "object") {
+    return {
+      success: false,
+      message: "Payload permintaan tidak valid.",
+      data: [],
+      errorCode: "INVALID_PAYLOAD"
+    };
+  }
+
+  // 1. RBAC Verification
+  var callerRole = String(payload.role || payload.userRole || "").trim().toUpperCase();
+  if (payload.token) {
+    var auth = (typeof verifyWargaAuthToken === "function") ? verifyWargaAuthToken(payload.token) : null;
+    if (auth && auth.role) {
+      callerRole = String(auth.role).trim().toUpperCase();
+    }
+  }
+
+  var allowedRoles = ["PENGURUS", "KETUA_RT", "ADMIN"];
+  if (allowedRoles.indexOf(callerRole) === -1) {
+    return {
+      success: false,
+      message: "Akses Ditolak: Anda tidak memiliki wewenang untuk melihat seluruh pengajuan warga.",
+      data: [],
+      errorCode: "UNAUTHORIZED"
+    };
+  }
+
+  // 2. Akses Database Spreadsheet
+  var ss = wcr_getSpreadsheet();
+  if (!ss) {
+    return {
+      success: false,
+      message: "Spreadsheet database tidak dapat diakses.",
+      data: [],
+      errorCode: "SPREADSHEET_NOT_FOUND"
+    };
+  }
+
+  var repoCtx = wcr_getAndValidateRepositorySheet(ss);
+  if (repoCtx.error) {
+    return {
+      success: false,
+      message: repoCtx.error,
+      data: [],
+      errorCode: "REPOSITORY_SHEET_ERROR"
+    };
+  }
+
+  var repoSheet = repoCtx.sheet;
+  var lastRow = repoSheet.getLastRow();
+  if (lastRow <= 1) {
+    return {
+      success: true,
+      message: "Belum ada pengajuan perubahan data warga.",
+      data: [],
+      errorCode: null
+    };
+  }
+
+  var rows = repoSheet.getRange(2, 1, lastRow - 1, WCR_REQUIRED_HEADERS.length).getValues();
+  var resultList = [];
+
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var r = rows[i];
+    var dataLamaObj = {};
+    var dataUsulanObj = {};
+
+    try { dataLamaObj = JSON.parse(r[6] || "{}"); } catch (e) { dataLamaObj = {}; }
+    try { dataUsulanObj = JSON.parse(r[7] || "{}"); } catch (e) { dataUsulanObj = {}; }
+
+    resultList.push({
+      idPengajuan: String(r[0] || ""),
+      timestampAjukan: String(r[1] || ""),
+      idWargaPengaju: String(r[2] || ""),
+      jenisPengajuan: String(r[3] || ""),
+      idWargaTarget: String(r[4] || ""),
+      noKkTarget: String(r[5] || ""),
+      dataLama: dataLamaObj,
+      dataUsulan: dataUsulanObj,
+      alasan: String(r[8] || ""),
+      buktiReferensi: String(r[9] || ""),
+      status: String(r[10] || "SUBMITTED"),
+      catatanVerifikasi: String(r[11] || ""),
+      diverifikasiOleh: String(r[12] || ""),
+      waktuVerifikasi: String(r[13] || ""),
+      disetujuiOleh: String(r[14] || ""),
+      waktuPersetujuan: String(r[15] || ""),
+      waktuApplied: String(r[16] || ""),
+      errorApply: String(r[17] || "")
+    });
+  }
+
+  return {
+    success: true,
+    message: "Seluruh pengajuan perubahan warga berhasil dimuat.",
+    data: resultList,
+    errorCode: null
+  };
+}
+
+/**
+ * 5. reviewWargaChangeRequest
+ * CR-WCR/PROD-002: Verifikasi, Persetujuan (Approve), atau Penolakan (Reject) WCR oleh Pengurus/RT/Admin.
+ * Jika APPROVED & jenis === 'ADD':
+ * - NO_KK diambil secara otoritatif dari applicant profile (bukan input bebas).
+ * - Menulis anggota keluarga baru ke Sheet WARGA dengan status HUBUNGAN_KELUARGA = 'ANGGOTA_KELUARGA'.
+ * - Melakukan immediate read-back dari Sheet WARGA. Jika read-back gagal, fail-closed & status gagal.
+ * - Memperbarui status pengajuan di PENGAJUAN_PERUBAHAN_WARGA menjadi 'APPROVED'.
+ */
+function reviewWargaChangeRequest(payload) {
+  if (!payload || typeof payload !== "object") {
+    return {
+      success: false,
+      message: "Payload verifikasi tidak valid.",
+      data: null,
+      errorCode: "INVALID_PAYLOAD"
+    };
+  }
+
+  // 1. RBAC Verification
+  var callerRole = String(payload.role || payload.userRole || "").trim().toUpperCase();
+  if (payload.token) {
+    var auth = (typeof verifyWargaAuthToken === "function") ? verifyWargaAuthToken(payload.token) : null;
+    if (auth && auth.role) {
+      callerRole = String(auth.role).trim().toUpperCase();
+    }
+  }
+
+  var allowedRoles = ["PENGURUS", "KETUA_RT", "ADMIN"];
+  if (allowedRoles.indexOf(callerRole) === -1) {
+    return {
+      success: false,
+      message: "Akses Ditolak: Hanya Pengurus/RT/Admin yang berhak melakukan verifikasi/persetujuan pengajuan warga.",
+      data: null,
+      errorCode: "UNAUTHORIZED"
+    };
+  }
+
+  var idPengajuan = String(payload.idPengajuan || payload.ID_PENGAJUAN || "").trim();
+  if (!idPengajuan) {
+    return {
+      success: false,
+      message: "ID Pengajuan wajib disertakan.",
+      data: null,
+      errorCode: "ID_PENGAJUAN_REQUIRED"
+    };
+  }
+
+  var decision = String(payload.actionType || payload.decision || payload.status || "").trim().toUpperCase();
+  if (decision !== "APPROVE" && decision !== "APPROVED" && decision !== "REJECT" && decision !== "REJECTED") {
+    return {
+      success: false,
+      message: "Tindakan verifikasi harus berupa APPROVE atau REJECT.",
+      data: null,
+      errorCode: "INVALID_DECISION"
+    };
+  }
+
+  var reviewerName = String(payload.reviewedBy || payload.userName || callerRole).trim();
+  var reviewerNotes = String(payload.catatanVerifikasi || payload.alasan || "").trim();
+
+  // 2. Akses Spreadsheet
+  var ss = wcr_getSpreadsheet();
+  if (!ss) {
+    return {
+      success: false,
+      message: "Spreadsheet database tidak dapat diakses.",
+      data: null,
+      errorCode: "SPREADSHEET_NOT_FOUND"
+    };
+  }
+
+  var repoCtx = wcr_getAndValidateRepositorySheet(ss);
+  if (repoCtx.error) {
+    return {
+      success: false,
+      message: repoCtx.error,
+      data: null,
+      errorCode: "REPOSITORY_SHEET_ERROR"
+    };
+  }
+
+  var repoSheet = repoCtx.sheet;
+  var lastRow = repoSheet.getLastRow();
+  if (lastRow <= 1) {
+    return {
+      success: false,
+      message: "Pengajuan tidak ditemukan di repository.",
+      data: null,
+      errorCode: "NOT_FOUND"
+    };
+  }
+
+  var rows = repoSheet.getRange(2, 1, lastRow - 1, WCR_REQUIRED_HEADERS.length).getValues();
+  var targetRowIndex = -1;
+  var matchedWcr = null;
+
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i][0] || "").trim() === idPengajuan) {
+      targetRowIndex = i + 2; // Baris riil di sheet (1-based, +1 header)
+      matchedWcr = rows[i];
+      break;
+    }
+  }
+
+  if (!matchedWcr || targetRowIndex === -1) {
+    return {
+      success: false,
+      message: "Pengajuan dengan ID " + idPengajuan + " tidak ditemukan.",
+      data: null,
+      errorCode: "NOT_FOUND"
+    };
+  }
+
+  var currentStatus = String(matchedWcr[10] || "SUBMITTED").trim().toUpperCase();
+  if (currentStatus === "APPROVED" || currentStatus === "REJECTED") {
+    return {
+      success: false,
+      message: "Pengajuan ini sudah berstatus " + currentStatus + " dan tidak dapat diproses ulang.",
+      data: { status: currentStatus },
+      errorCode: "ALREADY_PROCESSED"
+    };
+  }
+
+  var timestampNow = Utilities.formatDate(new Date(), "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss");
+  var jenisPengajuan = String(matchedWcr[3] || "").trim().toUpperCase();
+
+  // 3. JIKA APPROVE:
+  if (decision === "APPROVE" || decision === "APPROVED") {
+    if (jenisPengajuan === "ADD") {
+      var dataUsulan = {};
+      try { dataUsulan = JSON.parse(matchedWcr[7] || "{}"); } catch (e) { dataUsulan = {}; }
+
+      // Baca konteks SSoT WARGA untuk identifikasi NO_KK authoritative pemohon
+      var wargaCtx = wcr_getWargaSheetContext(ss);
+      if (wargaCtx.error) {
+        return {
+          success: false,
+          message: "Gagal mengakses Sheet WARGA: " + wargaCtx.error,
+          data: null,
+          errorCode: "SSOT_WARGA_UNAVAILABLE"
+        };
+      }
+
+      var applicantWargaId = String(matchedWcr[2] || "").trim();
+      var applicantRow = wcr_findWargaRowById(wargaCtx.dataValues, wargaCtx.colMap, applicantWargaId);
+      if (!applicantRow) {
+        return {
+          success: false,
+          message: "Data pemohon (" + applicantWargaId + ") tidak ditemukan pada SSoT WARGA.",
+          data: null,
+          errorCode: "APPLICANT_NOT_FOUND"
+        };
+      }
+
+      // NO_KK WAJIB dari profile authoritative pemohon (EKO)
+      var idxKk = wargaCtx.colMap["NO_KK"];
+      var authoritativeNoKk = String(applicantRow[idxKk] || "").replace(/\D/g, "");
+      if (authoritativeNoKk.length !== 16) {
+        return {
+          success: false,
+          message: "Nomor KK pemohon tidak valid pada database resmi.",
+          data: null,
+          errorCode: "INVALID_AUTHORITATIVE_KK"
+        };
+      }
+
+      var idxAlamat = wargaCtx.colMap["ALAMAT"];
+      var idxBlok = wargaCtx.colMap["BLOK"];
+      var authoritativeAlamat = String(applicantRow[idxAlamat] || "PERUM GPA BLOK JN NO 17").trim();
+      var authoritativeBlok = String(applicantRow[idxBlok] || "Blok JN No 17").trim();
+
+      var nikBaru = String(dataUsulan.NIK || "").replace(/\D/g, "");
+      if (nikBaru.length !== 16) {
+        return {
+          success: false,
+          message: "NIK anggota keluarga baru tidak valid (harus 16 digit numerik).",
+          data: null,
+          errorCode: "INVALID_NIK"
+        };
+      }
+
+      var sheetWarga = ss.getSheetByName("WARGA");
+      var wargaLastRow = sheetWarga.getLastRow();
+      var newWargaId = "WRG-" + String(wargaLastRow).padStart(3, "0");
+
+      var newNama = String(dataUsulan.NAMA_LENGKAP || "").trim();
+      var newHubungan = "ANGGOTA_KELUARGA"; // AIDA dan WITANTI menjadi ANGGOTA_KELUARGA
+
+      var newWargaRow = [
+        newWargaId,                                          // 1. ID_WARGA
+        nikBaru,                                             // 2. NIK
+        authoritativeNoKk,                                   // 3. NO_KK (authoritative EKO)
+        newNama,                                             // 4. NAMA_LENGKAP
+        String(dataUsulan.NAMA_PANGGILAN || "").trim(),      // 5. NAMA_PANGGILAN
+        String(dataUsulan.JENIS_KELAMIN || "Perempuan").trim(), // 6. JENIS_KELAMIN
+        String(dataUsulan.TEMPAT_LAHIR || "Malang").trim(),  // 7. TEMPAT_LAHIR
+        String(dataUsulan.TANGGAL_LAHIR || "").trim(),       // 8. TANGGAL_LAHIR
+        String(dataUsulan.AGAMA || "Islam").trim(),          // 9. AGAMA
+        String(dataUsulan.STATUS_PERKAWINAN || "Belum Kawin").trim(), // 10. STATUS_PERKAWINAN
+        String(dataUsulan.PENDIDIKAN || "").trim(),          // 11. PENDIDIKAN
+        String(dataUsulan.PEKERJAAN || "").trim(),           // 12. PEKERJAAN
+        "'" + String(dataUsulan.NO_HP || "").trim(),         // 13. NO_HP
+        String(dataUsulan.EMAIL || "").trim(),               // 14. EMAIL
+        authoritativeAlamat,                                 // 15. ALAMAT
+        authoritativeBlok,                                   // 16. BLOK
+        "TETAP",                                             // 17. STATUS_TINGGAL
+        "AKTIF",                                             // 18. STATUS_WARGA
+        timestampNow.split(" ")[0],                          // 19. TANGGAL_MASUK
+        "Disetujui dari pengajuan " + idPengajuan,           // 20. KETERANGAN
+        "",                                                  // 21. NAMA_PEMILIK_RUMAH
+        "",                                                  // 22. TELEPON_PEMILIK_RUMAH
+        newHubungan                                          // 23. HUBUNGAN_KELUARGA
+      ];
+
+      // WRITE KE WARGA SSOT
+      try {
+        sheetWarga.appendRow(newWargaRow);
+        SpreadsheetApp.flush();
+      } catch (writeErr) {
+        repoSheet.getRange(targetRowIndex, 18).setValue("Write WARGA failed: " + writeErr.message);
+        return {
+          success: false,
+          message: "Gagal menulis anggota baru ke basis data WARGA: " + writeErr.message,
+          data: null,
+          errorCode: "WRITE_SSOT_FAILED"
+        };
+      }
+
+      // READ-BACK VERIFICATION
+      var readBackVerified = false;
+      try {
+        var postLastRow = sheetWarga.getLastRow();
+        var postValues = sheetWarga.getRange(2, 1, postLastRow - 1, 3).getValues();
+        for (var p = postValues.length - 1; p >= 0; p--) {
+          var pRow = postValues[p];
+          if (String(pRow[0] || "").trim() === newWargaId || String(pRow[1] || "").trim() === nikBaru) {
+            readBackVerified = true;
+            break;
+          }
+        }
+      } catch (rbErr) {
+        readBackVerified = false;
+      }
+
+      if (!readBackVerified) {
+        repoSheet.getRange(targetRowIndex, 18).setValue("Read-back verification failed for new warga " + newWargaId);
+        return {
+          success: false,
+          message: "Verifikasi pembacaan ulang (read-back) gagal setelah penulisan data warga. Persetujuan ditahan demi integritas data.",
+          data: null,
+          errorCode: "READBACK_VERIFICATION_FAILED"
+        };
+      }
+
+      // UPDATE STATUS WCR
+      repoSheet.getRange(targetRowIndex, 11).setValue("APPROVED"); // STATUS
+      repoSheet.getRange(targetRowIndex, 12).setValue(reviewerNotes || "Disetujui oleh pengurus RT."); // CATATAN_VERIFIKASI
+      repoSheet.getRange(targetRowIndex, 13).setValue(reviewerName); // DIVERIFIKASI_OLEH
+      repoSheet.getRange(targetRowIndex, 14).setValue(timestampNow); // WAKTU_VERIFIKASI
+      repoSheet.getRange(targetRowIndex, 15).setValue(reviewerName); // DISETUJUI_OLEH
+      repoSheet.getRange(targetRowIndex, 16).setValue(timestampNow); // WAKTU_PERSETUJUAN
+      repoSheet.getRange(targetRowIndex, 17).setValue(timestampNow); // WAKTU_APPLIED
+      repoSheet.getRange(targetRowIndex, 18).setValue("");           // ERROR_APPLY
+
+      return {
+        success: true,
+        message: "Pengajuan tambah anggota keluarga (" + newNama + ") berhasil disetujui, dicatat ke SSoT, dan diverifikasi read-back.",
+        data: {
+          idPengajuan: idPengajuan,
+          status: "APPROVED",
+          newWargaId: newWargaId,
+          namaLengkap: newNama,
+          noKk: authoritativeNoKk,
+          hubunganKeluarga: newHubungan,
+          timestampApproval: timestampNow
+        },
+        errorCode: null
+      };
+    } else {
+      repoSheet.getRange(targetRowIndex, 11).setValue("APPROVED");
+      repoSheet.getRange(targetRowIndex, 12).setValue(reviewerNotes || "Disetujui.");
+      repoSheet.getRange(targetRowIndex, 13).setValue(reviewerName);
+      repoSheet.getRange(targetRowIndex, 14).setValue(timestampNow);
+      repoSheet.getRange(targetRowIndex, 15).setValue(reviewerName);
+      repoSheet.getRange(targetRowIndex, 16).setValue(timestampNow);
+      repoSheet.getRange(targetRowIndex, 17).setValue(timestampNow);
+      repoSheet.getRange(targetRowIndex, 18).setValue("");
+
+      return {
+        success: true,
+        message: "Pengajuan berhasil disetujui.",
+        data: { idPengajuan: idPengajuan, status: "APPROVED" },
+        errorCode: null
+      };
+    }
+  } else {
+    // REJECT
+    repoSheet.getRange(targetRowIndex, 11).setValue("REJECTED");
+    repoSheet.getRange(targetRowIndex, 12).setValue(reviewerNotes || "Ditolak oleh pengurus RT.");
+    repoSheet.getRange(targetRowIndex, 13).setValue(reviewerName);
+    repoSheet.getRange(targetRowIndex, 14).setValue(timestampNow);
+    repoSheet.getRange(targetRowIndex, 18).setValue("");
+
+    return {
+      success: true,
+      message: "Pengajuan perubahan berhasil ditolak.",
+      data: { idPengajuan: idPengajuan, status: "REJECTED" },
+      errorCode: null
+    };
+  }
 }
