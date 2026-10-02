@@ -248,6 +248,21 @@ function doPost(e) {
       }
     }
 
+    // 13. CR-PROD/19-SEP-001A: controlledProductionReset Action Router
+    if (action === "controlledProductionReset") {
+      try {
+        var resReset = executeControlledProductionReset(payload);
+        return jsonResponse(resReset);
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message: "Gagal memproses controlled production reset: " + (err && err.message ? err.message : "Error"),
+          data: null,
+          errorCode: "RESET_EXECUTION_FAILED"
+        });
+      }
+    }
+
     // 14. CR-WCR/PROD-002: getAllWargaChangeRequests Action Router
     if (action === "getAllWargaChangeRequests") {
       try {
@@ -335,3 +350,434 @@ function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+/**
+ * CR-PROD/19-SEP-001A: Controlled Production Reset Handler
+ *
+ * Implements strict, single-purpose, sequential production database reset
+ * against 7 predefined target sheets with zero mutation of row 1 headers.
+ * Governed by Model C Backup Trust, fail-closed APP_ENV check, ScriptLock,
+ * one-time execution guard, full preflight, read-back verification, and audit logging.
+ */
+function executeControlledProductionReset(payload) {
+  var AUTHORIZED_CR_ID = "CR-PROD/19-SEP-001A";
+  var AUTHORIZED_MANIFEST_ID = "PRE_RESET_2026-09-20_MASTER_MANIFEST.json";
+  var REQUIRED_ENV = "PRODUCTION";
+  var STATE_KEY = "CR_PROD_19_SEP_001A_STATUS";
+
+  var ALLOWED_RESET_TARGETS = [
+    "WARGA",
+    "KELUARGA",
+    "SURAT",
+    "TRANSAKSI_KEUANGAN",
+    "IURAN_BULANAN",
+    "PENGADUAN",
+    "PENGAJUAN_PERUBAHAN_WARGA"
+  ];
+
+  // 1. AUTHENTICATION (Reuse existing validateSession)
+  if (!payload || typeof payload !== "object") {
+    return {
+      success: false,
+      message: "Payload request tidak valid.",
+      data: null,
+      errorCode: "INVALID_PAYLOAD"
+    };
+  }
+
+  var sessionToken = payload.sessionToken;
+  var sessionRes = validateSession(sessionToken);
+  if (!sessionRes || !sessionRes.isValid) {
+    return {
+      success: false,
+      message: "Sesi otentikasi tidak valid atau telah kedaluwarsa. " + (sessionRes && sessionRes.message ? sessionRes.message : ""),
+      data: null,
+      errorCode: sessionRes && sessionRes.code ? sessionRes.code : "AUTH_REQUIRED"
+    };
+  }
+
+  var session = sessionRes.session;
+  var userId = session.userId || "UNKNOWN";
+  var role = session.role || "UNKNOWN";
+
+  // 2. AUTHORIZATION (Reuse existing role and permission: ADMIN + BACKUP_RESTORE)
+  if (role !== "ADMIN" || !checkRolePermission(role, "BACKUP_RESTORE")) {
+    return {
+      success: false,
+      message: "Akses ditolak: Hanya peran ADMIN dengan izin BACKUP_RESTORE yang diizinkan menjalankan reset produksi.",
+      data: null,
+      errorCode: "PERMISSION_DENIED"
+    };
+  }
+
+  // 3. ACQUIRE SCRIPT LOCK
+  var lock = LockService.getScriptLock();
+  var lockAcquired = false;
+  try {
+    lockAcquired = lock.tryLock(30000);
+  } catch (lockErr) {
+    lockAcquired = false;
+  }
+
+  if (!lockAcquired) {
+    return {
+      success: false,
+      message: "Sistem sedang sibuk. Gagal memperoleh ScriptLock untuk controlled production reset.",
+      data: null,
+      errorCode: "CONCURRENT_EXECUTION_BLOCKED"
+    };
+  }
+
+  try {
+    var props = PropertiesService.getScriptProperties();
+
+    // 4. CHECK EXECUTION STATE (One-Time Guard)
+    var currentState = props.getProperty(STATE_KEY);
+    if (currentState === "COMPLETED") {
+      return {
+        success: false,
+        message: "Reset produksi CR-PROD/19-SEP-001A telah berhasil dieksekusi sebelumnya. Eksekusi ulang ditolak.",
+        data: null,
+        errorCode: "ALREADY_COMPLETED"
+      };
+    }
+    if (currentState === "IN_PROGRESS") {
+      return {
+        success: false,
+        message: "Reset produksi CR-PROD/19-SEP-001A sedang berjalan pada proses lain. Eksekusi bersamaan diblokir.",
+        data: null,
+        errorCode: "CONCURRENT_EXECUTION_BLOCKED"
+      };
+    }
+    if (currentState === "FAILED_PARTIAL") {
+      return {
+        success: false,
+        message: "Reset produksi CR-PROD/19-SEP-001A sebelumnya mengalami kegagalan parsial (FAILED_PARTIAL). Sistem terkunci secara terminal untuk CR ini. Hubungi Project Director.",
+        data: null,
+        errorCode: "PREVIOUSLY_FAILED_LOCKED"
+      };
+    }
+    if (currentState && currentState !== "UNEXECUTED") {
+      return {
+        success: false,
+        message: "Status eksekusi tidak dikenal (" + currentState + "). Reset dibatalkan.",
+        data: null,
+        errorCode: "INVALID_EXECUTION_STATE"
+      };
+    }
+
+    // 5. VERIFY PRECONDITIONS
+    // A. CR Binding
+    if (String(payload.crId || "").trim() !== AUTHORIZED_CR_ID) {
+      return {
+        success: false,
+        message: "CR Binding ditolak: Parameter crId wajib bernilai '" + AUTHORIZED_CR_ID + "'.",
+        data: null,
+        errorCode: "CR_BINDING_REJECTED"
+      };
+    }
+
+    // B. Production Environment Guard (Fail-closed, strictly no fallback)
+    var serverEnv = props.getProperty("APP_ENV");
+    if (serverEnv !== REQUIRED_ENV) {
+      return {
+        success: false,
+        message: "Environment guard gagal: Server property APP_ENV wajib bernilai 'PRODUCTION' (ditemukan: " + (serverEnv === null ? "null/missing" : "'" + serverEnv + "'") + "). Fail-closed: tidak ada fallback yang diizinkan.",
+        data: null,
+        errorCode: "ENVIRONMENT_GUARD_FAILED"
+      };
+    }
+    if (payload.environment && payload.environment !== REQUIRED_ENV) {
+      return {
+        success: false,
+        message: "Environment guard gagal: Payload environment tidak konsisten dengan PRODUCTION.",
+        data: null,
+        errorCode: "ENVIRONMENT_GUARD_FAILED"
+      };
+    }
+
+    // C. Backup Precondition (Model C: Manifest Binding & Verification Assertion)
+    if (String(payload.backupManifestId || "").trim() !== AUTHORIZED_MANIFEST_ID || payload.backupVerified !== true) {
+      return {
+        success: false,
+        message: "Backup precondition gagal: backupManifestId wajib '" + AUTHORIZED_MANIFEST_ID + "' dan backupVerified wajib true.",
+        data: null,
+        errorCode: "BACKUP_PRECONDITION_FAILED"
+      };
+    }
+
+    // 6. PREFLIGHT ALL 7 TARGETS
+    var dbConfig = getConfig();
+    var ss = SpreadsheetApp.openById(dbConfig.DATABASE_ID);
+    if (!ss) {
+      return {
+        success: false,
+        message: "Preflight gagal: Spreadsheet database tidak dapat diakses.",
+        data: null,
+        errorCode: "PREFLIGHT_FAILED"
+      };
+    }
+
+    var preflightSnapshots = {};
+    for (var i = 0; i < ALLOWED_RESET_TARGETS.length; i++) {
+      var targetName = ALLOWED_RESET_TARGETS[i];
+      var sheet = ss.getSheetByName(targetName);
+      if (!sheet) {
+        return {
+          success: false,
+          message: "Preflight gagal: Target sheet '" + targetName + "' tidak ditemukan dalam spreadsheet.",
+          data: null,
+          errorCode: "PREFLIGHT_FAILED"
+        };
+      }
+
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      if (lastCol < 1 || lastRow < 1) {
+        return {
+          success: false,
+          message: "Preflight gagal: Target sheet '" + targetName + "' tidak memiliki baris header yang valid.",
+          data: null,
+          errorCode: "PREFLIGHT_FAILED"
+        };
+      }
+
+      var headerValues = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      if (!headerValues || headerValues.length === 0 || !headerValues[0]) {
+        return {
+          success: false,
+          message: "Preflight gagal: Header row 1 pada target sheet '" + targetName + "' kosong.",
+          data: null,
+          errorCode: "PREFLIGHT_FAILED"
+        };
+      }
+
+      preflightSnapshots[targetName] = {
+        sheet: sheet,
+        initialLastRow: lastRow,
+        lastCol: lastCol,
+        headers: headerValues
+      };
+    }
+
+    // 7. WRITE RESET_ATTEMPT AUDIT (Hard Stop if Audit Fails)
+    var attemptLogged = writeAuditLog({
+      userId: userId,
+      role: role,
+      sessionId: sessionToken ? String(sessionToken).substring(0, 8) + "..." : "N/A",
+      action: "RESET_ATTEMPT",
+      tool: "CONTROLLED_PRODUCTION_RESET",
+      resourceId: AUTHORIZED_CR_ID,
+      decision: "ALLOWED",
+      reason: "Preflight passed for all 7 sheets. Manifest: " + AUTHORIZED_MANIFEST_ID + " | Env: " + serverEnv
+    });
+
+    if (!attemptLogged) {
+      return {
+        success: false,
+        message: "Gagal mencatat audit log RESET_ATTEMPT. Fail-closed: eksekusi mutasi dibatalkan sebelum dimulai.",
+        data: null,
+        errorCode: "AUDIT_ATTEMPT_FAILED"
+      };
+    }
+
+    // 8. SET STATE = IN_PROGRESS
+    props.setProperty(STATE_KEY, "IN_PROGRESS");
+
+    // 9. SEQUENTIAL MUTATION AND READ-BACK
+    var completedTargets = [];
+    var targetDetails = [];
+
+    for (var j = 0; j < ALLOWED_RESET_TARGETS.length; j++) {
+      var currentTargetName = ALLOWED_RESET_TARGETS[j];
+      var snapshot = preflightSnapshots[currentTargetName];
+      var targetSheet = snapshot.sheet;
+      var preRow = snapshot.initialLastRow;
+      var targetCols = snapshot.lastCol;
+
+      var rowsCleared = 0;
+
+      try {
+        // Step A: Clear body content only (row 2 to lastRow)
+        if (preRow > 1) {
+          targetSheet.getRange(2, 1, preRow - 1, targetCols).clearContent();
+          rowsCleared = preRow - 1;
+        }
+        SpreadsheetApp.flush();
+
+        // Step B & C: Read-back verification
+        var postRow = targetSheet.getLastRow();
+        var postHeaders = targetSheet.getRange(1, 1, 1, targetCols).getValues()[0];
+
+        // Body must be 0 rows, so lastRow must be 1 (or 0 if sheet had no rows, but header exists so 1)
+        if (postRow > 1) {
+          props.setProperty(STATE_KEY, "FAILED_PARTIAL");
+          writeAuditLog({
+            userId: userId,
+            role: role,
+            action: "RESET_READBACK_FAILED",
+            tool: "CONTROLLED_PRODUCTION_RESET",
+            resourceId: currentTargetName,
+            decision: "TERMINAL_STOP",
+            reason: "Read-back verification failed: postRow (" + postRow + ") > 1"
+          });
+          return {
+            success: false,
+            message: "Read-back verification gagal pada sheet '" + currentTargetName + "': masih terdapat " + (postRow - 1) + " baris data setelah pembersihan.",
+            data: {
+              status: "FAILED_PARTIAL",
+              failedTarget: currentTargetName,
+              completedTargets: completedTargets,
+              details: targetDetails
+            },
+            errorCode: "FAILED_PARTIAL"
+          };
+        }
+
+        // Step D: Verify header integrity against preflight snapshot
+        for (var h = 0; h < snapshot.headers.length; h++) {
+          if (String(postHeaders[h]) !== String(snapshot.headers[h])) {
+            props.setProperty(STATE_KEY, "FAILED_PARTIAL");
+            writeAuditLog({
+              userId: userId,
+              role: role,
+              action: "RESET_HEADER_CORRUPTED",
+              tool: "CONTROLLED_PRODUCTION_RESET",
+              resourceId: currentTargetName,
+              decision: "TERMINAL_STOP",
+              reason: "Header column " + (h + 1) + " mismatch after clearContent"
+            });
+            return {
+              success: false,
+              message: "Verifikasi integritas header gagal pada sheet '" + currentTargetName + "': header kolom " + (h + 1) + " berubah.",
+              data: {
+                status: "FAILED_PARTIAL",
+                failedTarget: currentTargetName,
+                completedTargets: completedTargets,
+                details: targetDetails
+              },
+              errorCode: "FAILED_PARTIAL"
+            };
+          }
+        }
+
+        // Step E: Write target-success audit
+        var targetAuditSuccess = writeAuditLog({
+          userId: userId,
+          role: role,
+          sessionId: sessionToken ? String(sessionToken).substring(0, 8) + "..." : "N/A",
+          action: "RESET_TARGET_SUCCESS",
+          tool: "CONTROLLED_PRODUCTION_RESET",
+          resourceId: currentTargetName,
+          decision: "CLEARED",
+          reason: "Target " + currentTargetName + " cleared (" + rowsCleared + " rows). Read-back: PASS."
+        });
+
+        if (!targetAuditSuccess) {
+          props.setProperty(STATE_KEY, "FAILED_PARTIAL");
+          return {
+            success: false,
+            message: "Target '" + currentTargetName + "' berhasil dikosongkan dan diverifikasi, namun pencatatan audit log target gagal. Mutasi dihentikan fail-closed.",
+            data: {
+              status: "MUTATION_SUCCEEDED_AUDIT_WRITE_FAILED",
+              failedAuditTarget: currentTargetName,
+              completedTargets: completedTargets.concat([currentTargetName]),
+              details: targetDetails.concat([{
+                sheet: currentTargetName,
+                rowsCleared: rowsCleared,
+                postRow: postRow,
+                status: "VERIFIED_AUDIT_WRITE_FAILED"
+              }])
+            },
+            errorCode: "FAILED_PARTIAL"
+          };
+        }
+
+        completedTargets.push(currentTargetName);
+        targetDetails.push({
+          sheet: currentTargetName,
+          rowsCleared: rowsCleared,
+          postRow: postRow,
+          status: preRow <= 1 ? "ALREADY_EMPTY" : "VERIFIED"
+        });
+
+      } catch (mutationErr) {
+        props.setProperty(STATE_KEY, "FAILED_PARTIAL");
+        writeAuditLog({
+          userId: userId,
+          role: role,
+          action: "RESET_TARGET_EXCEPTION",
+          tool: "CONTROLLED_PRODUCTION_RESET",
+          resourceId: currentTargetName,
+          decision: "TERMINAL_STOP",
+          reason: "Exception during reset: " + (mutationErr && mutationErr.message ? mutationErr.message : "Error")
+        });
+        return {
+          success: false,
+          message: "Terjadi kesalahan saat mengosongkan target sheet '" + currentTargetName + "': " + (mutationErr && mutationErr.message ? mutationErr.message : "Error"),
+          data: {
+            status: "FAILED_PARTIAL",
+            failedTarget: currentTargetName,
+            completedTargets: completedTargets,
+            details: targetDetails
+          },
+          errorCode: "FAILED_PARTIAL"
+        };
+      }
+    }
+
+    // 10. SUCCESS: All 7 targets completed and verified
+    props.setProperty(STATE_KEY, "COMPLETED");
+
+    // 11. FINAL AUDIT
+    var finalAuditOk = writeAuditLog({
+      userId: userId,
+      role: role,
+      sessionId: sessionToken ? String(sessionToken).substring(0, 8) + "..." : "N/A",
+      action: "RESET_FINAL_RESULT",
+      tool: "CONTROLLED_PRODUCTION_RESET",
+      resourceId: AUTHORIZED_CR_ID,
+      decision: "COMPLETED",
+      reason: "All 7 target sheets successfully cleared and read-back verified under " + AUTHORIZED_CR_ID
+    });
+
+    if (!finalAuditOk) {
+      return {
+        success: true,
+        message: "Seluruh 7 target sheet berhasil di-reset dan diverifikasi, namun penulisan audit akhir gagal.",
+        data: {
+          crId: AUTHORIZED_CR_ID,
+          status: "COMPLETED_AUDIT_WRITE_FAILED",
+          totalTargets: 7,
+          verifiedTargets: completedTargets,
+          details: targetDetails
+        },
+        errorCode: "COMPLETED_AUDIT_WRITE_FAILED"
+      };
+    }
+
+    return {
+      success: true,
+      message: "Controlled production reset berhasil diselesaikan dan diverifikasi.",
+      data: {
+        crId: AUTHORIZED_CR_ID,
+        status: "COMPLETED",
+        totalTargets: 7,
+        verifiedTargets: completedTargets,
+        details: targetDetails
+      },
+      errorCode: null
+    };
+
+  } finally {
+    // 12. RELEASE SCRIPT LOCK
+    if (lockAcquired) {
+      try {
+        lock.releaseLock();
+      } catch (relErr) {
+        Logger.log("Error releasing ScriptLock: " + relErr.toString());
+      }
+    }
+  }
+}
+
