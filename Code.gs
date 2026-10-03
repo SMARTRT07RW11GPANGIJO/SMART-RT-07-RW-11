@@ -315,6 +315,46 @@ function doPost(e) {
       }
     }
 
+    // 16. CR-WCR/PROD-003: recoverLegacyWargaChangeRequest Action Router
+    if (action === "recoverLegacyWargaChangeRequest") {
+      try {
+        var resRecoverWcr =
+          (typeof recoverLegacyWargaChangeRequest === "function")
+            ? recoverLegacyWargaChangeRequest(payload)
+            : {
+                success: false,
+                message: "Fungsi recoverLegacyWargaChangeRequest belum tersedia pada backend.",
+                data: null,
+                errorCode: "FUNCTION_NOT_FOUND"
+              };
+
+        // Single response envelope, no double-wrapping
+        if (
+          resRecoverWcr &&
+          typeof resRecoverWcr === "object" &&
+          ("success" in resRecoverWcr)
+        ) {
+          return jsonResponse(resRecoverWcr);
+        }
+
+        return jsonResponse({
+          success: true,
+          data: resRecoverWcr || null,
+          errorCode: null
+        });
+
+      } catch (err) {
+        return jsonResponse({
+          success: false,
+          message:
+            "Gagal melakukan recovery legacy WCR: " +
+            (err && err.message ? err.message : "Error"),
+          data: null,
+          errorCode: "RECOVER_LEGACY_WCR_FAILED"
+        });
+      }
+    }
+
     // Safe default handler for unrecognized actions
     return jsonResponse({
       success: false,
