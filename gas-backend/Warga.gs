@@ -642,6 +642,15 @@ function getWargaList(userRole) {
   var headers = dataValues[0];
   var records = [];
 
+  // Urutan kolom default berdasarkan kontrak data v1.1
+  var defaultColumns = [
+    "ID_WARGA", "NIK", "NO_KK", "NAMA_LENGKAP", "NAMA_PANGGILAN",
+    "JENIS_KELAMIN", "TEMPAT_LAHIR", "TANGGAL_LAHIR", "AGAMA", "STATUS_PERKAWINAN",
+    "PENDIDIKAN", "PEKERJAAN", "NO_HP", "EMAIL", "ALAMAT",
+    "BLOK", "STATUS_TINGGAL", "STATUS_WARGA", "TANGGAL_MASUK", "KETERANGAN",
+    "NAMA_PEMILIK_RUMAH", "TELEPON_PEMILIK_RUMAH", "HUBUNGAN_KELUARGA"
+  ];
+
   for (var r = 1; r < dataValues.length; r++) {
     var row = dataValues[r];
     
@@ -657,8 +666,7 @@ function getWargaList(userRole) {
 
     var record = {};
     for (var h = 0; h < headers.length; h++) {
-      var headerName = String(headers[h] || '').trim();
-      if (!headerName) continue;
+      var rawHeader = String(headers[h] || '').trim();
       var cellVal = row[h];
 
       // Format Date ke YYYY-MM-DD string
@@ -676,11 +684,59 @@ function getWargaList(userRole) {
       } else {
         cellVal = "";
       }
-      record[headerName] = cellVal;
+
+      // 1. Simpan key asli sesuai teks header Sheet
+      if (rawHeader) {
+        record[rawHeader] = cellVal;
+      }
+
+      // 2. Normalisasi key header ke UPPERCASE untuk lookup konsisten
+      var normalizedHeader = String(headers[h] || '').trim().toUpperCase();
+      var normalizedKey = normalizedHeader.replace(/[\s/._-]+/g, '_');
+      if (normalizedHeader) {
+        record[normalizedHeader] = cellVal;
+      }
+      if (normalizedKey && normalizedKey !== normalizedHeader) {
+        record[normalizedKey] = cellVal;
+      }
+
+      // 3. Fallback pemetaan indeks kolom kontrak v1.1
+      if (h < defaultColumns.length && defaultColumns[h]) {
+        var defKey = defaultColumns[h];
+        if (!record[defKey]) {
+          record[defKey] = cellVal;
+        }
+      }
     }
 
-    // Filter baris minimal: harus memiliki NIK, ID_WARGA, atau NAMA_LENGKAP
-    if (record.NIK || record.ID_WARGA || record.NAMA_LENGKAP) {
+    // 4. Normalisasi alias field-field SSoT inti agar selalu tersedia dalam UPPERCASE standar
+    if (!record.NIK && (record.nik || record.Nik || record["Nomor KTP"] || record["NOMOR_KTP"])) {
+      record.NIK = record.NIK || record.nik || record.Nik || record["Nomor KTP"] || record["NOMOR_KTP"];
+    }
+    if (!record.ID_WARGA && (record.id_warga || record.Id_Warga || record.id || record.ID)) {
+      record.ID_WARGA = record.ID_WARGA || record.id_warga || record.Id_Warga || record.id || record.ID;
+    }
+    if (!record.NO_KK && (record.no_kk || record.No_KK || record["Nomor KK"] || record["NOMOR_KK"])) {
+      record.NO_KK = record.NO_KK || record.no_kk || record.No_KK || record["Nomor KK"] || record["NOMOR_KK"];
+    }
+    if (!record.NAMA_LENGKAP && (record.nama_lengkap || record.Nama_Lengkap || record.nama || record.NAMA || record["Nama"])) {
+      record.NAMA_LENGKAP = record.NAMA_LENGKAP || record.nama_lengkap || record.Nama_Lengkap || record.nama || record.NAMA || record["Nama"];
+    }
+    if (!record.STATUS_WARGA && (record.status_warga || record.Status_Warga)) {
+      record.STATUS_WARGA = record.STATUS_WARGA || record.status_warga || record.Status_Warga;
+    }
+    if (!record.HUBUNGAN_KELUARGA && (record.hubungan_keluarga || record.Hubungan_Keluarga)) {
+      record.HUBUNGAN_KELUARGA = record.HUBUNGAN_KELUARGA || record.hubungan_keluarga || record.Hubungan_Keluarga;
+    }
+
+    // Filter baris minimal: harus memiliki NIK, ID_WARGA, atau NAMA_LENGKAP (case-insensitive & robust)
+    var hasIdentifier = !!(
+      record.NIK || record.nik || record.Nik ||
+      record.ID_WARGA || record.id_warga || record.Id_Warga ||
+      record.NAMA_LENGKAP || record.nama_lengkap || record.nama || record.NAMA
+    );
+
+    if (hasIdentifier) {
       records.push(record);
     }
   }

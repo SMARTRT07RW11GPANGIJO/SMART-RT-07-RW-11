@@ -642,6 +642,15 @@ function getWargaList(userRole) {
   var headers = dataValues[0];
   var records = [];
 
+  // Urutan kolom default berdasarkan kontrak data v1.1
+  var defaultColumns = [
+    "ID_WARGA", "NIK", "NO_KK", "NAMA_LENGKAP", "NAMA_PANGGILAN",
+    "JENIS_KELAMIN", "TEMPAT_LAHIR", "TANGGAL_LAHIR", "AGAMA", "STATUS_PERKAWINAN",
+    "PENDIDIKAN", "PEKERJAAN", "NO_HP", "EMAIL", "ALAMAT",
+    "BLOK", "STATUS_TINGGAL", "STATUS_WARGA", "TANGGAL_MASUK", "KETERANGAN",
+    "NAMA_PEMILIK_RUMAH", "TELEPON_PEMILIK_RUMAH", "HUBUNGAN_KELUARGA"
+  ];
+
   for (var r = 1; r < dataValues.length; r++) {
     var row = dataValues[r];
     
@@ -657,8 +666,7 @@ function getWargaList(userRole) {
 
     var record = {};
     for (var h = 0; h < headers.length; h++) {
-      var headerName = String(headers[h] || '').trim();
-      if (!headerName) continue;
+      var rawHeader = String(headers[h] || '').trim();
       var cellVal = row[h];
 
       // Format Date ke YYYY-MM-DD string
@@ -676,7 +684,25 @@ function getWargaList(userRole) {
       } else {
         cellVal = "";
       }
-      record[headerName] = cellVal;
+
+      // 1. Simpan key asli sesuai teks header Sheet
+      if (rawHeader) {
+        record[rawHeader] = cellVal;
+      }
+
+      // 2. Normalisasi key header ke UPPERCASE untuk lookup konsisten
+      var normalizedHeader = rawHeader.toUpperCase().replace(/[\s/._-]+/g, '_');
+      if (normalizedHeader) {
+        record[normalizedHeader] = cellVal;
+      }
+
+      // 3. Fallback pemetaan indeks kolom kontrak v1.1
+      if (h < defaultColumns.length && defaultColumns[h]) {
+        var defKey = defaultColumns[h];
+        if (!record[defKey]) {
+          record[defKey] = cellVal;
+        }
+      }
     }
 
     // Filter baris minimal: harus memiliki NIK, ID_WARGA, atau NAMA_LENGKAP

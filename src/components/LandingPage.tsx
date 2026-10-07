@@ -21,6 +21,7 @@ import {
 import { Pengumuman, AgendaKegiatan, TransaksiKeuangan, Warga, Keluarga } from '../types/rt';
 import { WhatsAppBotSimulator } from './WhatsAppBotSimulator';
 import { IdentityAuthService } from '../services/identityAuthService';
+import { ResidentFamilyService } from '../services/residentFamilyService';
 
 interface LandingProps {
   setTab: (tab: string) => void;
@@ -87,11 +88,19 @@ export const LandingPage: React.FC<LandingProps> = ({
 
   const saldoKas = transactions.length > 0 ? transactions[transactions.length - 1].saldo_berjalan : 0;
 
-  // CR — HARMONISASI SSoT KELUARGA / KK:
+  // CR — HARMONISASI SSoT KELUARGA / KK & WARGA:
+  // Gunakan wargaList jika terisi, fallback ke confirmed SSoT cache saat public production boot
+  const effectiveWargaList = React.useMemo(() => {
+    if (Array.isArray(wargaList) && wargaList.length > 0) {
+      return wargaList;
+    }
+    return ResidentFamilyService.getConfirmedWargaSSoT();
+  }, [wargaList]);
+
   // Hitung jumlah KK secara sah dari unique NO_KK data warga aktif yang tersedia, atau keluargaList jika ada
   const displayKkCount = React.useMemo(() => {
     const kkSet = new Set<string>();
-    wargaList.forEach((w) => {
+    effectiveWargaList.forEach((w) => {
       const status = String(w.status_warga || '').trim().toUpperCase();
       const noKk = String(w.no_kk || w.nomorKK || '').trim();
       if ((status === 'AKTIF' || !w.status_warga) && noKk.length > 0) {
@@ -100,15 +109,15 @@ export const LandingPage: React.FC<LandingProps> = ({
     });
     if (kkSet.size > 0) return kkSet.size;
     return keluargaList.length > 0 ? keluargaList.length : 0;
-  }, [wargaList, keluargaList]);
+  }, [effectiveWargaList, keluargaList]);
 
   const displayWargaCount = React.useMemo(() => {
-    const activeWarga = wargaList.filter(w => {
+    const activeWarga = effectiveWargaList.filter(w => {
       const status = String(w.status_warga || '').trim().toUpperCase();
       return status === 'AKTIF' || (!w.status_warga && String(w.id_warga || '').trim().length > 0);
     });
-    return activeWarga.length > 0 ? activeWarga.length : wargaList.length;
-  }, [wargaList]);
+    return activeWarga.length > 0 ? activeWarga.length : 0;
+  }, [effectiveWargaList]);
 
   return (
     <div className="space-y-16 pb-12">
